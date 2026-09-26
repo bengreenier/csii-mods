@@ -11,6 +11,15 @@ $hub-size: 240rem;
     pointer-events: auto;
 }
 
+// One cursor for the whole wheel (vanilla gives buttons `cursor: pointer`).
+// Navigating swaps elements under a stationary mouse, and the game only
+// re-evaluates the cursor on mouse move, so any per-element cursor would
+// show stale until the mouse moved.
+.backdrop,
+.backdrop * {
+    cursor: default;
+}
+
 // Zero-size anchor at screen centre; items are positioned relative to it.
 .wheel {
     position: absolute;
