@@ -16,6 +16,8 @@ namespace RadialMenu
 
         public static ProxyAction ToggleAction { get; private set; }
 
+        public static Setting Settings { get; private set; }
+
         private Setting _setting;
 
         public void OnLoad(UpdateSystem updateSystem)
@@ -34,6 +36,7 @@ namespace RadialMenu
             ToggleAction.shouldBeEnabled = true;
 
             AssetDatabase.global.LoadSettings(nameof(RadialMenu), _setting, new Setting(this));
+            Settings = _setting;
 
             updateSystem.UpdateAt<RadialMenuUISystem>(SystemUpdatePhase.UIUpdate);
         }
@@ -45,6 +48,7 @@ namespace RadialMenu
 
             _setting.UnregisterInOptionsUI();
             _setting = null;
+            Settings = null;
         }
     }
 }

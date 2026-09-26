@@ -8,18 +8,23 @@ using System.Collections.Generic;
 namespace RadialMenu
 {
     [FileLocation(nameof(RadialMenu))]
-    [SettingsUIGroupOrder(KKeybindingGroup)]
-    [SettingsUIShowGroupName(KKeybindingGroup)]
+    [SettingsUIGroupOrder(KGeneralGroup, KKeybindingGroup)]
+    [SettingsUIShowGroupName(KGeneralGroup, KKeybindingGroup)]
     [SettingsUIKeyboardAction(Mod.KToggleActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
     [SettingsUIMouseAction(Mod.KToggleActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
     public class Setting : ModSetting
     {
         public const string KSection = "Main";
+        public const string KGeneralGroup = "General";
         public const string KKeybindingGroup = "KeyBinding";
 
         public Setting(IMod mod) : base(mod)
         {
+            SetDefaults();
         }
+
+        [SettingsUISection(KSection, KGeneralGroup)]
+        public bool HideVanillaToolbar { get; set; }
 
         [SettingsUIKeyboardBinding(BindingKeyboard.Tab, Mod.KToggleActionName)]
         [SettingsUISection(KSection, KKeybindingGroup)]
@@ -41,6 +46,7 @@ namespace RadialMenu
 
         public override void SetDefaults()
         {
+            HideVanillaToolbar = true;
         }
     }
 
@@ -60,7 +66,11 @@ namespace RadialMenu
                 { _setting.GetSettingsLocaleID(), "Radial Menu" },
                 { _setting.GetOptionTabLocaleID(Setting.KSection), "Main" },
 
+                { _setting.GetOptionGroupLocaleID(Setting.KGeneralGroup), "General" },
                 { _setting.GetOptionGroupLocaleID(Setting.KKeybindingGroup), "Key bindings" },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.HideVanillaToolbar)), "Hide vanilla toolbar tabs" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.HideVanillaToolbar)), "Hide the bottom toolbar's tab buttons and the asset panel that opens from them, so the radial menu replaces them" },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ToggleKeyboardBinding)), "Toggle radial menu" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ToggleKeyboardBinding)), "Keyboard key that opens or closes the radial menu" },

@@ -6,4 +6,6 @@ const GROUP = mod.id;
 
 export const isOpen$ = bindValue<boolean>(GROUP, "isOpen", false);
 
+export const hideVanillaToolbar$ = bindValue<boolean>(GROUP, "hideVanillaToolbar", false);
+
 export const close = () => trigger(GROUP, "close");

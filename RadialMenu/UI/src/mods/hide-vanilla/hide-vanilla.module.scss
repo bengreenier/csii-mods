@@ -1,0 +1,5 @@
+// Doubled class for extra specificity over the vanilla component's own
+// display rules, which load before ours.
+.hidden.hidden {
+    display: none;
+}

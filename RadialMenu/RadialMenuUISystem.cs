@@ -6,7 +6,7 @@ using Game.UI;
 namespace RadialMenu
 {
     /// <summary>
-    /// Owns the radial menu's open state and exposes it to the UI module.
+    /// Owns the radial menu's open state and settings exposed to the UI module.
     /// Everything else (toolbar groups, selecting a menu) uses the game's own bindings.
     /// </summary>
     public partial class RadialMenuUISystem : UISystemBase
@@ -24,6 +24,9 @@ namespace RadialMenu
             base.OnCreate();
             AddBinding(_isOpen = new ValueBinding<bool>(kGroup, "isOpen", false));
             AddBinding(new TriggerBinding(kGroup, "close", () => SetOpen(false)));
+            // Polled each update, so toggling the option applies live.
+            AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "hideVanillaToolbar",
+                () => Mod.Settings?.HideVanillaToolbar ?? false));
         }
 
         protected override void OnGamePreload(Colossal.Serialization.Entities.Purpose purpose, GameMode mode)
