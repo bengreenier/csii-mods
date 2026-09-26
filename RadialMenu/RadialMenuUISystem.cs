@@ -1,7 +1,11 @@
+using System.Linq;
 using Colossal.UI.Binding;
 using Game;
+using Game.Input;
 using Game.SceneFlow;
 using Game.UI;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 namespace RadialMenu
 {
@@ -45,8 +49,27 @@ namespace RadialMenu
                 return;
             }
 
-            if (Mod.ToggleAction != null && Mod.ToggleAction.WasPerformedThisFrame())
+            if (Mod.ToggleAction == null) return;
+
+            // While the menu's search field has focus the game blocks keyboard
+            // actions (ours included), so read the bound keys directly to still
+            // allow closing. Only while open, so typing in other fields can't open it.
+            var typingInMenu = _isOpen.value && InputManager.instance.hasInputFieldFocus;
+            if (Mod.ToggleAction.WasPerformedThisFrame() || (typingInMenu && WasBindingPressedThisFrame(Mod.ToggleAction)))
                 SetOpen(!_isOpen.value);
+        }
+
+        private static bool WasBindingPressedThisFrame(ProxyAction action)
+        {
+            foreach (var binding in action.bindings)
+            {
+                if (!binding.isSet || !(InputSystem.FindControl(binding.path) is ButtonControl key) || !key.wasPressedThisFrame)
+                    continue;
+
+                if (binding.modifiers.All(m => InputSystem.FindControl(m.m_Path) is ButtonControl modifier && modifier.isPressed))
+                    return true;
+            }
+            return false;
         }
 
         private void SetOpen(bool open)

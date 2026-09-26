@@ -1,4 +1,4 @@
-import { MouseEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { KeyboardEvent, MouseEvent, MutableRefObject, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useValue, useMapValue } from "cs2/api";
 import { map, prefab, selectedInfo, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
@@ -7,6 +7,7 @@ import { Entity, entityKey } from "cs2/utils";
 import classNames from "classnames";
 import { close, isOpen$ } from "./bindings";
 import { layoutWheel } from "./layout";
+import { SearchResult, SearchResults, SearchScope, useAssetSearch } from "./search";
 import styles from "./radial-menu.module.scss";
 
 // ToolbarItemType.menu. Compared numerically because the ambient enum from
@@ -28,6 +29,10 @@ const InputActionConsumer: (props: {
 
 const BACK_DEBOUNCE_MS = 100;
 
+const KEY_ENTER = 13;
+const KEY_ESCAPE = 27;
+const KEY_TAB = 9;
+
 const EMPTY: never[] = [];
 
 // Where the user has drilled to. A menu with a single category skips straight
@@ -48,6 +53,13 @@ interface WheelEntry {
     onSelect: () => void;
 }
 
+// Shared by every level: the typed filter, and a slot the wheel fills with
+// "select the first match" for Enter.
+interface SearchProps {
+    query: string;
+    submitRef: MutableRefObject<(() => void) | null>;
+}
+
 // Mirrors what the vanilla toolbar button does on select
 // (see toolbar-button-strip.tsx in the game's UI bundle).
 function activateToolbarItem(item: toolbar.ToolbarItem) {
@@ -59,6 +71,31 @@ function activateToolbarItem(item: toolbar.ToolbarItem) {
     } else {
         toolbar.selectAsset(item.entity, true);
     }
+}
+
+function assetEntry(asset: toolbar.Asset, onSelect: () => void): WheelEntry {
+    return {
+        entity: asset.entity,
+        name: asset.name,
+        icon: asset.icon,
+        // Same rule the vanilla asset grid uses for its "Select" hint.
+        disabled: asset.locked || (asset.unique && asset.placed),
+        showPreview: true,
+        onSelect,
+    };
+}
+
+// A search hit may live in another menu/category, so select the whole chain
+// as a manual drill-down would, keeping the (hidden) vanilla panel in sync.
+function searchResultEntries(results: SearchResult[]): WheelEntry[] {
+    return results.map(({ menu, category, asset }) =>
+        assetEntry(asset, () => {
+            activateToolbarItem(menu);
+            toolbar.selectAssetCategory(category.entity);
+            toolbar.selectAsset(asset.entity, true);
+            close();
+        })
+    );
 }
 
 const PrefabTitle = ({ entity, fallback }: { entity: Entity; fallback: string }) => {
@@ -76,22 +113,60 @@ const PrefabPreview = ({ entity, fallbackIcon }: { entity: Entity; fallbackIcon:
     return <img className={styles.hubPreview} src={src} />;
 };
 
-interface WheelProps {
+function matchSummary(shown: number, total: number) {
+    if (total === 0) return "No matches";
+    if (total > shown) return `${shown} of ${total} matches`;
+    return total === 1 ? "1 match" : `${total} matches`;
+}
+
+interface WheelProps extends SearchProps {
     entries: WheelEntry[];
     grouped?: boolean;
     // What the hub shows when nothing is hovered.
     current?: { entity: Entity; name: string };
+    // Present while searching; `entries` are then the results.
+    search?: SearchResults;
     onBack?: () => void;
 }
 
-const Wheel = ({ entries, grouped, current, onBack }: WheelProps) => {
+const Wheel = ({ entries, grouped, current, search, query, submitRef, onBack }: WheelProps) => {
     const [hovered, setHovered] = useState<WheelEntry | null>(null);
     const slots = useMemo(
         () => layoutWheel(entries, grouped ? (e) => e.group ?? 0 : undefined),
         [entries, grouped]
     );
 
-    const hubLabel = hovered ?? current;
+    // Entries are rebuilt as results change; drop a hover that no longer exists.
+    const hoveredEntry = hovered && entries.includes(hovered) ? hovered : null;
+
+    useEffect(() => {
+        submitRef.current = search ? () => entries.find((e) => !e.disabled)?.onSelect() : null;
+    }, [search, entries, submitRef]);
+
+    let hubContent;
+    if (hoveredEntry || !search) {
+        const label = hoveredEntry ?? current;
+        hubContent = (
+            <>
+                {hoveredEntry?.showPreview && (
+                    <PrefabPreview entity={hoveredEntry.entity} fallbackIcon={hoveredEntry.icon} />
+                )}
+                {label && (
+                    <div className={classNames(styles.hubTitle, hoveredEntry?.showPreview && styles.hubTitleSmall)}>
+                        <PrefabTitle entity={label.entity} fallback={label.name} />
+                    </div>
+                )}
+                {onBack && !hoveredEntry && <div className={styles.hubHint}>Back</div>}
+            </>
+        );
+    } else {
+        hubContent = (
+            <>
+                <div className={styles.hubQuery}>{query}</div>
+                <div className={styles.hubHint}>{matchSummary(entries.length, search.total)}</div>
+            </>
+        );
+    }
 
     return (
         <div className={styles.wheel}>
@@ -102,15 +177,7 @@ const Wheel = ({ entries, grouped, current, onBack }: WheelProps) => {
                     onBack?.();
                 }}
             >
-                {hovered?.showPreview && (
-                    <PrefabPreview entity={hovered.entity} fallbackIcon={hovered.icon} />
-                )}
-                {hubLabel && (
-                    <div className={classNames(styles.hubTitle, hovered?.showPreview && styles.hubTitleSmall)}>
-                        <PrefabTitle entity={hubLabel.entity} fallback={hubLabel.name} />
-                    </div>
-                )}
-                {onBack && !hovered && <div className={styles.hubHint}>Back</div>}
+                {hubContent}
             </div>
             {slots.map(({ entry, x, y }) => (
                 <button
@@ -131,8 +198,9 @@ const Wheel = ({ entries, grouped, current, onBack }: WheelProps) => {
     );
 };
 
-const RootLevel = ({ onOpenMenu }: { onOpenMenu: (menu: toolbar.ToolbarItem) => void }) => {
+const RootLevel = ({ onOpenMenu, ...searchProps }: SearchProps & { onOpenMenu: (menu: toolbar.ToolbarItem) => void }) => {
     const groups = useValue(toolbar.toolbarGroups$);
+    const search = useAssetSearch(searchProps.query, useLocalization(), groups, "all");
     const entries = useMemo(
         () =>
             groups.flatMap((group, groupIndex) =>
@@ -151,17 +219,22 @@ const RootLevel = ({ onOpenMenu }: { onOpenMenu: (menu: toolbar.ToolbarItem) => 
             ),
         [groups, onOpenMenu]
     );
-    return <Wheel entries={entries} grouped />;
+    const resultEntries = useMemo(() => searchResultEntries(search.results), [search.results]);
+
+    if (searchProps.query) return <Wheel entries={resultEntries} search={search} {...searchProps} />;
+    return <Wheel entries={entries} grouped {...searchProps} />;
 };
 
-interface MenuLevelProps {
+interface MenuLevelProps extends SearchProps {
     menu: toolbar.ToolbarItem;
     onOpenCategory: (category: toolbar.AssetCategory) => void;
     onBack: () => void;
 }
 
-const MenuLevel = ({ menu, onOpenCategory, onBack }: MenuLevelProps) => {
+const MenuLevel = ({ menu, onOpenCategory, onBack, ...searchProps }: MenuLevelProps) => {
     const categories = useMapValue(toolbar.assetCategories$, menu.entity) ?? EMPTY;
+    const scope = useMemo(() => categories.map<SearchScope>((category) => ({ menu, category })), [categories, menu]);
+    const search = useAssetSearch(searchProps.query, useLocalization(), EMPTY, scope);
     const entries = useMemo(
         () =>
             categories.map<WheelEntry>((category) => ({
@@ -176,53 +249,67 @@ const MenuLevel = ({ menu, onOpenCategory, onBack }: MenuLevelProps) => {
             })),
         [categories, onOpenCategory]
     );
+    const resultEntries = useMemo(() => searchResultEntries(search.results), [search.results]);
 
     if (categories.length === 1) {
-        return <CategoryLevel category={categories[0]} current={menu} onBack={onBack} />;
+        return <CategoryLevel menu={menu} category={categories[0]} current={menu} onBack={onBack} {...searchProps} />;
     }
-    return <Wheel entries={entries} current={menu} onBack={onBack} />;
+    if (searchProps.query) {
+        return <Wheel entries={resultEntries} search={search} current={menu} onBack={onBack} {...searchProps} />;
+    }
+    return <Wheel entries={entries} current={menu} onBack={onBack} {...searchProps} />;
 };
 
-interface CategoryLevelProps {
+interface CategoryLevelProps extends SearchProps {
+    menu: toolbar.ToolbarItem;
     category: toolbar.AssetCategory;
     current: { entity: Entity; name: string };
     onBack: () => void;
 }
 
-const CategoryLevel = ({ category, current, onBack }: CategoryLevelProps) => {
+const CategoryLevel = ({ menu, category, current, onBack, ...searchProps }: CategoryLevelProps) => {
     const assets = useMapValue(toolbar.assets$, category.entity) ?? EMPTY;
+    const scope = useMemo<SearchScope[]>(() => [{ menu, category }], [menu, category]);
+    const search = useAssetSearch(searchProps.query, useLocalization(), EMPTY, scope);
     const entries = useMemo(
         () =>
-            assets.map<WheelEntry>((asset) => ({
-                entity: asset.entity,
-                name: asset.name,
-                icon: asset.icon,
-                // Same rule the vanilla asset grid uses for its "Select" hint.
-                disabled: asset.locked || (asset.unique && asset.placed),
-                showPreview: true,
-                onSelect: () => {
+            assets.map((asset) =>
+                assetEntry(asset, () => {
                     toolbar.selectAsset(asset.entity, true);
                     close();
-                },
-            })),
+                })
+            ),
         [assets]
     );
-    return <Wheel entries={entries} current={current} onBack={onBack} />;
+    const resultEntries = useMemo(() => searchResultEntries(search.results), [search.results]);
+
+    if (searchProps.query) {
+        return <Wheel entries={resultEntries} search={search} current={current} onBack={onBack} {...searchProps} />;
+    }
+    return <Wheel entries={entries} current={current} onBack={onBack} {...searchProps} />;
 };
 
 export const RadialMenu = () => {
     const isOpen = useValue(isOpen$);
+    // Mounted only while open, so navigation and search reset on every open.
+    return isOpen ? <OpenRadialMenu /> : null;
+};
+
+const OpenRadialMenu = () => {
     const [path, setPath] = useState<Path>({});
+    const [query, setQuery] = useState("");
+    const submitRef = useRef<(() => void) | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const openMenu = useCallback((menu: toolbar.ToolbarItem) => setPath({ menu }), []);
     const openCategory = useCallback(
         (category: toolbar.AssetCategory) => setPath((p) => ({ ...p, category })),
         []
     );
-    // Steps back one level (right-click, Escape, or the hub). Leaving a menu
-    // for the root closes the vanilla asset panel and drops the active tool,
-    // same as the panel's own close button; backing out of the root also
-    // resets it (in case a tool was active when the wheel opened) and closes.
+    // Steps back one level (right-click, Escape, or the hub). Typed text is
+    // cleared first. Leaving a menu for the root closes the vanilla asset panel
+    // and drops the active tool, same as the panel's own close button; backing
+    // out of the root also resets it (in case a tool was active) and closes.
     const lastBackAt = useRef(0);
     const back = useCallback(() => {
         // One physical input can arrive through more than one route (e.g. a
@@ -231,6 +318,10 @@ export const RadialMenu = () => {
         if (now - lastBackAt.current < BACK_DEBOUNCE_MS) return;
         lastBackAt.current = now;
 
+        if (query) {
+            setQuery("");
+            return;
+        }
         if (path.category) {
             setPath({ menu: path.menu });
             return;
@@ -238,34 +329,68 @@ export const RadialMenu = () => {
         toolbar.clearAssetSelection();
         if (path.menu) setPath({});
         else close();
-    }, [path]);
+    }, [path, query]);
 
-    useEffect(() => {
-        if (!isOpen) setPath({});
-    }, [isOpen]);
+    // The search field keeps keyboard focus while the menu is open. A focused
+    // text field also makes the game ignore its keyboard shortcuts, so typing
+    // doesn't move the camera etc.
+    const focusInput = useCallback(() => inputRef.current?.focus(), []);
+    useEffect(focusInput, [focusInput]);
 
-    // Escape reaches the UI as the game's "Back" input action, dispatched before
-    // "Pause Menu"; consuming it here keeps the pause menu from opening.
+    // With the field focused the game's "Back" action (Escape) doesn't fire, so
+    // handle keys here like vanilla's TextInput does. The toggle key is handled
+    // on the C# side.
+    const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        e.stopPropagation();
+        if (e.keyCode === KEY_ESCAPE) {
+            e.preventDefault();
+            back();
+        } else if (e.keyCode === KEY_ENTER) {
+            e.preventDefault();
+            submitRef.current?.();
+        } else if (e.keyCode === KEY_TAB) {
+            e.preventDefault(); // don't move focus out of the field
+        }
+    };
+
+    // Still consumed for when the field isn't focused (e.g. mid-click).
     const inputActions = useMemo(() => ({ Back: back }), [back]);
-
-    if (!isOpen) return null;
 
     const onMouseDown = (e: MouseEvent) => {
         if (e.button === 2) back();
     };
 
+    const searchProps: SearchProps = { query, submitRef };
     let level;
     if (path.menu && path.category) {
-        level = <CategoryLevel category={path.category} current={path.category} onBack={back} />;
+        level = (
+            <CategoryLevel
+                menu={path.menu}
+                category={path.category}
+                current={path.category}
+                onBack={back}
+                {...searchProps}
+            />
+        );
     } else if (path.menu) {
-        level = <MenuLevel menu={path.menu} onOpenCategory={openCategory} onBack={back} />;
+        level = <MenuLevel menu={path.menu} onOpenCategory={openCategory} onBack={back} {...searchProps} />;
     } else {
-        level = <RootLevel onOpenMenu={openMenu} />;
+        level = <RootLevel onOpenMenu={openMenu} {...searchProps} />;
     }
 
     return (
         <InputActionConsumer actions={inputActions} ignoreFocusState>
             <div className={styles.backdrop} onClick={() => close()} onMouseDown={onMouseDown}>
+                <input
+                    ref={inputRef}
+                    className={styles.searchInput}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={onKeyDown}
+                    // Clicking the wheel would otherwise steal focus (and hand
+                    // the keyboard back to the game).
+                    onBlur={() => requestAnimationFrame(focusInput)}
+                />
                 {level}
             </div>
         </InputActionConsumer>

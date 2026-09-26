@@ -66,6 +66,23 @@ $hub-size: 240rem;
     font-size: 16rem;
 }
 
+.hubQuery {
+    max-width: 100%;
+    font-size: 28rem;
+    font-weight: bold;
+}
+
+// Receives typing; the query is displayed in the hub instead.
+.searchInput {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1rem;
+    height: 1rem;
+    opacity: 0;
+    pointer-events: none;
+}
+
 .hubHint {
     margin-top: 8rem;
     font-size: 16rem;
