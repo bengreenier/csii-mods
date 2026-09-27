@@ -64,6 +64,7 @@ Titles come from the localization key `Assets.NAME[<prefab name>]`.
 | | `placed` | are unique and already placed | cheap |
 | | `locked` | aren't unlocked yet | cheap |
 | | `mod` | come from a mod (the asset's DLC icon is the Paradox Mods one) | cheap |
+| | `favorite` | are in this city's favorites (see Favorites) | cheap |
 | `theme:` | a theme word, e.g. `european`, `north`, `american` | belong to that theme (word prefix over the theme's name and title) | cheap |
 | `pack:` | an asset pack word, e.g. a pack's name or title | belong to that asset pack (word prefix over the pack's name and title) | cheap (C#) |
 | `zone:` | `residential`, `commercial`, `industrial`, `office`, and densities `low`, `medium`, `high` | are zoned buildings (e.g. signature buildings) or zone types (the Zones tab) of that zone type or density. Plain industrial has no density. | cheap (C#) |
@@ -96,6 +97,7 @@ The direction of an `fx:` effect (positive or negative) is not considered.
 | `theme:european` | European-theme assets |
 | `dlc:none` / `-dlc:none` | Base game only / DLC and mod content only |
 | `is:mod` / `-is:mod` | Mod assets only / no mod assets |
+| `is:favorite in:parks` | Your favorites in the Parks tab (from the top ring) |
 | `in:health` | Everything in Healthcare & Deathcare (useful from the top ring) |
 | `zone:office` | Office signature buildings and office zones |
 | `zone:residential zone:high` | High-density residential (two filters, ANDed) |

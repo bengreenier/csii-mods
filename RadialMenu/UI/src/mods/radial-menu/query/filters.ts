@@ -37,6 +37,7 @@ const IS_VALUES: Record<string, (r: AssetRecord) => boolean> = {
     placed: (r) => r.placed,
     locked: (r) => r.locked,
     mod: (r) => r.mod,
+    favorite: (r) => r.favorite,
 };
 
 // Curated hint list; matching accepts any effect/leisure type word.
@@ -168,6 +169,8 @@ export const FILTER_EXAMPLES = [
     "is: unique -is: placed",
     "is: new,unique",
     "is: mod",
+    "is: favorite",
+    "is: favorite in: parks",
     "-is: mod",
     "theme: european",
     "zone: office",

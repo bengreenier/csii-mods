@@ -3,7 +3,7 @@ import { useMapValues, useValue } from "cs2/api";
 import { prefab, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
 import { Entity, entityKey } from "cs2/utils";
-import { allAssets$, AssetMeta, assetMeta$, searchAllThemes$ } from "./bindings";
+import { allAssets$, AssetMeta, assetMeta$, favorites$, searchAllThemes$ } from "./bindings";
 import { evaluate } from "./query/evaluate";
 import { FilterContext } from "./query/filters";
 import { parse, ParsedQuery } from "./query/parser";
@@ -19,6 +19,7 @@ const DETAIL_SLOT_SIZE = 100;
 
 const EMPTY: never[] = [];
 const EMPTY_META = new Map<string, AssetMeta>();
+const EMPTY_KEYS: ReadonlySet<string> = new Set<string>();
 
 export interface SearchScope {
     menu: toolbar.ToolbarItem;
@@ -103,10 +104,17 @@ export function useAssetSearch(
     const searchAllThemes = useValue(searchAllThemes$);
     const assetsPerCategory = useMapValues(searchAllThemes ? allAssets$ : toolbar.assets$, categoryKeys);
 
+    // For is:favorite. Changes only when a favorite is added or removed.
+    const favorites = useValue(favorites$);
+    const favoriteKeys = useMemo(
+        () => (searching ? new Set(favorites.map((f) => entityKey(f.asset.entity))) : EMPTY_KEYS),
+        [searching, favorites]
+    );
+
     // Rebuilt only when game data changes, never per keystroke.
     const index = useMemo(
-        () => buildIndex(resolvedScope, assetsPerCategory, themes, metaByKey, loc),
-        [resolvedScope, assetsPerCategory, themes, metaByKey, loc]
+        () => buildIndex(resolvedScope, assetsPerCategory, themes, metaByKey, favoriteKeys, loc),
+        [resolvedScope, assetsPerCategory, themes, metaByKey, favoriteKeys, loc]
     );
 
     const parsed = useMemo(() => parse(query, index.ctx), [query, index.ctx]);
@@ -161,6 +169,7 @@ function buildIndex(
     assetsPerCategory: (toolbar.Asset[] | undefined)[],
     themes: { name: string; icon: string }[],
     metaByKey: Map<string, AssetMeta>,
+    favoriteKeys: ReadonlySet<string>,
     loc: l10n.Localization
 ): SearchIndex {
     // Name + both titles the game may use for it (the theme filter tooltip
@@ -215,6 +224,7 @@ function buildIndex(
                     unique: asset.unique,
                     placed: asset.placed,
                     highlight: asset.highlight,
+                    favorite: favoriteKeys.has(key),
                     locked: asset.locked,
                 },
                 records.length

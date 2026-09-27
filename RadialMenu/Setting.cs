@@ -368,6 +368,7 @@ namespace RadialMenu
                     "'is: placed' - unique buildings you have already built\n" +
                     "'is: locked' - things you haven't unlocked yet\n" +
                     "'is: mod' - things that come from mods (Paradox Mods)\n" +
+                    "'is: favorite' - things in this city's favorites\n" +
                     "\n" +
                     "Try 'is: unique -is: placed' to find the unique buildings still waiting for a spot."
                 },
