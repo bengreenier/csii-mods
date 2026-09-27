@@ -548,3 +548,6 @@ FodyWeavers.xsd
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/unity,visualstudio,rider
+
+# Claude Code: per-session git worktrees (the project skills in .claude/skills are tracked)
+.claude/worktrees/
