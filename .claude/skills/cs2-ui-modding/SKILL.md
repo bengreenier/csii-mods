@@ -96,6 +96,7 @@ Check these when writing UI code; each is explained in the references.
 | Settings `[SettingsUIMultilineText]` is **markup** | No `<placeholder>` (becomes a dead green link), `**`, leading `- `, `\`; blank lines are dropped |
 | Typings ≠ runtime (`useCachedLocalization` is actually `useLocalization`; enums may not exist) | Verify in the bundle; compare enum *values* numerically/as strings |
 | Unsupported CSS (`word-wrap`, some shorthands with `var()`) | Check `UI.log` warnings; use longhands |
+| The minifier turns `:nth-child(n + k)` into `n+k`, which Gameface drops (`CSS parsing error ... +k`) | Use `:nth-child(k) ~ *`; check the built `.css`, not just the source |
 | Cursor only re-evaluates on mouse move | Set one explicit `cursor` for your whole overlay |
 | `UISystemBase.gameMode` is *which modes the system runs in*, not the current mode | Use `GameManager.instance.gameMode` for "are we in a city" |
 | A focused `<input>` blocks **all** game keyboard actions (yours too) | Read bound keys directly in C# (`references/input.md`) |
