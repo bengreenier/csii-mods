@@ -415,20 +415,28 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
 - **Without the mod:** a save's block for a system that no longer exists is
   read by `ObsoleteSystemSerializer`, which skips its size-prefixed data. The
   city loads normally; saving it again (mod still disabled) drops the block.
-- **Format:** our own version number, a count, then each favorite's
-  `PrefabID` via `PrefabID.Serialize` (type, name and asset hash, as the game
-  stores prefab references). `PrefabSystem.TryGetPrefab(PrefabID)` looks prefabs
-  up by all three. IDs that don't resolve are kept, not dropped.
+- **The block must be read exactly.** `ComponentSystemSerializer` wraps each
+  system's data in a size-prefixed block and, after `Deserialize` returns,
+  throws `Data size mismatch when deserializing system ...` unless every byte
+  was read, which fails the whole load. So reading less (an early return on an
+  unknown version, a partial read) is not safe.
+- **Format:** for every version, exactly one `int` (our format version) and
+  one `string`. Later versions may change what's in the string, never the
+  layout, so any version reads the whole block. In v1 the string has one
+  favorite per line, as `PrefabID.ToUrlSegment()` (`type/name/hash`, type and
+  name URL-escaped), parsed back with `Uri.UnescapeDataString` and
+  `Hash128.TryParse`. `PrefabSystem.TryGetPrefab(PrefabID)` looks prefabs up by
+  type, name and hash. IDs that don't resolve are kept, not dropped.
 - **Removing it from a city:** the "Remove Radial Menu data from this city"
   button (Options > Radial Menu > Utilities, only enabled in a city) calls
   `FavoritesSystem.ResetCityData`. After the city is saved, its block holds
   only the format version and a count of 0. A save with no block at all needs
   the mod disabled while saving. Anything else stored per save later must be
   cleared by `ResetCityData` too.
-- **Deserialize never throws:** it's wrapped in try/catch and leaves the list
-  empty on anything unexpected, since an exception there would break loading
-  the save. Resolving IDs to prefabs happens later, when the list is sent to
-  the UI.
+- **Deserialize can't break loading:** it always reads the int and the string
+  first; everything after that (unknown version, unreadable lines) runs on the
+  already-read string inside try/catch and at worst costs favorites. Resolving
+  IDs to prefabs happens later, when the list is sent to the UI.
 - **UI:** `RadialMenu.favorites` (raw value binding) sends each resolved
   favorite as `{ asset, menu, category }`: `asset` is written by
   `ToolbarUISystem.BindAsset`, and `menu` / `category` come from
@@ -500,7 +508,7 @@ messages mostly exist to flag breakage after a game update.
 |---|---|
 | `OnLoad`, `Current mod asset at ...`, `OnDispose` | Normal mod lifecycle, once per session |
 | `Reset key bindings` | The "Reset key bindings" button was used |
-| `Favorites saved: N` / `Favorites loaded: N` | Once per save / load of a city |
+| `Favorites saved: N` / `Favorites loaded: N` | Once per save (autosaves too) / load of a city. `(K unreadable, skipped)` if some lines couldn't be parsed |
 | `Favorites not loaded: unknown format version N` (warning) | The save was written by a newer version of the mod; the city loads with no favorites |
 | `Favorites could not be read from the save; starting empty` (error) | The favorites block was unreadable; the city still loads |
 | `Removed Radial Menu data from this city` | The "Remove Radial Menu data from this city" button was confirmed; `Remove Radial Menu data skipped: no city loaded` if there was no city |

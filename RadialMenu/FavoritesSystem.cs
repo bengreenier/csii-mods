@@ -26,6 +26,7 @@ namespace RadialMenu
         // Bump when the layout below changes; Deserialize must keep reading
         // every older version.
         private const int kFormatVersion = 1;
+        private const char kLineSeparator = '\n';
 
         private readonly List<PrefabID> _favorites = new List<PrefabID>();
         private PrefabSystem _prefabSystem;
@@ -102,36 +103,47 @@ namespace RadialMenu
             Revision++;
         }
 
+        // Block layout, for every format version: one int (the version) and one
+        // string. Later versions may change what's inside the string, never the
+        // layout. The game throws ("Data size mismatch") and the save fails to
+        // load unless Deserialize consumes the block exactly, so reading both
+        // values unconditionally means any version can read (and skip) any
+        // other version's block.
+        //
+        // v1 string: one favorite per line, as PrefabID.ToUrlSegment():
+        // "<type>/<name>" or "<type>/<name>/<hash>", type and name URL-escaped.
         public void Serialize<TWriter>(TWriter writer) where TWriter : IWriter
         {
+            var lines = new List<string>(_favorites.Count);
+            foreach (var id in _favorites) lines.Add(id.ToUrlSegment());
             writer.Write(kFormatVersion);
-            writer.Write(_favorites.Count);
-            foreach (var id in _favorites) id.Serialize(writer);
+            writer.Write(string.Join(kLineSeparator.ToString(), lines));
             Mod.LOG.Info($"Favorites saved: {_favorites.Count}");
         }
 
-        // Only reads: resolving IDs happens later (GetResolvedFavorites), and a
-        // throw here would break loading the save, so anything unexpected
-        // leaves the list empty instead.
+        // Resolving IDs to prefabs happens later (GetResolvedFavorites). After
+        // both reads nothing here can affect loading: an unknown version or a
+        // bad line only costs favorites.
         public void Deserialize<TReader>(TReader reader) where TReader : IReader
         {
             _favorites.Clear();
+            reader.Read(out int version);
+            reader.Read(out string payload);
             try
             {
-                reader.Read(out int version);
                 if (version < 1 || version > kFormatVersion)
                 {
                     Mod.LOG.Warn($"Favorites not loaded: unknown format version {version}");
                     return;
                 }
-                reader.Read(out int count);
-                for (var i = 0; i < count; i++)
+                var skipped = 0;
+                foreach (var line in (payload ?? string.Empty).Split(kLineSeparator))
                 {
-                    var id = default(PrefabID);
-                    id.Deserialize(reader);
-                    _favorites.Add(id);
+                    if (line.Length == 0) continue;
+                    if (TryParseUrlSegment(line, out var id)) _favorites.Add(id);
+                    else skipped++;
                 }
-                Mod.LOG.Info($"Favorites loaded: {_favorites.Count}");
+                Mod.LOG.Info($"Favorites loaded: {_favorites.Count}" + (skipped > 0 ? $" ({skipped} unreadable, skipped)" : ""));
             }
             catch (Exception e)
             {
@@ -142,6 +154,21 @@ namespace RadialMenu
             {
                 Revision++;
             }
+        }
+
+        // Inverse of PrefabID.ToUrlSegment().
+        private static bool TryParseUrlSegment(string segment, out PrefabID id)
+        {
+            id = default;
+            var parts = segment.Split('/');
+            if (parts.Length < 2 || parts.Length > 3) return false;
+            var type = Uri.UnescapeDataString(parts[0]);
+            var name = Uri.UnescapeDataString(parts[1]);
+            if (type.Length == 0 || name.Length == 0) return false;
+            var hash = default(Colossal.Hash128);
+            if (parts.Length == 3 && !Colossal.Hash128.TryParse(parts[2], out hash)) return false;
+            id = new PrefabID(type, name, hash);
+            return true;
         }
     }
 }
