@@ -1,10 +1,13 @@
 using Colossal;
 using Colossal.IO.AssetDatabase;
+using Game;
 using Game.Input;
 using Game.Modding;
+using Game.SceneFlow;
 using Game.Settings;
 using Game.UI;
 using System.Collections.Generic;
+using Unity.Entities;
 
 namespace RadialMenu
 {
@@ -126,6 +129,28 @@ namespace RadialMenu
             }
         }
 
+        // Clears everything the mod stores in the loaded city's save (see
+        // FavoritesSystem.ResetCityData); takes effect when the city is saved.
+        [SettingsUIButton]
+        [SettingsUIConfirmation]
+        [SettingsUIDisableByCondition(typeof(Setting), nameof(IsNoCityLoaded))]
+        [SettingsUISection(KSection, KUtilitiesGroup)]
+        public bool RemoveCityData
+        {
+            set
+            {
+                if (IsNoCityLoaded())
+                {
+                    Mod.LOG.Info("Remove Radial Menu data skipped: no city loaded");
+                    return;
+                }
+                World.DefaultGameObjectInjectionWorld?.GetExistingSystemManaged<FavoritesSystem>()?.ResetCityData();
+                Mod.LOG.Info("Removed Radial Menu data from this city");
+            }
+        }
+
+        private static bool IsNoCityLoaded() => GameManager.instance.gameMode != GameMode.Game;
+
         // Read-only help text for the Filters tab; the displayed text is each
         // property's label in LocaleEn.
         [SettingsUIMultilineText]
@@ -216,6 +241,10 @@ namespace RadialMenu
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ResetVanillaThemes)), "Reset vanilla theme filter" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ResetVanillaThemes)), "Set the vanilla asset menu's theme filter back to your city's default theme, as it is after loading the city. Picking an asset from another theme switches that filter to the asset's theme. Any asset you are placing is deselected. Only works while a city is loaded." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.RemoveCityData)), "Remove Radial Menu data from this city" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.RemoveCityData)), "Clear everything Radial Menu stores in this city's save, which is your favorites. Save the city afterwards to keep the change; loading it without saving brings the data back. The save then only has an empty Radial Menu section, which the game skips if the mod is not installed. To remove even that, disable the mod and save the city again. Only works while a city is loaded." },
+                { _setting.GetOptionWarningLocaleID(nameof(Setting.RemoveCityData)), "Remove all Radial Menu data, including your favorites, from this city? Save the city afterwards to keep the change." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.HideVanillaToolbar)), "Hide vanilla toolbar tabs" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.HideVanillaToolbar)), "Hide the bottom toolbar's tab buttons and the asset panel that opens from them, so the radial menu replaces them. The bulldozer stays if 'Bulldozer in radial menu' is off." },

@@ -228,6 +228,8 @@ added. Favorites are stored in each save (`FavoritesSystem.cs`; see
   pack" off, favorites from themes vanilla's filter hides aren't found.
 - **Locked** favorites, and unique buildings already placed, are shown
   dimmed and can't be picked, as elsewhere.
+- **Clearing them all:** Options > Radial Menu > Utilities > "Remove Radial
+  Menu data from this city", then save the city.
 
 Any level with more items than fit in the first three rings is paged like
 search results, and the hub shows which items are on screen ("1-61 of 80").

@@ -419,6 +419,12 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
   `PrefabID` via `PrefabID.Serialize` (type, name and asset hash, as the game
   stores prefab references). `PrefabSystem.TryGetPrefab(PrefabID)` looks prefabs
   up by all three. IDs that don't resolve are kept, not dropped.
+- **Removing it from a city:** the "Remove Radial Menu data from this city"
+  button (Options > Radial Menu > Utilities, only enabled in a city) calls
+  `FavoritesSystem.ResetCityData`. After the city is saved, its block holds
+  only the format version and a count of 0. A save with no block at all needs
+  the mod disabled while saving. Anything else stored per save later must be
+  cleared by `ResetCityData` too.
 - **Deserialize never throws:** it's wrapped in try/catch and leaves the list
   empty on anything unexpected, since an exception there would break loading
   the save. Resolving IDs to prefabs happens later, when the list is sent to
@@ -497,6 +503,7 @@ messages mostly exist to flag breakage after a game update.
 | `Favorites saved: N` / `Favorites loaded: N` | Once per save / load of a city |
 | `Favorites not loaded: unknown format version N` (warning) | The save was written by a newer version of the mod; the city loads with no favorites |
 | `Favorites could not be read from the save; starting empty` (error) | The favorites block was unreadable; the city still loads |
+| `Removed Radial Menu data from this city` | The "Remove Radial Menu data from this city" button was confirmed; `Remove Radial Menu data skipped: no city loaded` if there was no city |
 | `Reset vanilla theme filter` | The "Reset vanilla theme filter" button was used; followed by `... skipped: no city loaded` if there was no city |
 | `ToolSystem.m_LastToolInfoview/m_LastToolInfomodes not found; ...` (warning) | A game update renamed vanilla's private fields. The flicker-free tool info view path is off, and the fallback is used. See [Tool info views](#tool-info-views-show-info-views-for-radial-menu-selections). |
 | `Tool info view suppressed via fallback ...` | The fallback ran, once per session: the overlay may flash for a frame. Normally absent. |
