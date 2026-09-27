@@ -224,6 +224,14 @@ What to check:
   - Every line is its own paragraph, and **blank lines are dropped**.
 
   Avoid these characters in plain help text (`Setting.cs`, `LocaleEn`).
+- **Mouse position:** the game UI view covers the whole screen, so DOM
+  `mousemove` / `mousedown` on `window` fire **over the city too**, not just
+  over UI elements (confirmed in game). `clientX` / `clientY` are view pixels,
+  matching CSS `px`.
+  - "Open at mouse cursor" relies on this: `lastMouse` in `radial-menu.tsx`.
+  - If a game update stops delivering these events, the menu opens centred
+    instead. The fallback would be reading `Mouse.current.position` in C#
+    (bottom-left origin, screen pixels) and converting to view coordinates.
 - **Cursor:** it only re-evaluates on mouse move. The wheel forces
   `cursor: default` everywhere, so elements swapped under a still mouse don't
   leave a stale cursor.
