@@ -19,7 +19,9 @@ used, what breaks if it changes, and how to re-find it.
 - [Binding names](#binding-names)
 - [Escape, "Back" and the pause menu (input isolation)](#escape-back-and-the-pause-menu-input-isolation)
 - [Keyboard focus and hasInputFieldFocus](#keyboard-focus-and-hasinputfieldfocus)
+- [Tool info views ("Show info views for radial menu selections")](#tool-info-views-show-info-views-for-radial-menu-selections)
 - [Other runtime quirks](#other-runtime-quirks)
+- [Log messages](#log-messages)
 
 ## UI module registry paths
 
@@ -207,6 +209,83 @@ What to check:
 - The field is blurred in a layout-effect cleanup before it unmounts, matching
   vanilla, which blurs text fields on Escape/Enter.
 
+## Tool info views ("Show info views for radial menu selections")
+
+**Code:** `ToolInfoviewSystem.cs`, which holds two systems.
+**Setting:** `ShowToolInfoviews` (default on, which is vanilla behaviour).
+
+How vanilla works (decompiled `Game.Tools`):
+
+1. `ToolSystem.OnUpdate` runs the `PreTool` phase, then `ToolUpdate()`, then the
+   `PostTool` phase.
+2. Inside `ToolUpdate()`, the `ToolUpdate` phase runs first. There, tools
+   (`NetToolSystem`, `ObjectToolSystem`, `ZoneToolSystem`, `AreaToolSystem`,
+   `RouteToolSystem`, `TerrainToolSystem`, `UpgradeToolSystem`) call
+   `ToolBaseSystem.UpdateInfoview(prefab)` from their `OnUpdate`. This sets the
+   public `ToolBaseSystem.infoview` (and `infomodes`):
+   - from the selected prefab's `PlaceableInfoviewItem` buffer;
+   - for nets, from the `MakeOwner` sub-object.
+3. `ToolUpdate()` then compares `activeTool.infoview` with its **private**
+   `m_LastToolInfoview`:
+   - **Only if it changed**, it calls `SetInfoview(...)`. That activates
+     infomodes and sets `m_InfoviewUpdateRequired`.
+   - It then records `m_LastToolInfoview` / `m_LastToolInfomodes`.
+   - The shader flag `colossal_InfoviewOn` and the colours are only refreshed
+     in `UpdateInfoviewColors()`, **at the end of `ToolUpdate()`**.
+
+What the mod does:
+
+- **Scope: radial-menu selections only.** Attribution is by identity and
+  event order, with no timing:
+  - Vanilla's toolbar triggers (`ToolbarUISystem.SelectAsset` /
+    `SelectAssetMenu` / `SelectAssetCategory` -> `Apply` ->
+    `ToolSystem.ActivatePrefabTool`) change the active tool **synchronously**
+    inside the trigger handler, and UI triggers are handled in order.
+  - Every selection the radial menu makes goes through wrappers in
+    `radial-menu.tsx`. These call the vanilla select, then the mod's
+    `radialSelect` trigger, so `RadialSelection.Mark()` records exactly the
+    resulting active tool and `GetPrefab()`.
+  - `RadialSelection.Update` runs each frame in the `ToolUpdate` phase. It drops
+    ownership as soon as the tool or prefab differs. After that, the selection
+    isn't the radial menu's, even if the same asset is picked again elsewhere.
+  - Both systems only act while `IsCurrent`, so the vanilla toolbar, hotkeys,
+    picking a building and so on keep vanilla behaviour.
+  - If a game update makes the vanilla handlers deferred instead of
+    synchronous, `Mark()` would record the *previous* selection. Symptom: the
+    setting stops affecting radial selections. Check
+    `ToolbarUISystem.Apply` / `ActivatePrefabTool`.
+- **`ToolInfoviewSystem` (primary)** runs in the `ToolUpdate` phase, after the
+  game's tools (mod systems register later).
+  - With the setting off, in-game, when the tool's info view is non-null and
+    differs from `m_LastToolInfoview`, it writes it to `m_LastToolInfoview`
+    (and the tool's infomodes to `m_LastToolInfomodes`) via reflection.
+  - Vanilla then sees "no change" and **never applies it**: no flicker, and no
+    `EventInfoviewChanged`.
+  - An info view the player opens is untouched.
+  - When the tool's info view goes back to null, vanilla clears the active info
+    view as usual.
+- **`ToolInfoviewFallbackSystem`** runs in `PostTool`. It's only effective if
+  the primary couldn't prevent it, e.g. the private fields were renamed (the
+  primary checks them on create and logs a warning if they're missing):
+  - it undoes the applied info view (`ToolSystem.infoview = null`);
+  - it sets `colossal_InfoviewOn` to 0 at once, because vanilla would only
+    refresh it next frame. That was the source of the one-frame flicker in the
+    first version;
+  - it logs `Tool info view suppressed via fallback` once.
+
+Confirmed in game:
+- the primary path is used (no fallback message, no flicker);
+- vanilla toolbar selections keep their overlays.
+
+If a game update breaks this:
+- **Symptoms:**
+  - overlays still appear with the setting off;
+  - they flicker;
+  - the mod log shows the warning or the fallback message.
+- **What to check:** decompile `Game.Tools.ToolSystem` (`OnUpdate`,
+  `ToolUpdate`, `SetInfoview`, the `m_LastToolInfoview` / `m_LastToolInfomodes`
+  fields) and `ToolBaseSystem.UpdateInfoview`.
+
 ## Other runtime quirks
 
 - **rem** is about 1px at 1080p. Size UI in hundreds of rem.
@@ -237,3 +316,25 @@ What to check:
   leave a stale cursor.
 - **Theme selection:** `toolbar.assets$` only includes the themes selected in
   the vanilla theme filter. See `search-schema.md`, Known limitations.
+
+## Log messages
+
+The mod logs very little: routine logging stays quiet, and the remaining
+messages mostly exist to flag breakage after a game update.
+
+**C#** (`Logs/RadialMenu.Mod.log`):
+
+| Message | Meaning |
+|---|---|
+| `OnLoad`, `Current mod asset at ...`, `OnDispose` | Normal mod lifecycle, once per session |
+| `Reset key bindings` | The "Reset key bindings" button was used |
+| `ToolSystem.m_LastToolInfoview/m_LastToolInfomodes not found; ...` (warning) | A game update renamed vanilla's private fields. The flicker-free tool info view path is off, and the fallback is used. See [Tool info views](#tool-info-views-show-info-views-for-radial-menu-selections). |
+| `Tool info view suppressed via fallback ...` | The fallback ran, once per session: the overlay may flash for a frame. Normally absent. |
+
+**UI** (`Logs/UI.log`, as JS console output):
+
+| Message | Meaning |
+|---|---|
+| `[RadialMenu] UI error, disabling mod UI: ...` | A render error was caught by the error boundary; the radial menu is hidden, the game UI is unaffected |
+| `[RadialMenu] Could not extend <path>#<export>` | A vanilla component to hide was renamed; that part of the vanilla toolbar stays visible |
+| `[RadialMenu] ...useInputController not found; ...` | Menu input isolation is disabled (see [Escape, "Back" and the pause menu](#escape-back-and-the-pause-menu-input-isolation)) |

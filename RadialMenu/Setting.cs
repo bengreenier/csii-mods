@@ -58,6 +58,9 @@ namespace RadialMenu
         [SettingsUISection(KSection, KGeneralGroup)]
         public bool OpenAtCursor { get; set; }
 
+        [SettingsUISection(KSection, KGeneralGroup)]
+        public bool ShowToolInfoviews { get; set; }
+
         [SettingsUIKeyboardBinding(BindingKeyboard.Tab, Mod.KToggleActionName)]
         [SettingsUISection(KSection, KKeybindingGroup)]
         public ProxyBinding ToggleKeyboardBinding { get; set; }
@@ -127,6 +130,7 @@ namespace RadialMenu
             HideVanillaToolbar = true;
             MenuScale = 1f;
             OpenAtCursor = false;
+            ShowToolInfoviews = true;
         }
     }
 
@@ -154,6 +158,9 @@ namespace RadialMenu
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.OpenAtCursor)), "Open at mouse cursor" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.OpenAtCursor)), "Center the radial menu on the mouse cursor when it opens, instead of the middle of the screen. The menu stays where it opened while you use it, and is nudged away from the screen edges so it fits." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.ShowToolInfoviews)), "Show info views for radial menu selections" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.ShowToolInfoviews)), "When on (the game's default), selecting something to build from the radial menu switches on its related info view - for example, power lines show the electricity overlay. Turn off to keep the normal view. Only affects selections made through the radial menu: the vanilla toolbar, hotkeys and everything else keep the game's behaviour, and you can still open info views yourself." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.MenuScale)), "Menu size" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.MenuScale)), "Scale the whole radial menu - rings, buttons and the center - up or down. Changes apply immediately." },

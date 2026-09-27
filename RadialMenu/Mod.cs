@@ -46,6 +46,11 @@ namespace RadialMenu
             Settings = _setting;
 
             updateSystem.UpdateAt<RadialMenuUISystem>(SystemUpdatePhase.UIUpdate);
+            // Both run inside ToolSystem.OnUpdate: the first after the game's tools
+            // (ToolUpdate phase, before vanilla applies the tool's info view), the
+            // fallback right after it's applied. See ToolInfoviewSystem.cs.
+            updateSystem.UpdateAt<ToolInfoviewSystem>(SystemUpdatePhase.ToolUpdate);
+            updateSystem.UpdateAt<ToolInfoviewFallbackSystem>(SystemUpdatePhase.PostTool);
         }
 
         public void OnDispose()

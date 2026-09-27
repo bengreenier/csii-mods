@@ -21,3 +21,7 @@ export const hideVanillaToolbar$ = bindValue<boolean>(GROUP, "hideVanillaToolbar
 export const acceptSuggestion$ = bindEvent<void>(GROUP, "acceptSuggestion");
 
 export const close = () => trigger(GROUP, "close");
+
+// Call right after a vanilla toolbar select: C# records the resulting
+// selection as the radial menu's (see RadialSelection in ToolInfoviewSystem.cs).
+export const markRadialSelection = () => trigger(GROUP, "radialSelect");

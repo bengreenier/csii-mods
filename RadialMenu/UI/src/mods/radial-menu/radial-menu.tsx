@@ -5,7 +5,7 @@ import * as l10n from "cs2/l10n";
 import { getModule } from "cs2/modding";
 import { Entity, entityKey, useCssLength } from "cs2/utils";
 import classNames from "classnames";
-import { acceptSuggestion$, close, isOpen$, isolateInput$, menuScale$, openAtCursor$ } from "./bindings";
+import { acceptSuggestion$, close, isOpen$, isolateInput$, markRadialSelection, menuScale$, openAtCursor$ } from "./bindings";
 import { layoutWheel, WHEEL_FIT_RADIUS } from "./layout";
 import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
@@ -132,6 +132,25 @@ interface SearchProps {
     example: string;
 }
 
+// Selections made by the radial menu go through these. After the vanilla
+// select (whose C# handler activates the tool synchronously, and triggers are
+// handled in order), they tell C# to record the resulting selection as the
+// radial menu's. Mod settings that change vanilla behaviour (e.g. "Show info
+// views for radial menu selections") apply only to that selection; see
+// RadialSelection in ToolInfoviewSystem.cs.
+const selectAssetMenu = (menu: Entity) => {
+    toolbar.selectAssetMenu(menu);
+    markRadialSelection();
+};
+const selectAssetCategory = (category: Entity) => {
+    toolbar.selectAssetCategory(category);
+    markRadialSelection();
+};
+const selectAsset = (asset: Entity, updateTool: boolean) => {
+    toolbar.selectAsset(asset, updateTool);
+    markRadialSelection();
+};
+
 // Mirrors what the vanilla toolbar button does on select
 // (see toolbar-button-strip.tsx in the game's UI bundle).
 function activateToolbarItem(item: toolbar.ToolbarItem) {
@@ -139,9 +158,9 @@ function activateToolbarItem(item: toolbar.ToolbarItem) {
     toolbar.clearAssetSelection();
     map.disableMapTileView();
     if (item.type === TOOLBAR_ITEM_TYPE_MENU) {
-        toolbar.selectAssetMenu(item.entity);
+        selectAssetMenu(item.entity);
     } else {
-        toolbar.selectAsset(item.entity, true);
+        selectAsset(item.entity, true);
     }
 }
 
@@ -163,8 +182,8 @@ function searchResultEntries(results: SearchResult[]): WheelEntry[] {
     return results.map(({ menu, category, asset }) =>
         assetEntry(asset, () => {
             activateToolbarItem(menu);
-            toolbar.selectAssetCategory(category.entity);
-            toolbar.selectAsset(asset.entity, true);
+            selectAssetCategory(category.entity);
+            selectAsset(asset.entity, true);
             close();
         })
     );
@@ -376,7 +395,7 @@ const MenuLevel = ({ menu, onOpenCategory, onBack, ...searchProps }: MenuLevelPr
                 icon: category.icon,
                 disabled: category.locked,
                 onSelect: () => {
-                    toolbar.selectAssetCategory(category.entity);
+                    selectAssetCategory(category.entity);
                     onOpenCategory(category);
                 },
             })),
@@ -413,7 +432,7 @@ const CategoryLevel = ({ menu, category, current, onBack, ...searchProps }: Cate
         () =>
             assets.map((asset) =>
                 assetEntry(asset, () => {
-                    toolbar.selectAsset(asset.entity, true);
+                    selectAsset(asset.entity, true);
                     close();
                 })
             ),

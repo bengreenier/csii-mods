@@ -3,6 +3,7 @@ using Colossal.UI.Binding;
 using Game;
 using Game.Input;
 using Game.SceneFlow;
+using Game.Tools;
 using Game.UI;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -31,6 +32,9 @@ namespace RadialMenu
             AddBinding(_isolateInput = new ValueBinding<bool>(kGroup, "isolateInput", false));
             AddBinding(new TriggerBinding(kGroup, "close", () => SetOpen(false)));
             AddBinding(_acceptSuggestion = new EventBinding(kGroup, "acceptSuggestion"));
+            // Sent by the UI right after each selection it makes (see RadialSelection).
+            var toolSystem = World.GetOrCreateSystemManaged<ToolSystem>();
+            AddBinding(new TriggerBinding(kGroup, "radialSelect", () => RadialSelection.Mark(toolSystem)));
             // Polled each update, so toggling the option applies live.
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "hideVanillaToolbar",
                 () => Mod.Settings?.HideVanillaToolbar ?? false));
@@ -86,7 +90,6 @@ namespace RadialMenu
         {
             if (_isOpen.value == open) return;
 
-            Mod.LOG.Info(open ? "Radial menu opened" : "Radial menu closed");
             _isOpen.Update(open);
             if (open) SetIsolateInput(true);
             _focusClearFrames = 0;
