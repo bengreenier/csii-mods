@@ -3,6 +3,7 @@ using Colossal.IO.AssetDatabase;
 using Game.Input;
 using Game.Modding;
 using Game.Settings;
+using Game.UI;
 using System.Collections.Generic;
 
 namespace RadialMenu
@@ -43,6 +44,12 @@ namespace RadialMenu
 
         [SettingsUISection(KSection, KGeneralGroup)]
         public bool HideVanillaToolbar { get; set; }
+
+        // Scale factor for the whole wheel (1 = 100%), shown as a percentage like
+        // the vanilla audio sliders.
+        [SettingsUISlider(min = 50f, max = 200f, step = 5f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
+        [SettingsUISection(KSection, KGeneralGroup)]
+        public float MenuScale { get; set; }
 
         [SettingsUIKeyboardBinding(BindingKeyboard.Tab, Mod.KToggleActionName)]
         [SettingsUISection(KSection, KKeybindingGroup)]
@@ -107,6 +114,7 @@ namespace RadialMenu
         public override void SetDefaults()
         {
             HideVanillaToolbar = true;
+            MenuScale = 1f;
         }
     }
 
@@ -131,6 +139,9 @@ namespace RadialMenu
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.HideVanillaToolbar)), "Hide vanilla toolbar tabs" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.HideVanillaToolbar)), "Hide the bottom toolbar's tab buttons and the asset panel that opens from them, so the radial menu replaces them" },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.MenuScale)), "Menu size" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.MenuScale)), "Scale the whole radial menu - rings, buttons and the center - up or down. Changes apply immediately." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ToggleKeyboardBinding)), "Toggle radial menu" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ToggleKeyboardBinding)), "Keyboard key that opens or closes the radial menu" },

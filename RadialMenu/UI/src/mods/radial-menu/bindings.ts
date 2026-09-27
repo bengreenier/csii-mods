@@ -9,6 +9,9 @@ export const isOpen$ = bindValue<boolean>(GROUP, "isOpen", false);
 // True while the menu is open, and briefly after it closes (see RadialMenuUISystem).
 export const isolateInput$ = bindValue<boolean>(GROUP, "isolateInput", false);
 
+// Scale factor for the whole wheel (1 = 100%), from the "Menu size" setting.
+export const menuScale$ = bindValue<number>(GROUP, "menuScale", 1);
+
 export const hideVanillaToolbar$ = bindValue<boolean>(GROUP, "hideVanillaToolbar", false);
 
 export const close = () => trigger(GROUP, "close");

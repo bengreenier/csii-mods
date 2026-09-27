@@ -5,7 +5,7 @@ import * as l10n from "cs2/l10n";
 import { getModule } from "cs2/modding";
 import { Entity, entityKey } from "cs2/utils";
 import classNames from "classnames";
-import { close, isOpen$, isolateInput$ } from "./bindings";
+import { close, isOpen$, isolateInput$, menuScale$ } from "./bindings";
 import { layoutWheel } from "./layout";
 import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
@@ -219,6 +219,7 @@ interface WheelProps extends SearchProps {
 
 const Wheel = ({ entries, grouped, current, search, query, submitRef, completionRef, example, onBack }: WheelProps) => {
     const [hovered, setHovered] = useState<WheelEntry | null>(null);
+    const scale = useValue(menuScale$);
     const slots = useMemo(
         () => layoutWheel(entries, grouped ? (e) => e.group ?? 0 : undefined),
         [entries, grouped]
@@ -270,7 +271,9 @@ const Wheel = ({ entries, grouped, current, search, query, submitRef, completion
     }
 
     return (
-        <div className={styles.wheel}>
+        // The wheel is a zero-size anchor at screen center, so scaling it scales
+        // everything around the center ("Menu size" setting).
+        <div className={styles.wheel} style={{ transform: `scale(${scale})` }}>
             <div
                 className={classNames(styles.hub, onBack && styles.hubBack)}
                 onClick={(e) => {

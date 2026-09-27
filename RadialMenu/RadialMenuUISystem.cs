@@ -32,6 +32,7 @@ namespace RadialMenu
             // Polled each update, so toggling the option applies live.
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "hideVanillaToolbar",
                 () => Mod.Settings?.HideVanillaToolbar ?? false));
+            AddUpdateBinding(new GetterValueBinding<float>(kGroup, "menuScale", GetMenuScale));
         }
 
         protected override void OnGamePreload(Colossal.Serialization.Entities.Purpose purpose, GameMode mode)
@@ -104,6 +105,13 @@ namespace RadialMenu
             _focusClearFrames = InputManager.instance.hasInputFieldFocus ? 0 : _focusClearFrames + 1;
             if (_focusClearFrames >= kFocusClearFramesBeforeRelease)
                 SetIsolateInput(false);
+        }
+
+        // Clamped to the slider's range, in case a settings file holds something odd.
+        private static float GetMenuScale()
+        {
+            var scale = Mod.Settings?.MenuScale ?? 1f;
+            return scale < 0.5f || scale > 2f ? 1f : scale;
         }
 
         private void SetIsolateInput(bool isolate)
