@@ -179,7 +179,7 @@ Hovering a result shows its preview and title instead.
 | typing | edit the query |
 | **Accept key** (default **Enter**, rebindable) | accept the hint's completion if one is shown; otherwise pick the first placeable result on the current page |
 | mouse wheel / **PageUp** / **PageDown** | previous / next page of results |
-| **Escape** / right-click / click hub | clear the query; if already empty, step back a level |
+| **Escape** / click hub | clear the query; if already empty, step back a level |
 | toggle key (default Tab) | close the menu |
 
 The accept key is a mod key binding ("Accept suggestion / pick first result",

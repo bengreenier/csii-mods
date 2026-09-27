@@ -1,4 +1,4 @@
-import { createContext, KeyboardEvent, MouseEvent, MutableRefObject, WheelEvent, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createContext, KeyboardEvent, MutableRefObject, WheelEvent, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useValue, useMapValue } from "cs2/api";
 import { map, prefab, selectedInfo, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
@@ -561,14 +561,14 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         (category: toolbar.AssetCategory) => setPath((p) => ({ ...p, category })),
         []
     );
-    // Steps back one level (right-click, Escape, or the hub). Typed text is
+    // Steps back one level (Escape or the hub). Typed text is
     // cleared first. Leaving a menu for the root closes the vanilla asset panel
     // and drops the active tool, same as the panel's own close button; backing
     // out of the root also resets it (in case a tool was active) and closes.
     const lastBackAt = useRef(0);
     const back = useCallback(() => {
-        // One physical input can arrive through more than one route (e.g. a
-        // right-click via onMouseDown and the game's "Back" action); only step once.
+        // One physical input can arrive through more than one route (Escape via
+        // the focused field's onKeyDown and the game's "Back" action); only step once.
         const now = Date.now();
         if (now - lastBackAt.current < BACK_DEBOUNCE_MS) return;
         lastBackAt.current = now;
@@ -653,10 +653,6 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         };
     }, [back, backRef]);
 
-    const onMouseDown = (e: MouseEvent) => {
-        if (e.button === 2) back();
-    };
-
     const searchProps: SearchProps = { query, submitRef, completionRef, pageRef, example };
     let level;
     if (path.menu && path.category) {
@@ -676,7 +672,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     }
 
     return (
-        <div className={styles.backdrop} onClick={() => close()} onMouseDown={onMouseDown} onWheel={onWheel}>
+        <div className={styles.backdrop} onClick={() => close()} onWheel={onWheel}>
             <input
                 ref={inputRef}
                 className={styles.searchInput}

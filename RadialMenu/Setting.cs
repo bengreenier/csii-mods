@@ -390,7 +390,7 @@ namespace RadialMenu
                     "Enter - accept the suggestion shown in the middle of the wheel, or, if there is none, " +
                     "pick the first result, ready to place. You can change this key on the Main tab.\n" +
                     "Mouse wheel, Page Up or Page Down - show the next or previous page of results, when there are more than fit on the wheel\n" +
-                    "Escape, right-click or clicking the middle - clear what you typed; press again to go back a level\n" +
+                    "Escape or clicking the middle - clear what you typed; press again to go back a level\n" +
                     "Your toggle key (Tab by default) - close the menu"
                 },
 

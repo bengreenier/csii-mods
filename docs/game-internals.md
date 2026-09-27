@@ -399,6 +399,12 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
 ## Other runtime quirks
 
 - **rem** is about 1px at 1080p. Size UI in hundreds of rem.
+- **Right mouse button bindings** (from the game's input asset in
+  `Cities2_Data/resources.assets`, found by searching for `<Mouse>/rightButton`):
+  the UI "Secondary Action" and the tool actions "Cancel" and "Secondary
+  Apply". The UI "Back" action is Escape and gamepad buttons only, so
+  right-clicks reach the radial menu only as DOM mouse events. The menu's
+  input isolation removes "Secondary Action" while it's open.
 - **`:nth-child(n + k)`** only parses with the spaces (vanilla's form). The
   production build's CSS minifier writes `n+k`, which Gameface rejects: the
   whole rule is dropped, with `CSS parsing error "syntax error" near text: +k`
