@@ -35,6 +35,7 @@ namespace RadialMenu
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "hideVanillaToolbar",
                 () => Mod.Settings?.HideVanillaToolbar ?? false));
             AddUpdateBinding(new GetterValueBinding<float>(kGroup, "menuScale", GetMenuScale));
+            AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "openAtCursor", () => Mod.Settings?.OpenAtCursor ?? false));
         }
 
         protected override void OnGamePreload(Colossal.Serialization.Entities.Purpose purpose, GameMode mode)

@@ -12,6 +12,9 @@ export const isolateInput$ = bindValue<boolean>(GROUP, "isolateInput", false);
 // Scale factor for the whole wheel (1 = 100%), from the "Menu size" setting.
 export const menuScale$ = bindValue<number>(GROUP, "menuScale", 1);
 
+// Center the menu on the mouse cursor when it opens ("Open at mouse cursor").
+export const openAtCursor$ = bindValue<boolean>(GROUP, "openAtCursor", false);
+
 export const hideVanillaToolbar$ = bindValue<boolean>(GROUP, "hideVanillaToolbar", false);
 
 // Fired by C# when the "Accept search suggestion" key is pressed while open.

@@ -8,6 +8,10 @@ const ITEM_SPACING = ITEM_SIZE + 16;
 const SINGLE_RING_MIN_RADIUS = 200;
 const SINGLE_RING_MAX_RADIUS = 320;
 
+// Distance from the center that the main (single-ring) wheel reaches, incl. a
+// hovered button; used to keep a cursor-anchored wheel on screen.
+export const WHEEL_FIT_RADIUS = SINGLE_RING_MAX_RADIUS + ITEM_SIZE;
+
 // ...beyond that, items spill onto concentric rings, filled inside-out.
 const MULTI_RING_FIRST_RADIUS = 200;
 const MULTI_RING_SPACING = ITEM_SIZE + 18;

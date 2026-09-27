@@ -55,6 +55,9 @@ namespace RadialMenu
         [SettingsUISection(KSection, KGeneralGroup)]
         public float MenuScale { get; set; }
 
+        [SettingsUISection(KSection, KGeneralGroup)]
+        public bool OpenAtCursor { get; set; }
+
         [SettingsUIKeyboardBinding(BindingKeyboard.Tab, Mod.KToggleActionName)]
         [SettingsUISection(KSection, KKeybindingGroup)]
         public ProxyBinding ToggleKeyboardBinding { get; set; }
@@ -123,6 +126,7 @@ namespace RadialMenu
         {
             HideVanillaToolbar = true;
             MenuScale = 1f;
+            OpenAtCursor = false;
         }
     }
 
@@ -147,6 +151,9 @@ namespace RadialMenu
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.HideVanillaToolbar)), "Hide vanilla toolbar tabs" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.HideVanillaToolbar)), "Hide the bottom toolbar's tab buttons and the asset panel that opens from them, so the radial menu replaces them" },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.OpenAtCursor)), "Open at mouse cursor" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.OpenAtCursor)), "Center the radial menu on the mouse cursor when it opens, instead of the middle of the screen. The menu stays where it opened while you use it, and is nudged away from the screen edges so it fits." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.MenuScale)), "Menu size" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.MenuScale)), "Scale the whole radial menu - rings, buttons and the center - up or down. Changes apply immediately." },

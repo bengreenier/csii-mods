@@ -1,12 +1,12 @@
-import { KeyboardEvent, MouseEvent, MutableRefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createContext, KeyboardEvent, MouseEvent, MutableRefObject, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useValue, useMapValue } from "cs2/api";
 import { map, prefab, selectedInfo, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
 import { getModule } from "cs2/modding";
-import { Entity, entityKey } from "cs2/utils";
+import { Entity, entityKey, useCssLength } from "cs2/utils";
 import classNames from "classnames";
-import { acceptSuggestion$, close, isOpen$, isolateInput$, menuScale$ } from "./bindings";
-import { layoutWheel } from "./layout";
+import { acceptSuggestion$, close, isOpen$, isolateInput$, menuScale$, openAtCursor$ } from "./bindings";
+import { layoutWheel, WHEEL_FIT_RADIUS } from "./layout";
 import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
 import { SearchResult, SearchResults, SearchScope, useAssetSearch } from "./search";
@@ -80,6 +80,28 @@ const KEY_ESCAPE = 27;
 const KEY_TAB = 9;
 
 const EMPTY: never[] = [];
+
+// Last known mouse position (view pixels), for "Open at mouse cursor". Tracked
+// all the time because the DOM has no "where is the cursor now" query; the
+// game UI covers the whole screen, so these fire over the city as well.
+let lastMouse: { x: number; y: number } | null = null;
+const trackMouse = (e: { clientX: number; clientY: number }) => {
+    lastMouse = { x: e.clientX, y: e.clientY };
+};
+window.addEventListener("mousemove", trackMouse);
+window.addEventListener("mousedown", trackMouse);
+
+// Where the wheel's center sits, in view pixels; null = middle of the screen.
+const WheelAnchorContext = createContext<{ x: number; y: number } | null>(null);
+
+// Center on the cursor, nudged in from the edges so the main ring (scaled)
+// stays on screen. Falls back to the middle if the view is too small for it.
+function anchorAtCursor(fitRadiusPx: number) {
+    if (!lastMouse) return null;
+    const clamp = (value: number, size: number) =>
+        size < 2 * fitRadiusPx ? size / 2 : Math.min(Math.max(value, fitRadiusPx), size - fitRadiusPx);
+    return { x: clamp(lastMouse.x, window.innerWidth), y: clamp(lastMouse.y, window.innerHeight) };
+}
 
 // Where the user has drilled to. A menu with a single category skips straight
 // to its assets (as vanilla hides the tab bar then), so `category` stays unset.
@@ -219,6 +241,7 @@ interface WheelProps extends SearchProps {
 const Wheel = ({ entries, grouped, current, search, query, submitRef, completionRef, example, onBack }: WheelProps) => {
     const [hovered, setHovered] = useState<WheelEntry | null>(null);
     const scale = useValue(menuScale$);
+    const anchor = useContext(WheelAnchorContext);
     const slots = useMemo(
         () => layoutWheel(entries, grouped ? (e) => e.group ?? 0 : undefined),
         [entries, grouped]
@@ -272,7 +295,13 @@ const Wheel = ({ entries, grouped, current, search, query, submitRef, completion
     return (
         // The wheel is a zero-size anchor at screen center, so scaling it scales
         // everything around the center ("Menu size" setting).
-        <div className={styles.wheel} style={{ transform: `scale(${scale})` }}>
+        <div
+            className={styles.wheel}
+            style={{
+                transform: `scale(${scale})`,
+                ...(anchor && { left: `${anchor.x}px`, top: `${anchor.y}px` }),
+            }}
+        >
             <div
                 className={classNames(styles.hub, onBack && styles.hubBack)}
                 onClick={(e) => {
@@ -421,6 +450,12 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     const [example] = useState(() => FILTER_EXAMPLES[Math.floor(Math.random() * FILTER_EXAMPLES.length)]);
     const inputRef = useRef<HTMLInputElement>(null);
 
+    // Fixed for as long as the menu is open (captured on open only, so the
+    // buttons stay put while you move the mouse to them).
+    const openAtCursor = useValue(openAtCursor$);
+    const fitRadiusPx = useCssLength(`${WHEEL_FIT_RADIUS}rem`) * useValue(menuScale$);
+    const [anchor] = useState(() => (openAtCursor ? anchorAtCursor(fitRadiusPx) : null));
+
     const openMenu = useCallback((menu: toolbar.ToolbarItem) => setPath({ menu }), []);
     const openCategory = useCallback(
         (category: toolbar.AssetCategory) => setPath((p) => ({ ...p, category })),
@@ -540,7 +575,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
                 // the keyboard back to the game).
                 onBlur={() => requestAnimationFrame(focusInput)}
             />
-            {level}
+            <WheelAnchorContext.Provider value={anchor}>{level}</WheelAnchorContext.Provider>
         </div>
     );
 };
