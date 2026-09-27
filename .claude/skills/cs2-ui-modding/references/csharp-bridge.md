@@ -103,6 +103,24 @@ toolbar, hotkeys, …), attribute by **identity and event order, not timers**:
 
 A time window ("changes within 0.5 s of our click") is brittle. Avoid it.
 
+## Per-save data (`IDefaultSerializable`)
+
+- **How it's saved:** every system in the world implementing
+  `IDefaultSerializable` (plus `ISerializable`) is saved automatically, keyed
+  by class name (`SystemSerializerLibrary`). Create the system in `OnLoad`.
+  Never rename it without `[FormerlySerializedAs]`. `SetDefaults` runs for a new
+  city.
+- **Read the block exactly:** after `Deserialize`, the game throws "Data size
+  mismatch" and the load fails unless every byte was read. An early return on
+  an unknown version is fatal. Keep a fixed layout (e.g. version int + one
+  string payload) and parse inside that.
+- **Mod removed:** `ObsoleteSystemSerializer` skips the block, so the save
+  still loads.
+- **Prefabs:** store `PrefabID`s, not entities. Resolve them later, never in
+  `Deserialize`.
+- **Don't push UI updates from `Deserialize`:** poll a revision counter
+  instead.
+
 ## Build and deploy notes
 
 - `Mod.targets` `DeployWIP` removes and recopies `Mods/<Mod>`. Never run it
