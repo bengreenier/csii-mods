@@ -1,11 +1,11 @@
-import { KeyboardEvent, MouseEvent, MutableRefObject, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { KeyboardEvent, MouseEvent, MutableRefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useValue, useMapValue } from "cs2/api";
 import { map, prefab, selectedInfo, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
 import { getModule } from "cs2/modding";
 import { Entity, entityKey } from "cs2/utils";
 import classNames from "classnames";
-import { close, isOpen$ } from "./bindings";
+import { close, isOpen$, isolateInput$ } from "./bindings";
 import { layoutWheel } from "./layout";
 import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
@@ -21,13 +21,57 @@ const TOOLBAR_ITEM_TYPE_MENU = 1;
 const useLocalization: () => l10n.Localization =
     (l10n as any).useLocalization ?? l10n.useCachedLocalization;
 
-// Not in the public typings; this is how vanilla panels subscribe to game input
-// actions ("Back", "Close", ...). ignoreFocusState makes it always active.
-const InputActionConsumer: (props: {
-    actions: Record<string, (() => void) | null>;
-    ignoreFocusState?: boolean;
-    children: ReactNode;
-}) => JSX.Element = getModule("game-ui/common/input-events/input-action-consumer.tsx", "InputActionConsumer");
+// The game's UI input stack (not in the public typings). Each controller's
+// transformer edits the list of active UI actions; the list is synced to C#,
+// which enables the matching input actions. See useModalInput below.
+interface InputStack {
+    push(action: string, context: string, callback: (value: unknown) => boolean | void): void;
+    removeWhere(predicate: (action: string) => boolean): void;
+}
+const useInputController: (state: number, transformer: ((stack: InputStack) => void) | null) => unknown = getModule(
+    "game-ui/common/input-events/input-controller.ts",
+    "useInputController"
+);
+// InputControllerState values (compared numerically; the enum may not exist at runtime).
+const INPUT_DISABLED = 0;
+const INPUT_ALWAYS_ACTIVE = 2;
+// Kept while isolated, like vanilla InputActionBarrier's default.
+const PASSTHROUGH_ACTIONS = ["Debug UI"];
+
+// Makes the menu modal for UI input, like vanilla's InputActionBarrier: while
+// `active`, every other UI action is removed and only "Back" (Escape) remains,
+// routed to `backRef` - so Escape can't reach "Pause Menu".
+//
+// `active` comes from the C# side (isolateInput) and deliberately stays true
+// for a few frames after the menu closes: when isolation ends, the restored
+// priorities make the game re-resolve its UI actions, and that must happen
+// after the keyboard is back in the game's input mask (it's excluded while the
+// search field is focused) - otherwise keyboard-only actions like "Pause Menu"
+// are resolved as disabled and stay that way. Details: docs/game-internals.md.
+//
+// Internal game API. If a game update removes it, fall back to a no-op (picked
+// once at load, so hook order is stable): the menu keeps working, but Escape
+// may also open the pause menu, which may then stay disabled after closing.
+const useModalInput: (active: boolean, backRef: MutableRefObject<(() => void) | null>) => void =
+    typeof useInputController === "function"
+        ? (active, backRef) => {
+              const transformer = useCallback(
+                  (stack: InputStack) => {
+                      stack.removeWhere((action) => !PASSTHROUGH_ACTIONS.includes(action));
+                      // Not consumed (false) once the menu has closed.
+                      stack.push("Back", "", () => (backRef.current ? backRef.current() : false));
+                  },
+                  [backRef]
+              );
+              useInputController(active ? INPUT_ALWAYS_ACTIVE : INPUT_DISABLED, transformer);
+          }
+        : (() => {
+              console.warn(
+                  "[RadialMenu] game-ui/common/input-events/input-controller.ts#useInputController not found; " +
+                      "menu input isolation disabled (see docs/game-internals.md)"
+              );
+              return () => {};
+          })();
 
 const BACK_DEBOUNCE_MS = 100;
 
@@ -359,11 +403,15 @@ const CategoryLevel = ({ menu, category, current, onBack, ...searchProps }: Cate
 
 export const RadialMenu = () => {
     const isOpen = useValue(isOpen$);
+    // Input isolation lives here (always mounted) because it must outlive the
+    // open menu briefly; the open menu plugs its back() into backRef.
+    const backRef = useRef<(() => void) | null>(null);
+    useModalInput(useValue(isolateInput$), backRef);
     // Mounted only while open, so navigation and search reset on every open.
-    return isOpen ? <OpenRadialMenu /> : null;
+    return isOpen ? <OpenRadialMenu backRef={backRef} /> : null;
 };
 
-const OpenRadialMenu = () => {
+const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | null> }) => {
     const [path, setPath] = useState<Path>({});
     const [query, setQuery] = useState("");
     const submitRef = useRef<(() => void) | null>(null);
@@ -407,6 +455,16 @@ const OpenRadialMenu = () => {
     const focusInput = useCallback(() => inputRef.current?.focus(), []);
     useEffect(focusInput, [focusInput]);
 
+    // Release focus when the menu closes. The game only clears its "text field
+    // focused" state (which blocks keyboard actions like the pause menu) on a
+    // blur; unmounting a focused field doesn't send one. Layout-effect cleanup
+    // runs before the element leaves the DOM, and by the time onBlur's refocus
+    // fires, inputRef is already null.
+    useLayoutEffect(() => {
+        const input = inputRef.current;
+        return () => input?.blur();
+    }, []);
+
     // With the field focused the game's "Back" action (Escape) doesn't fire, so
     // handle keys here like vanilla's TextInput does. The toggle key is handled
     // on the C# side.
@@ -430,8 +488,15 @@ const OpenRadialMenu = () => {
         }
     };
 
-    // Still consumed for when the field isn't focused (e.g. mid-click).
-    const inputActions = useMemo(() => ({ Back: back }), [back]);
+    // "Back" via the game's input system (see RadialMenu's useModalInput), for
+    // when the field isn't focused (e.g. mid-click); with it focused, onKeyDown
+    // above handles Escape.
+    useEffect(() => {
+        backRef.current = back;
+        return () => {
+            backRef.current = null;
+        };
+    }, [back, backRef]);
 
     const onMouseDown = (e: MouseEvent) => {
         if (e.button === 2) back();
@@ -456,20 +521,18 @@ const OpenRadialMenu = () => {
     }
 
     return (
-        <InputActionConsumer actions={inputActions} ignoreFocusState>
-            <div className={styles.backdrop} onClick={() => close()} onMouseDown={onMouseDown}>
-                <input
-                    ref={inputRef}
-                    className={styles.searchInput}
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={onKeyDown}
-                    // Clicking the wheel would otherwise steal focus (and hand
-                    // the keyboard back to the game).
-                    onBlur={() => requestAnimationFrame(focusInput)}
-                />
-                {level}
-            </div>
-        </InputActionConsumer>
+        <div className={styles.backdrop} onClick={() => close()} onMouseDown={onMouseDown}>
+            <input
+                ref={inputRef}
+                className={styles.searchInput}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={onKeyDown}
+                // Clicking the wheel would otherwise steal focus (and hand
+                // the keyboard back to the game).
+                onBlur={() => requestAnimationFrame(focusInput)}
+            />
+            {level}
+        </div>
     );
 };
