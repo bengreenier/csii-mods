@@ -45,6 +45,9 @@ namespace RadialMenu
             AssetDatabase.global.LoadSettings(nameof(RadialMenu), _setting, new Setting(this));
             Settings = _setting;
 
+            // Holds per-save data only (no updates); created here so it's in
+            // the world before any save is loaded or written.
+            updateSystem.World.GetOrCreateSystemManaged<FavoritesSystem>();
             updateSystem.UpdateAt<RadialMenuUISystem>(SystemUpdatePhase.UIUpdate);
             // Both run inside ToolSystem.OnUpdate: the first after the game's tools
             // (ToolUpdate phase, before vanilla applies the tool's info view), the

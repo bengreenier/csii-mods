@@ -52,6 +52,9 @@ namespace RadialMenu
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "openAtCursor", () => Mod.Settings?.OpenAtCursor ?? false));
             CreateAssetMetaBinding();
             CreateAllAssetsBinding();
+            // After CreateAllAssetsBinding: shares its ToolbarUISystem and
+            // UniqueAssetTrackingSystem references.
+            CreateFavoritesBindings();
         }
 
         protected override void OnGamePreload(Colossal.Serialization.Entities.Purpose purpose, GameMode mode)
@@ -67,6 +70,7 @@ namespace RadialMenu
             base.OnUpdate();
             UpdateInputIsolation();
             HandleThemeResetRequest();
+            UpdateFavorites();
 
             if (GameManager.instance.gameMode != GameMode.Game)
             {
@@ -110,6 +114,7 @@ namespace RadialMenu
             {
                 SetIsolateInput(true);
                 RefreshAllAssets();
+                RefreshFavorites();
             }
             _focusClearFrames = 0;
         }

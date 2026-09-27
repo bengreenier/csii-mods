@@ -22,6 +22,7 @@ used, what breaks if it changes, and how to re-find it.
 - [Tool info views ("Show info views for radial menu selections")](#tool-info-views-show-info-views-for-radial-menu-selections)
 - [The bulldozer ("Bulldozer in radial menu")](#the-bulldozer-bulldozer-in-radial-menu)
 - [Search filter data (assetMeta)](#search-filter-data-assetmeta)
+- [Per-save data (favorites)](#per-save-data-favorites)
 - [Other runtime quirks](#other-runtime-quirks)
 - [Log messages](#log-messages)
 
@@ -396,6 +397,40 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
   compare. A missing component type fails
   the C# build rather than failing silently.
 
+## Per-save data (favorites)
+
+`FavoritesSystem` stores the favorites inside each save.
+
+- **How it gets into the save:** the game's `SerializerSystem` builds a
+  `SystemSerializerLibrary` from every system in the world that implements
+  `IDefaultSerializable` (or `IJobSerializable`), and writes each one's
+  `Serialize` output into the save as its own block. The block is keyed by the
+  **class name**: renaming `FavoritesSystem` orphans existing data unless the old
+  name is added with `[FormerlySerializedAs]`.
+  - The library is built once and only rebuilt when marked dirty, so
+    `FavoritesSystem` is created in `Mod.OnLoad` and calls
+    `systemLibrary.SetDirty()` in `OnCreate`, in case it was built earlier.
+  - `SetDefaults` runs for a new city (no block in the save), and clears the
+    list.
+- **Without the mod:** a save's block for a system that no longer exists is
+  read by `ObsoleteSystemSerializer`, which skips its size-prefixed data. The
+  city loads normally; saving it again (mod still disabled) drops the block.
+- **Format:** our own version number, a count, then each favorite's
+  `PrefabID` via `PrefabID.Serialize` (type, name and asset hash, as the game
+  stores prefab references). `PrefabSystem.TryGetPrefab(PrefabID)` looks prefabs
+  up by all three. IDs that don't resolve are kept, not dropped.
+- **Deserialize never throws:** it's wrapped in try/catch and leaves the list
+  empty on anything unexpected, since an exception there would break loading
+  the save. Resolving IDs to prefabs happens later, when the list is sent to
+  the UI.
+- **UI:** `RadialMenu.favorites` (raw value binding) sends each resolved
+  favorite as `{ asset, menu, category }`: `asset` is written by
+  `ToolbarUISystem.BindAsset`, and `menu` / `category` come from
+  `UIObjectData.m_Group` and `UIAssetCategoryData.m_Menu`. It's re-sent when
+  `FavoritesSystem.Revision` changes (polled, since `Deserialize` runs inside
+  the game's load) and whenever the menu opens. Triggers `addFavorite` /
+  `removeFavorite` take the asset's prefab entity.
+
 ## Other runtime quirks
 
 - **rem** is about 1px at 1080p. Size UI in hundreds of rem.
@@ -459,6 +494,9 @@ messages mostly exist to flag breakage after a game update.
 |---|---|
 | `OnLoad`, `Current mod asset at ...`, `OnDispose` | Normal mod lifecycle, once per session |
 | `Reset key bindings` | The "Reset key bindings" button was used |
+| `Favorites saved: N` / `Favorites loaded: N` | Once per save / load of a city |
+| `Favorites not loaded: unknown format version N` (warning) | The save was written by a newer version of the mod; the city loads with no favorites |
+| `Favorites could not be read from the save; starting empty` (error) | The favorites block was unreadable; the city still loads |
 | `Reset vanilla theme filter` | The "Reset vanilla theme filter" button was used; followed by `... skipped: no city loaded` if there was no city |
 | `ToolSystem.m_LastToolInfoview/m_LastToolInfomodes not found; ...` (warning) | A game update renamed vanilla's private fields. The flicker-free tool info view path is off, and the fallback is used. See [Tool info views](#tool-info-views-show-info-views-for-radial-menu-selections). |
 | `Tool info view suppressed via fallback ...` | The fallback ran, once per session: the overlay may flash for a frame. Normally absent. |
