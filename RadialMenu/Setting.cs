@@ -13,11 +13,11 @@ namespace RadialMenu
     [SettingsUIGroupOrder(KGeneralGroup, KKeybindingGroup, KUtilitiesGroup,
         KSearchQuickStartGroup, KSearchNamesGroup, KSearchFiltersGroup, KSearchIsGroup, KSearchThemeGroup,
         KSearchPackGroup, KSearchZoneGroup, KSearchDlcGroup, KSearchInGroup, KSearchFxGroup, KSearchCombiningGroup,
-        KSearchKeysGroup)]
+        KSearchKeysGroup, KSearchFavoritesGroup)]
     [SettingsUIShowGroupName(KGeneralGroup, KKeybindingGroup, KUtilitiesGroup,
         KSearchQuickStartGroup, KSearchNamesGroup, KSearchFiltersGroup, KSearchIsGroup, KSearchThemeGroup,
         KSearchPackGroup, KSearchZoneGroup, KSearchDlcGroup, KSearchInGroup, KSearchFxGroup, KSearchCombiningGroup,
-        KSearchKeysGroup)]
+        KSearchKeysGroup, KSearchFavoritesGroup)]
     [SettingsUIKeyboardAction(Mod.KToggleActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
     [SettingsUIMouseAction(Mod.KToggleActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
     // Own usage: only read while typing in the menu, so it shouldn't be reported
@@ -45,6 +45,7 @@ namespace RadialMenu
         public const string KSearchFxGroup = "SearchFx";
         public const string KSearchCombiningGroup = "SearchCombining";
         public const string KSearchKeysGroup = "SearchKeys";
+        public const string KSearchFavoritesGroup = "SearchFavorites";
 
         public Setting(IMod mod) : base(mod)
         {
@@ -175,6 +176,10 @@ namespace RadialMenu
         [SettingsUISection(KFiltersSection, KSearchKeysGroup)]
         public string SearchKeysText => string.Empty;
 
+        [SettingsUIMultilineText]
+        [SettingsUISection(KFiltersSection, KSearchFavoritesGroup)]
+        public string SearchFavoritesText => string.Empty;
+
         public override void SetDefaults()
         {
             HideVanillaToolbar = true;
@@ -268,6 +273,7 @@ namespace RadialMenu
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFxGroup), "fx: - what it does for your city" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchCombiningGroup), "Combining searches" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchKeysGroup), "Keys while searching" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSearchFavoritesGroup), "Favorites" },
 
                 // Help text for the Search & Filters tab. Plain ASCII only (the game
                 // font lacks some symbols); filters are written "key: value".
@@ -391,7 +397,15 @@ namespace RadialMenu
                     "pick the first result, ready to place. You can change this key on the Main tab.\n" +
                     "Mouse wheel, Page Up or Page Down - show the next or previous page of results, when there are more than fit on the wheel\n" +
                     "Escape or clicking the middle - clear what you typed; press again to go back a level\n" +
+                    "Right-click an item - more actions, like adding it to your favorites\n" +
                     "Your toggle key (Tab by default) - close the menu"
+                },
+                {
+                    _setting.GetOptionLabelLocaleID(nameof(Setting.SearchFavoritesText)),
+                    "Right-click anything you can place, in the radial menu or in search results, and choose 'Add to favorites'. " +
+                    "Your favorites are on the star button at the end of the top ring.\n" +
+                    "Each city keeps its own favorites, saved with the city. Typing while in Favorites searches only your favorites. " +
+                    "To remove one, right-click it and choose 'Remove from favorites'."
                 },
 
                 { _setting.GetBindingKeyLocaleID(Mod.KToggleActionName), "Toggle radial menu" },

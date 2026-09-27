@@ -59,6 +59,17 @@ export const resetVanillaThemes$ = bindEvent<Entity>(GROUP, "resetVanillaThemes"
 // Fired by C# when the "Accept search suggestion" key is pressed while open.
 export const acceptSuggestion$ = bindEvent<void>(GROUP, "acceptSuggestion");
 
+// This city's favorite assets, in the order added (FavoritesSystem.cs, stored
+// in the save). Each comes with the toolbar menu and category it lives in.
+export interface Favorite {
+    asset: toolbar.Asset;
+    menu: Entity;
+    category: Entity;
+}
+export const favorites$ = bindValue<Favorite[]>(GROUP, "favorites", []);
+export const addFavorite = (asset: Entity) => trigger(GROUP, "addFavorite", asset);
+export const removeFavorite = (asset: Entity) => trigger(GROUP, "removeFavorite", asset);
+
 export const close = () => trigger(GROUP, "close");
 
 // Call right after a vanilla toolbar select: C# records the resulting

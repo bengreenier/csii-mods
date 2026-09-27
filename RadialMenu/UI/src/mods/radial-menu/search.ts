@@ -56,13 +56,15 @@ interface SearchIndex {
 /**
  * Searches assets within `scope` (every unlocked menu at the root, else the
  * given categories) using the query language in docs/search-schema.md.
+ * `onlyKeys` (entity keys) narrows that to a set of assets, e.g. favorites.
  * Nothing is subscribed while `query` is empty.
  */
 export function useAssetSearch(
     query: string,
     loc: l10n.Localization,
     groups: toolbar.ToolbarGroup[],
-    scope: SearchScope[] | "all"
+    scope: SearchScope[] | "all",
+    onlyKeys?: ReadonlySet<string>
 ): SearchResults {
     const searching = query.trim().length > 0;
     // toolbar.themes$ may only cover the vanilla panel's current category, so
@@ -130,10 +132,14 @@ export function useAssetSearch(
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, slotValues);
 
+    const records = useMemo(
+        () => (onlyKeys ? index.records.filter((r) => onlyKeys.has(r.key)) : index.records),
+        [index.records, onlyKeys]
+    );
     const evaluation = useMemo(
-        () => (parsed.active ? evaluate(parsed, index.records, (k) => FX_CACHE.get(k)) : null),
+        () => (parsed.active ? evaluate(parsed, records, (k) => FX_CACHE.get(k)) : null),
         // `ingested` changes whenever new details land in FX_CACHE.
-        [parsed, index.records, ingested]
+        [parsed, records, ingested]
     );
 
     const needDetails = evaluation?.needDetails ?? EMPTY;

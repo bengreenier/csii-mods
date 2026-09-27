@@ -117,6 +117,7 @@ What a search covers depends on where you are in the menu:
 | Top ring (tabs) | Every asset in every unlocked tab |
 | Inside a tab | All assets across that tab's categories |
 | Inside a category | That category's assets |
+| Favorites | This city's favorites (those that search covers; see below) |
 
 Tabs that aren't unlocked are skipped at the top ring.
 
@@ -204,17 +205,40 @@ under **Options > Radial Menu > Search & Filters**. It comes from `LocaleEn` in
 - one section each for `is:`, `theme:`, `pack:`, `zone:`, `size:` / `width:` / `depth:`, `level:`,
   `dlc:`, `in:` and `fx:`;
 - combining searches;
-- keys.
+- keys;
+- favorites.
 
 Everything shown in-game writes filters in the spaced `key: value` form, and
 uses plain ASCII only.
+
+## Favorites
+
+The top ring ends with a **Favorites** entry (star icon), in a group of its
+own. It opens a level with this city's favorite assets, in the order they were
+added. Favorites are stored in each save (`FavoritesSystem.cs`; see
+`game-internals.md`, "Per-save data"), so a new city starts with none.
+
+- **Adding and removing:** right-click an asset (in a category, a search
+  result, or in Favorites) and choose "Add to favorites" or "Remove from
+  favorites".
+- **Empty:** the hub says "No favorites yet" and how to add one.
+- **Picking one** selects its tab, category and asset, like a search result.
+- **Searching in Favorites** covers only the favorites. It goes through the
+  same asset list as other searches, so with "Search every theme and asset
+  pack" off, favorites from themes vanilla's filter hides aren't found.
+- **Locked** favorites, and unique buildings already placed, are shown
+  dimmed and can't be picked, as elsewhere.
+
+Any level with more items than fit in the first three rings is paged like
+search results, and the hub shows which items are on screen ("1-61 of 80").
 
 ## Context menu
 
 Right-clicking a wheel item opens a small menu of actions for it at the cursor
 (`context-menu.tsx`). Which actions an item offers is decided in one place,
 `useContextActions` in `context-actions.ts`, by the item's `context` target
-(only assets so far). An item with no actions opens nothing. Right-click never
+(only assets so far). An item with no actions opens nothing. Assets offer
+"Add to favorites" or "Remove from favorites". Right-click never
 steps back a level; Escape and clicking the hub do.
 
 - **Opening:** a right-button press and release on the same item (vanilla's

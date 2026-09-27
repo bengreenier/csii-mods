@@ -10,6 +10,8 @@ import {
     allAssets$,
     browseAllThemes$,
     close,
+    Favorite,
+    favorites$,
     isOpen$,
     isolateInput$,
     resetVanillaThemes$,
@@ -134,14 +136,25 @@ function anchorAtCursor(fitRadiusPx: number) {
 
 // Where the user has drilled to. A menu with a single category skips straight
 // to its assets (as vanilla hides the tab bar then), so `category` stays unset.
+// `favorites` is the mod's own Favorites level (no vanilla menu behind it).
 interface Path {
     menu?: toolbar.ToolbarItem;
     category?: toolbar.AssetCategory;
+    favorites?: boolean;
 }
 
-interface WheelEntry {
+// What the hub names when nothing is hovered. `title` is shown as is; without
+// it the hub looks up the prefab's title from `entity`.
+interface HubLabel {
     entity: Entity;
     name: string;
+    title?: string;
+}
+
+interface WheelEntry extends HubLabel {
+    // Stable identity on the wheel; defaults to the entity's key. Entries that
+    // aren't prefabs (e.g. Favorites) set their own.
+    key?: string;
     icon: string;
     disabled: boolean;
     group?: number;
@@ -152,7 +165,7 @@ interface WheelEntry {
     onSelect: () => void;
 }
 
-const entryKey = (entry: WheelEntry) => entityKey(entry.entity);
+const entryKey = (entry: WheelEntry) => entry.key ?? entityKey(entry.entity);
 
 const MOUSE_SECONDARY = 2;
 
@@ -221,18 +234,40 @@ function assetEntry(asset: toolbar.Asset, onSelect: () => void): WheelEntry {
     };
 }
 
-// A search hit may live in another menu/category, so select the whole chain
-// as a manual drill-down would, keeping the (hidden) vanilla panel in sync.
+// Selects an asset along with its menu and category, as a manual drill-down
+// would, keeping the (hidden) vanilla panel in sync. For assets reached
+// outside their own category (search results, favorites).
+function selectAssetChain(menu: Entity, category: Entity, asset: Entity) {
+    selectedInfo.clearSelection();
+    toolbar.clearAssetSelection();
+    map.disableMapTileView();
+    selectAssetMenu(menu);
+    selectAssetCategory(category);
+    selectAsset(asset, true);
+    close();
+}
+
+const favoriteEntries = (favorites: Favorite[]): WheelEntry[] =>
+    favorites.map(({ asset, menu, category }) =>
+        assetEntry(asset, () => selectAssetChain(menu, category, asset.entity))
+    );
+
+// The top ring's entry for the Favorites level.
+const FAVORITES_KEY = "radialMenu.favorites";
+const FAVORITES_TITLE = "Favorites";
+const FAVORITES_ICON = "Media/Glyphs/StarFilled.svg";
+// For entries and hub labels that aren't prefabs (Entity.Null).
+const NO_ENTITY: Entity = { index: 0, version: 0 };
+
+// A search hit may live in another menu/category.
 function searchResultEntries(results: SearchResult[]): WheelEntry[] {
     return results.map(({ menu, category, asset }) =>
-        assetEntry(asset, () => {
-            activateToolbarItem(menu);
-            selectAssetCategory(category.entity);
-            selectAsset(asset.entity, true);
-            close();
-        })
+        assetEntry(asset, () => selectAssetChain(menu.entity, category.entity, asset.entity))
     );
 }
+
+const HubTitle = ({ label }: { label: HubLabel }) =>
+    label.title !== undefined ? <>{label.title}</> : <PrefabTitle entity={label.entity} fallback={label.name} />;
 
 const PrefabTitle = ({ entity, fallback }: { entity: Entity; fallback: string }) => {
     const details = useMapValue(prefab.prefabDetails$, entity);
@@ -261,6 +296,10 @@ function matchSummary({ active, results, pending }: SearchResults, page: number,
     }
     return (total === 1 ? "1 match" : `${total} matches`) + checking;
 }
+
+// "1-61 of 214", for a paged level (not a search).
+const pageSummary = (page: number, pageSize: number, total: number) =>
+    `${page * pageSize + 1}-${Math.min(total, (page + 1) * pageSize)} of ${total}`;
 
 // The hub fits roughly this many characters of query per line.
 const QUERY_DISPLAY_CHARS = 18;
@@ -301,7 +340,10 @@ interface WheelProps extends SearchProps {
     entries: WheelEntry[];
     grouped?: boolean;
     // What the hub shows when nothing is hovered.
-    current?: { entity: Entity; name: string };
+    current?: HubLabel;
+    // Shown in the hub instead of the search hints while there are no entries
+    // (and nothing is typed), e.g. an empty Favorites level. One line each.
+    emptyMessage?: string[];
     // Present while a query is typed; `entries` are the results if it's active.
     search?: SearchResults;
     onBack?: () => void;
@@ -320,6 +362,7 @@ const Wheel = ({
     contextKey,
     openContext,
     closeContext,
+    emptyMessage,
     onBack,
 }: WheelProps) => {
     const [hovered, setHovered] = useState<WheelEntry | null>(null);
@@ -343,10 +386,11 @@ const Wheel = ({
     const maxRadius = remPx > 0 ? Math.min(window.innerWidth, window.innerHeight) / 2 / remPx : Infinity;
     const pageSize = searchPageSize(geo, maxRadius);
 
-    // Search results are shown a page at a time. The page belongs to the query
-    // it was picked for, so typing starts over at the first page; it's clamped
-    // in case the results shrink (e.g. as fx: details load).
-    const paged = !!search?.active;
+    // Search results, and any level with more entries than fit, are shown a
+    // page at a time. The page belongs to the query it was picked for, so
+    // typing starts over at the first page; it's clamped in case the entries
+    // shrink (e.g. as fx: details load, or a favorite is removed).
+    const paged = !!search?.active || entries.length > pageSize;
     const pageCount = paged ? Math.max(1, Math.ceil(entries.length / pageSize)) : 1;
     const [pageState, setPageState] = useState({ query, page: 0 });
     const page = pageState.query === query ? Math.min(pageState.page, pageCount - 1) : 0;
@@ -392,17 +436,30 @@ const Wheel = ({
                 )}
                 {label && (
                     <div className={classNames(styles.hubTitle, hoveredEntry?.showPreview && styles.hubTitleSmall)}>
-                        <PrefabTitle entity={label.entity} fallback={label.name} />
+                        <HubTitle label={label} />
                     </div>
                 )}
                 {onBack && !hoveredEntry && <div className={styles.hubHint}>Back</div>}
-                {!hoveredEntry && (
+                {!hoveredEntry && entries.length === 0 && emptyMessage ? (
+                    emptyMessage.map((line, i) => (
+                        <div key={i} className={i === 0 ? styles.hubTypeHint : styles.hubFilterHints}>
+                            {line}
+                        </div>
+                    ))
+                ) : !hoveredEntry && pageCount > 1 ? (
                     <>
-                        <div className={styles.hubTypeHint}>Type to search</div>
-                        <div className={styles.hubFilterHints}>Use '-word' to exclude</div>
-                        {/* One string: Gameface lays out adjacent JSX text nodes as separate lines. */}
-                        <div className={styles.hubFilterHints}>{`Hint: try "${example}"`}</div>
+                        <div className={styles.hubTypeHint}>{pageSummary(page, pageSize, entries.length)}</div>
+                        <div className={styles.hubFilterHints}>Scroll or PgUp/PgDn for more</div>
                     </>
+                ) : (
+                    !hoveredEntry && (
+                        <>
+                            <div className={styles.hubTypeHint}>Type to search</div>
+                            <div className={styles.hubFilterHints}>Use '-word' to exclude</div>
+                            {/* One string: Gameface lays out adjacent JSX text nodes as separate lines. */}
+                            <div className={styles.hubFilterHints}>{`Hint: try "${example}"`}</div>
+                        </>
+                    )
                 )}
             </>
         );
@@ -471,7 +528,12 @@ const Wheel = ({
     );
 };
 
-const RootLevel = ({ onOpenMenu, ...searchProps }: SearchProps & { onOpenMenu: (menu: toolbar.ToolbarItem) => void }) => {
+interface RootLevelProps extends SearchProps {
+    onOpenMenu: (menu: toolbar.ToolbarItem) => void;
+    onOpenFavorites: () => void;
+}
+
+const RootLevel = ({ onOpenMenu, onOpenFavorites, ...searchProps }: RootLevelProps) => {
     const groups = useValue(toolbar.toolbarGroups$);
     const { inRadial: bulldozerInRadial } = useBulldozerPlacement();
     const search = useAssetSearch(searchProps.query, useLocalization(), groups, "all");
@@ -492,8 +554,18 @@ const RootLevel = ({ onOpenMenu, ...searchProps }: SearchProps & { onOpenMenu: (
                         else close();
                     },
                 }))
-            ),
-        [groups, bulldozerInRadial, onOpenMenu]
+            ).concat({
+                // The mod's own level, in a group of its own after vanilla's.
+                key: FAVORITES_KEY,
+                entity: NO_ENTITY,
+                name: FAVORITES_TITLE,
+                title: FAVORITES_TITLE,
+                icon: FAVORITES_ICON,
+                disabled: false,
+                group: groups.length,
+                onSelect: onOpenFavorites,
+            }),
+        [groups, bulldozerInRadial, onOpenMenu, onOpenFavorites]
     );
     const resultEntries = useMemo(() => searchResultEntries(search.results), [search.results]);
 
@@ -541,6 +613,35 @@ const MenuLevel = ({ menu, onOpenCategory, onBack, ...searchProps }: MenuLevelPr
         />
     );
 };
+
+interface FavoritesLevelProps extends SearchProps {
+    onBack: () => void;
+}
+
+// This city's favorites (per save; FavoritesSystem.cs). Typing searches only
+// the favorites, among the assets search covers.
+const FavoritesLevel = ({ onBack, ...searchProps }: FavoritesLevelProps) => {
+    const favorites = useValue(favorites$);
+    const groups = useValue(toolbar.toolbarGroups$);
+    const favoriteKeys = useMemo(() => new Set(favorites.map((f) => entityKey(f.asset.entity))), [favorites]);
+    const search = useAssetSearch(searchProps.query, useLocalization(), groups, "all", favoriteKeys);
+    const entries = useMemo(() => favoriteEntries(favorites), [favorites]);
+    const resultEntries = useMemo(() => searchResultEntries(search.results), [search.results]);
+
+    return (
+        <Wheel
+            entries={search.active ? resultEntries : entries}
+            search={search}
+            current={FAVORITES_LABEL}
+            emptyMessage={FAVORITES_EMPTY_MESSAGE}
+            onBack={onBack}
+            {...searchProps}
+        />
+    );
+};
+
+const FAVORITES_LABEL: HubLabel = { entity: NO_ENTITY, name: FAVORITES_TITLE, title: FAVORITES_TITLE };
+const FAVORITES_EMPTY_MESSAGE = ["No favorites yet", "Right-click any item and choose 'Add to favorites'"];
 
 interface CategoryLevelProps extends SearchProps {
     menu: toolbar.ToolbarItem;
@@ -644,6 +745,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     }, [context, hasOpenActions]);
 
     const openMenu = useCallback((menu: toolbar.ToolbarItem) => setPath({ menu }), []);
+    const openFavorites = useCallback(() => setPath({ favorites: true }), []);
     const openCategory = useCallback(
         (category: toolbar.AssetCategory) => setPath((p) => ({ ...p, category })),
         []
@@ -670,6 +772,11 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         }
         if (path.category) {
             setPath({ menu: path.menu });
+            return;
+        }
+        // Favorites never opened a vanilla menu, so there's nothing to reset.
+        if (path.favorites) {
+            setPath({});
             return;
         }
         toolbar.clearAssetSelection();
@@ -773,10 +880,14 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         openContext,
         closeContext,
     };
+    // Keyed per place, so each level starts on its first page.
     let level;
-    if (path.menu && path.category) {
+    if (path.favorites) {
+        level = <FavoritesLevel key="favorites" onBack={back} {...searchProps} />;
+    } else if (path.menu && path.category) {
         level = (
             <CategoryLevel
+                key={`category:${entityKey(path.category.entity)}`}
                 menu={path.menu}
                 category={path.category}
                 current={path.category}
@@ -785,9 +896,17 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
             />
         );
     } else if (path.menu) {
-        level = <MenuLevel menu={path.menu} onOpenCategory={openCategory} onBack={back} {...searchProps} />;
+        level = (
+            <MenuLevel
+                key={`menu:${entityKey(path.menu.entity)}`}
+                menu={path.menu}
+                onOpenCategory={openCategory}
+                onBack={back}
+                {...searchProps}
+            />
+        );
     } else {
-        level = <RootLevel onOpenMenu={openMenu} {...searchProps} />;
+        level = <RootLevel key="root" onOpenMenu={openMenu} onOpenFavorites={openFavorites} {...searchProps} />;
     }
 
     return (
