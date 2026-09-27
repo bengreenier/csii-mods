@@ -6,6 +6,7 @@ import { AssetRecord, hasWordPrefix } from "./record";
 export interface FilterContext {
     themes: string[];
     dlcs: string[];
+    packs: string[];
 }
 
 // `fx` is undefined for filters that don't need prefab details.
@@ -51,7 +52,7 @@ const FX_SUGGESTIONS = [
 // Values that start with `atom`.
 const prefixed = (values: string[], atom: string) => values.filter((v) => v.startsWith(atom));
 
-// Themes/DLCs are matched by word prefix, e.g. "theme:north" or "theme:american".
+// Themes/DLCs/packs are matched by word prefix, e.g. "theme:north" or "theme:american".
 const knownWordPrefix = (values: string[], atom: string) =>
     values.length === 0 || values.some((v) => hasWordPrefix(v, atom));
 
@@ -72,6 +73,14 @@ export const FILTERS: FilterDef[] = [
         compile: (atoms, ctx) => {
             if (!atoms.every((a) => knownWordPrefix(ctx.themes, a))) return null;
             return (r) => atoms.some((a) => hasWordPrefix(r.themeLc, a));
+        },
+    },
+    {
+        key: "pack",
+        suggest: (ctx) => ctx.packs,
+        compile: (atoms, ctx) => {
+            if (!atoms.every((a) => knownWordPrefix(ctx.packs, a))) return null;
+            return (r) => atoms.some((a) => hasWordPrefix(r.packLc, a));
         },
     },
     {

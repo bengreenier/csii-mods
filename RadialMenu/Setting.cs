@@ -12,10 +12,10 @@ namespace RadialMenu
     [SettingsUITabOrder(KSection, KFiltersSection)]
     [SettingsUIGroupOrder(KGeneralGroup, KKeybindingGroup,
         KSearchQuickStartGroup, KSearchNamesGroup, KSearchFiltersGroup, KSearchIsGroup, KSearchThemeGroup,
-        KSearchDlcGroup, KSearchInGroup, KSearchFxGroup, KSearchCombiningGroup, KSearchKeysGroup)]
+        KSearchPackGroup, KSearchDlcGroup, KSearchInGroup, KSearchFxGroup, KSearchCombiningGroup, KSearchKeysGroup)]
     [SettingsUIShowGroupName(KGeneralGroup, KKeybindingGroup,
         KSearchQuickStartGroup, KSearchNamesGroup, KSearchFiltersGroup, KSearchIsGroup, KSearchThemeGroup,
-        KSearchDlcGroup, KSearchInGroup, KSearchFxGroup, KSearchCombiningGroup, KSearchKeysGroup)]
+        KSearchPackGroup, KSearchDlcGroup, KSearchInGroup, KSearchFxGroup, KSearchCombiningGroup, KSearchKeysGroup)]
     [SettingsUIKeyboardAction(Mod.KToggleActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
     [SettingsUIMouseAction(Mod.KToggleActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
     // Own usage: only read while typing in the menu, so it shouldn't be reported
@@ -35,6 +35,7 @@ namespace RadialMenu
         public const string KSearchFiltersGroup = "SearchFilters";
         public const string KSearchIsGroup = "SearchIs";
         public const string KSearchThemeGroup = "SearchTheme";
+        public const string KSearchPackGroup = "SearchPack";
         public const string KSearchDlcGroup = "SearchDlc";
         public const string KSearchInGroup = "SearchIn";
         public const string KSearchFxGroup = "SearchFx";
@@ -119,6 +120,10 @@ namespace RadialMenu
         [SettingsUIMultilineText]
         [SettingsUISection(KFiltersSection, KSearchThemeGroup)]
         public string SearchThemeText => string.Empty;
+
+        [SettingsUIMultilineText]
+        [SettingsUISection(KFiltersSection, KSearchPackGroup)]
+        public string SearchPackText => string.Empty;
 
         [SettingsUIMultilineText]
         [SettingsUISection(KFiltersSection, KSearchDlcGroup)]
@@ -214,6 +219,7 @@ namespace RadialMenu
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFiltersGroup), "Filters" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchIsGroup), "is: - what you can build" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchThemeGroup), "theme: - building style" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSearchPackGroup), "pack: - asset packs" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchDlcGroup), "dlc: - base game or DLC" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchInGroup), "in: - which tab it lives in" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFxGroup), "fx: - what it does for your city" },
@@ -285,6 +291,13 @@ namespace RadialMenu
                     "Note: only themes enabled in the vanilla asset menu's theme filter can be found. " +
                     "To change which themes are enabled, turn off \"Hide vanilla toolbar tabs\" on the Main tab " +
                     "and use the theme buttons in the vanilla asset menu."
+                },
+                {
+                    _setting.GetOptionLabelLocaleID(nameof(Setting.SearchPackText)),
+                    "'pack:' followed by a word from an asset pack's name - assets from that pack. " +
+                    "Type 'pack:' to see suggestions for the packs you can search.\n" +
+                    "\n" +
+                    "Note: like themes, only packs enabled in the vanilla asset menu's pack filter can be found."
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchDlcText)),

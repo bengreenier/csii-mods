@@ -1,4 +1,5 @@
 import { bindEvent, bindValue, trigger } from "cs2/api";
+import { Entity } from "cs2/utils";
 import mod from "mod.json";
 
 // Must match RadialMenuUISystem.kGroup on the C# side.
@@ -23,6 +24,16 @@ export const hideVanillaToolbar$ = bindValue<boolean>(GROUP, "hideVanillaToolbar
 
 // "Bulldozer in radial menu"; see useBulldozerPlacement in bulldozer.ts.
 export const bulldozerInRadial$ = bindValue<boolean>(GROUP, "bulldozerInRadial", true);
+
+// Static per-asset data for search filters that vanilla's toolbar bindings
+// don't carry. Only assets with any such data are listed. See
+// RadialMenuUISystem.AssetMeta.cs.
+export interface AssetMeta {
+    entity: Entity;
+    // Asset pack prefab names; titles are Assets.NAME[<name>].
+    packs: string[];
+}
+export const assetMeta$ = bindValue<AssetMeta[]>(GROUP, "assetMeta", []);
 
 // Fired by C# when the "Accept search suggestion" key is pressed while open.
 export const acceptSuggestion$ = bindEvent<void>(GROUP, "acceptSuggestion");

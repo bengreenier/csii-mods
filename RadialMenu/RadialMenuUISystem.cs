@@ -46,6 +46,7 @@ namespace RadialMenu
             AddUpdateBinding(new GetterValueBinding<float>(kGroup, "itemSpacing",
                 () => InRangeOrDefault(Mod.Settings?.ItemSpacing, 0f, 4f)));
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "openAtCursor", () => Mod.Settings?.OpenAtCursor ?? false));
+            CreateAssetMetaBinding();
         }
 
         protected override void OnGamePreload(Colossal.Serialization.Entities.Purpose purpose, GameMode mode)

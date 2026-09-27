@@ -11,6 +11,8 @@ export interface RecordSource {
     categoryTitle: string;
     // Theme display text (name + title) for the asset's theme, if any.
     themeText: string | null;
+    // Asset pack display text (names + titles) for the asset's packs, if any.
+    packText: string | null;
     // Asset.dlc icon path, if any. Mod assets get the Paradox Mods icon instead
     // of a DLC's (ToolbarUISystem.BindAsset).
     dlcIcon: string | null;
@@ -27,6 +29,7 @@ export interface AssetRecord {
     // "menu title + menu name + category title + category name", lowercased.
     locationLc: string;
     themeLc: string;
+    packLc: string;
     // Lowercased DLC icon file name without extension; "" for base game and mods.
     dlcLc: string;
     // From a mod (Paradox Mods), not the base game or a DLC.
@@ -60,6 +63,7 @@ export function buildRecord(src: RecordSource, order: number): AssetRecord {
         nameLc: src.name.toLowerCase(),
         locationLc: `${src.menuTitle} ${src.menuName} ${src.categoryTitle} ${src.categoryName}`.toLowerCase(),
         themeLc: (src.themeText ?? "").toLowerCase(),
+        packLc: (src.packText ?? "").toLowerCase(),
         dlcLc: mod ? "" : dlc,
         mod,
         unique: src.unique,

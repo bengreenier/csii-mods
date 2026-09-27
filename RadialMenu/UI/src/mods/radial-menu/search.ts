@@ -3,6 +3,7 @@ import { useMapValues, useValue } from "cs2/api";
 import { prefab, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
 import { Entity, entityKey } from "cs2/utils";
+import { AssetMeta, assetMeta$ } from "./bindings";
 import { evaluate } from "./query/evaluate";
 import { FilterContext } from "./query/filters";
 import { parse, ParsedQuery } from "./query/parser";
@@ -17,6 +18,7 @@ const DETAIL_SLOTS = 4;
 const DETAIL_SLOT_SIZE = 100;
 
 const EMPTY: never[] = [];
+const EMPTY_META = new Map<string, AssetMeta>();
 
 export interface SearchScope {
     menu: toolbar.ToolbarItem;
@@ -68,6 +70,12 @@ export function useAssetSearch(
     const toolbarThemes = useValue(toolbar.themes$);
     const prefabThemes = useValue(prefab.themes$);
     const themes = useMemo(() => [...prefabThemes, ...toolbarThemes], [prefabThemes, toolbarThemes]);
+    // Static, sent once per game load; only turned into a lookup while searching.
+    const assetMeta = useValue(assetMeta$);
+    const metaByKey = useMemo(
+        () => (searching ? new Map(assetMeta.map((m) => [entityKey(m.entity), m])) : EMPTY_META),
+        [searching, assetMeta]
+    );
 
     // Root search needs every menu's categories first.
     const menus = useMemo(
@@ -91,8 +99,8 @@ export function useAssetSearch(
 
     // Rebuilt only when game data changes, never per keystroke.
     const index = useMemo(
-        () => buildIndex(resolvedScope, assetsPerCategory, themes, loc),
-        [resolvedScope, assetsPerCategory, themes, loc]
+        () => buildIndex(resolvedScope, assetsPerCategory, themes, metaByKey, loc),
+        [resolvedScope, assetsPerCategory, themes, metaByKey, loc]
     );
 
     const parsed = useMemo(() => parse(query, index.ctx), [query, index.ctx]);
@@ -142,6 +150,7 @@ function buildIndex(
     scope: SearchScope[],
     assetsPerCategory: (toolbar.Asset[] | undefined)[],
     themes: { name: string; icon: string }[],
+    metaByKey: Map<string, AssetMeta>,
     loc: l10n.Localization
 ): SearchIndex {
     // Name + both titles the game may use for it (the theme filter tooltip
@@ -152,6 +161,13 @@ function buildIndex(
             [t.name, loc.translate(`ToolOptions.TOOLTIP_TITLE[${t.name}]`), title(loc, t.name)].filter(Boolean).join(" "),
         ])
     );
+    // Pack name + title (Assets.NAME[<name>], as in the vanilla pack filter).
+    const packText = new Map<string, string>();
+    const packTextOf = (name: string) => {
+        let text = packText.get(name);
+        if (text === undefined) packText.set(name, (text = `${name} ${title(loc, name)}`));
+        return text;
+    };
     const records: AssetRecord[] = [];
     const byKey = new Map<string, SearchResult>();
     const dlcs = new Set<string>();
@@ -175,6 +191,7 @@ function buildIndex(
                     // Unmapped theme icons fall back to the icon's file name,
                     // so theme: still has something to match.
                     themeText: asset.theme ? themeText.get(asset.theme) ?? iconSlug(asset.theme) : null,
+                    packText: metaByKey.get(key)?.packs.map(packTextOf).join(" ") || null,
                     dlcIcon: asset.dlc,
                     unique: asset.unique,
                     placed: asset.placed,
@@ -188,14 +205,21 @@ function buildIndex(
         }
     });
 
-    // Suggest only themes assets in scope actually have (as dlc: does).
+    // Suggest only themes/packs assets in scope actually have (as dlc: does).
     // Completions must be single words (a space would end the token).
-    const themeWords = new Set<string>();
-    for (const record of records) {
-        for (const w of record.themeLc.split(/[^a-z0-9]+/)) if (w.length >= 2) themeWords.add(w);
-    }
+    const words = (text: (r: AssetRecord) => string) => {
+        const found = new Set<string>();
+        for (const record of records) {
+            for (const w of text(record).split(/[^a-z0-9]+/)) if (w.length >= 2) found.add(w);
+        }
+        return [...found].sort();
+    };
 
-    return { records, byKey, ctx: { themes: [...themeWords].sort(), dlcs: [...dlcs].sort() } };
+    return {
+        records,
+        byKey,
+        ctx: { themes: words((r) => r.themeLc), dlcs: [...dlcs].sort(), packs: words((r) => r.packLc) },
+    };
 }
 
 // One fixed-size slice of the keys to load details for.

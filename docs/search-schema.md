@@ -18,7 +18,8 @@ further. This document is the specification. The implementation lives in
 5. **English only** for filter keys and values (asset names themselves use the
    game's language).
 6. **Fast.** Everything except `fx:` runs off an index built once when the
-   game data changes. Each keystroke is one parse plus one linear pass.
+   game data changes. "cheap (C#)" filters read data the mod's C# sends once
+   per game load (`assetMeta`, see `game-internals.md`). Each keystroke is one parse plus one linear pass.
 
 ## Grammar
 
@@ -64,6 +65,7 @@ Titles come from the localization key `Assets.NAME[<prefab name>]`.
 | | `locked` | aren't unlocked yet | cheap |
 | | `mod` | come from a mod (the asset's DLC icon is the Paradox Mods one) | cheap |
 | `theme:` | a theme word, e.g. `european`, `north`, `american` | belong to that theme (word prefix over the theme's name and title) | cheap |
+| `pack:` | an asset pack word, e.g. a pack's name or title | belong to that asset pack (word prefix over the pack's name and title) | cheap (C#) |
 | `dlc:` | `none`, or part of a DLC's icon name, e.g. `sanfrancisco` | `none` = base game (no DLC, not a mod); otherwise the asset's DLC icon file name contains the value. Mod assets are not a DLC here: use `is:mod`. | cheap |
 | `in:` | a tab or category name, e.g. `health`, `roads`, `parks` | live in a toolbar tab or asset category whose name has a word starting with the value | cheap |
 | `fx:` | an effect word, e.g. `crime`, `wellbeing`, `health`, `entertainment`, `attractiveness`, `park`, `beach` | have an effect of that kind: a city-wide or local modifier (types split on camelCase, so `CrimeAccumulation` gives `crime` and `accumulation`), a leisure provider type, or a wellbeing/health happiness effect | **details** |
@@ -90,6 +92,7 @@ The direction of an `fx:` effect (positive or negative) is not considered.
 | `dlc:none` / `-dlc:none` | Base game only / DLC and mod content only |
 | `is:mod` / `-is:mod` | Mod assets only / no mod assets |
 | `in:health` | Everything in Healthcare & Deathcare (useful from the top ring) |
+| `pack:<name>` | Assets from one asset pack; type `pack:` to see the packs in scope |
 | `in:parks is:ok` | Placeable park assets |
 | `fx:crime` | Anything with a crime effect, e.g. police |
 | `fx:wellbeing,health` | Wellbeing or health effects |
@@ -187,7 +190,7 @@ under **Options > Radial Menu > Search & Filters**. It comes from `LocaleEn` in
 - quick start;
 - searching by name;
 - filters in general;
-- one section each for `is:`, `theme:`, `dlc:`, `in:` and `fx:`;
+- one section each for `is:`, `theme:`, `pack:`, `dlc:`, `in:` and `fx:`;
 - combining searches;
 - keys.
 
@@ -235,17 +238,20 @@ uses plain ASCII only.
 | File | Role | Pure (no game imports) |
 |---|---|---|
 | `query/lexer.ts` | `tokenize()`: tokens with negation/quote info; never throws | yes |
-| `query/filters.ts` | Filter registry (`is`, `theme`, `dlc`, `in`, `fx`): compile, validate, suggest | yes |
+| `query/filters.ts` | Filter registry (`is`, `theme`, `pack`, `dlc`, `in`, `fx`): compile, validate, suggest | yes |
 | `query/parser.ts` | `parse()`: words, phrases, excludes, filters, token statuses, hint | yes |
 | `query/record.ts` | `AssetRecord`, `buildRecord()`, `fxTerms()`, word-prefix matching | yes |
 | `query/evaluate.ts` | `evaluate()`: filter, rank, pending/need-details | yes |
 | `search.ts` | Hook glue: data subscriptions, index, lazy `fx:` details, caps | no |
+| `bindings.ts` / `RadialMenuUISystem.AssetMeta.cs` | `assetMeta`: static per-asset data from C# (packs) | no |
 | `radial-menu.tsx` | Hub display, keys (accept event / Escape) | no |
 
 ### Adding a filter
 
 1. Add any data it needs to `RecordSource` / `AssetRecord` in `record.ts`, and
-   fill it in `buildIndex()` in `search.ts`.
+   fill it in `buildIndex()` in `search.ts`. Data the UI can't get from
+   vanilla bindings goes into `assetMeta` (C# `RadialMenuUISystem.AssetMeta.cs`
+   and `AssetMeta` in `bindings.ts`).
 2. Add an entry to `FILTERS` in `filters.ts`, with `compile` (null means
    invalid) and `suggest`. Set `needsDetails: true` only if it needs
    `prefabDetails`.
@@ -273,7 +279,10 @@ uses plain ASCII only.
   - With "Hide vanilla toolbar tabs" on, the vanilla filter is hidden, so the
     selection can't be changed. Turn that option off to change themes in the
     vanilla panel.
-  - Asset packs (`toolbar.setSelectedAssetPacks`) very likely behave the same.
+  - Asset packs behave the same (`ToolbarUISystem.FilterByPacks`). While
+    nothing is selected in vanilla's pack filter, everything is listed. Once
+    any pack, "Base game" or "Mods" is selected there, only those are. So
+    `pack:` only finds packs whose assets are currently listed.
 
   Possible fixes, deferred:
   1. Select all themes and packs while the menu is open, and restore the

@@ -21,6 +21,7 @@ used, what breaks if it changes, and how to re-find it.
 - [Keyboard focus and hasInputFieldFocus](#keyboard-focus-and-hasinputfieldfocus)
 - [Tool info views ("Show info views for radial menu selections")](#tool-info-views-show-info-views-for-radial-menu-selections)
 - [The bulldozer ("Bulldozer in radial menu")](#the-bulldozer-bulldozer-in-radial-menu)
+- [Search filter data (assetMeta)](#search-filter-data-assetmeta)
 - [Other runtime quirks](#other-runtime-quirks)
 - [Log messages](#log-messages)
 
@@ -57,6 +58,8 @@ The mod replays vanilla's toolbar-button click sequence (see
 Localization keys:
 - `Assets.NAME[<prefab name>]`: asset, menu and category titles.
 - `ToolOptions.TOOLTIP_TITLE[<theme name>]`: theme titles.
+- `Assets.NAME[<asset pack name>]`: asset pack titles (as in vanilla's pack
+  filter buttons).
 
 ## Escape, "Back" and the pause menu (input isolation)
 
@@ -355,6 +358,30 @@ Vanilla's CSS never uses `:not()` or `:nth-child(-n + k)`, only
 `:nth-child(k)` and `:nth-child(n + k)`, so each `.onlyGroup<k>` hides the
 groups before k one by one and the rest with `n + (k+1)`.
 
+## Search filter data (assetMeta)
+
+Some search filters need prefab data that vanilla's `toolbar.assets$` doesn't
+send. `RadialMenuUISystem.AssetMeta.cs` collects it into one raw value binding,
+`RadialMenu.assetMeta`: a list of `{ entity, packs, ... }`, one entry per
+toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
+(`search.ts`).
+
+- **Which prefabs:** entities with `PrefabData` + `UIObjectData`, i.e. anything
+  that can appear in a toolbar category.
+- **When:** built lazily on the first write, cached, and rebuilt in
+  `OnGameLoadingComplete` (then `Update()` pushes it to the UI). The data is
+  static per game load, so nothing is sent while playing.
+- **Asset packs (`pack:`):** the prefab's `AssetPackElement` buffer, keeping
+  elements whose `m_Pack` has `AssetPackData`, the same test as
+  `ToolbarUISystem.FilterByPacks` / `BindPacks`. The pack's prefab name is
+  sent; the UI adds its title.
+- **Mods (`is:mod`):** no C# needed. `ToolbarUISystem.BindAsset` sets
+  `Asset.dlc` to `Media/Glyphs/ParadoxModsCloud.svg` for prefabs with
+  `ModPrerequisiteData`, overriding any DLC icon.
+- **If a game update breaks this:** re-decompile `ToolbarUISystem`
+  (`BindAsset`, `FilterByPacks`) and compare. A missing component type fails
+  the C# build rather than failing silently.
+
 ## Other runtime quirks
 
 - **rem** is about 1px at 1080p. Size UI in hundreds of rem.
@@ -387,8 +414,10 @@ groups before k one by one and the rest with `n + (k+1)`.
 - **Cursor:** it only re-evaluates on mouse move. The wheel forces
   `cursor: default` everywhere, so elements swapped under a still mouse don't
   leave a stale cursor.
-- **Theme selection:** `toolbar.assets$` only includes the themes selected in
-  the vanilla theme filter. See `search-schema.md`, Known limitations.
+- **Theme and pack selection:** `toolbar.assets$` only includes the themes and
+  asset packs selected in the vanilla asset menu's filters
+  (`ToolbarUISystem.FilterByThemes` / `FilterByPacks`). See `search-schema.md`,
+  Known limitations.
 
 ## Log messages
 
