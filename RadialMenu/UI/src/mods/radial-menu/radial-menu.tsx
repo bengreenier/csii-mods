@@ -1,4 +1,4 @@
-import { createContext, KeyboardEvent, MutableRefObject, WheelEvent, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createContext, KeyboardEvent, MouseEvent, MutableRefObject, WheelEvent, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useValue, useMapValue } from "cs2/api";
 import { map, prefab, selectedInfo, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
@@ -20,6 +20,8 @@ import {
     ringDistance$,
 } from "./bindings";
 import { isBulldozer, useBulldozerPlacement } from "./bulldozer";
+import { useContextActions } from "./context-actions";
+import { ContextMenu, ContextTarget, OpenContextMenu } from "./context-menu";
 import { layoutWheel, searchPageSize, wheelFitRadius, wheelGeometry } from "./layout";
 import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
@@ -145,8 +147,14 @@ interface WheelEntry {
     group?: number;
     // Leaf entries (placeable assets) show a large preview in the hub on hover.
     showPreview?: boolean;
+    // What a right-click offers actions for (context-actions.ts); none if unset.
+    context?: ContextTarget;
     onSelect: () => void;
 }
+
+const entryKey = (entry: WheelEntry) => entityKey(entry.entity);
+
+const MOUSE_SECONDARY = 2;
 
 // Shared by every level: the typed query, plus slots the wheel fills for the
 // accept key (Enter by default): the hint's completed query, or else
@@ -160,6 +168,12 @@ interface SearchProps {
     pageRef: MutableRefObject<((step: number) => void) | null>;
     // Example query for the idle hub hint; picked once per menu open.
     example: string;
+    // The right-click menu (context-menu.tsx), owned by OpenRadialMenu: the key
+    // of the item it's open on (null while closed), a request to open it on an
+    // entry, and a request to close it.
+    contextKey: string | null;
+    openContext: (entry: WheelEntry, x: number, y: number) => void;
+    closeContext: () => void;
 }
 
 // Selections made by the radial menu go through these. After the vanilla
@@ -202,6 +216,7 @@ function assetEntry(asset: toolbar.Asset, onSelect: () => void): WheelEntry {
         // Same rule the vanilla asset grid uses for its "Select" hint.
         disabled: asset.locked || (asset.unique && asset.placed),
         showPreview: true,
+        context: { kind: "asset", entity: asset.entity },
         onSelect,
     };
 }
@@ -292,8 +307,32 @@ interface WheelProps extends SearchProps {
     onBack?: () => void;
 }
 
-const Wheel = ({ entries, grouped, current, search, query, submitRef, completionRef, pageRef, example, onBack }: WheelProps) => {
+const Wheel = ({
+    entries,
+    grouped,
+    current,
+    search,
+    query,
+    submitRef,
+    completionRef,
+    pageRef,
+    example,
+    contextKey,
+    openContext,
+    closeContext,
+    onBack,
+}: WheelProps) => {
     const [hovered, setHovered] = useState<WheelEntry | null>(null);
+    // A right-click is a right-button press and release on the same item (as
+    // vanilla's useSecondaryClick in game-ui/common/hooks/use-secondary-click.tsx).
+    const secondaryPressed = useRef<string | null>(null);
+    useEffect(() => {
+        const release = (e: globalThis.MouseEvent) => {
+            if (e.button === MOUSE_SECONDARY) secondaryPressed.current = null;
+        };
+        window.addEventListener("mouseup", release);
+        return () => window.removeEventListener("mouseup", release);
+    }, []);
     const scale = useValue(menuScale$);
     const anchor = useContext(WheelAnchorContext);
     const geo = useWheelGeometry();
@@ -322,7 +361,14 @@ const Wheel = ({ entries, grouped, current, search, query, submitRef, completion
     );
 
     // Entries are rebuilt as results change; drop a hover that no longer exists.
-    const hoveredEntry = hovered && visible.includes(hovered) ? hovered : null;
+    // While a context menu is open, the hub stays on the item it belongs to.
+    const contextEntry = contextKey !== null ? visible.find((e) => entryKey(e) === contextKey) ?? null : null;
+    const hoveredEntry = contextEntry ?? (hovered && visible.includes(hovered) ? hovered : null);
+
+    // Close the context menu when its item leaves the wheel (results changed).
+    useEffect(() => {
+        if (contextKey !== null && !contextEntry) closeContext();
+    }, [contextKey, contextEntry, closeContext]);
 
     const showingQuery = !!query && !!search;
     const completion = showingQuery ? search.parsed.hint?.completion ?? null : null;
@@ -386,21 +432,36 @@ const Wheel = ({ entries, grouped, current, search, query, submitRef, completion
                 className={classNames(styles.hub, onBack && styles.hubBack)}
                 onClick={(e) => {
                     e.stopPropagation();
-                    onBack?.();
+                    // With a context menu open, a click anywhere else only closes it.
+                    if (contextKey !== null) closeContext();
+                    else onBack?.();
                 }}
             >
                 {hubContent}
             </div>
             {slots.map(({ entry, x, y }) => (
                 <button
-                    key={entityKey(entry.entity)}
+                    key={entryKey(entry)}
                     className={classNames(styles.item, entry.disabled && styles.disabled)}
                     style={{ left: `${x}rem`, top: `${y}rem` }}
                     onMouseEnter={() => setHovered(entry)}
                     onMouseLeave={() => setHovered((h) => (h === entry ? null : h))}
                     onClick={(e) => {
                         e.stopPropagation();
-                        if (!entry.disabled) entry.onSelect();
+                        if (contextKey !== null) closeContext();
+                        else if (!entry.disabled) entry.onSelect();
+                    }}
+                    onMouseDown={(e) => {
+                        if (e.button === MOUSE_SECONDARY) secondaryPressed.current = entryKey(entry);
+                    }}
+                    onMouseUp={(e) => {
+                        if (e.button !== MOUSE_SECONDARY) return;
+                        // Handled here: the backdrop closes the context menu on
+                        // right-clicks that miss every item.
+                        e.stopPropagation();
+                        const pressedHere = secondaryPressed.current === entryKey(entry);
+                        secondaryPressed.current = null;
+                        if (pressedHere) openContext(entry, e.clientX, e.clientY);
                     }}
                 >
                     <img className={styles.icon} src={entry.icon} />
@@ -556,6 +617,32 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     const fitRadiusPx = useCssLength(`${wheelFitRadius(useWheelGeometry())}rem`) * useValue(menuScale$);
     const [anchor] = useState(() => (openAtCursor ? anchorAtCursor(fitRadiusPx) : null));
 
+    // The right-click menu. Only one is open at a time; every input that
+    // changes what's under it closes it (see closeContext's callers).
+    const [context, setContext] = useState<OpenContextMenu | null>(null);
+    const contextOpen = useRef(false);
+    contextOpen.current = context !== null;
+    const contextActions = useContextActions();
+    const openContext = useCallback(
+        (entry: WheelEntry, x: number, y: number) => {
+            // Items without actions get no menu, but still close another one.
+            if (!entry.context || contextActions(entry.context).length === 0) {
+                setContext(null);
+                return;
+            }
+            setContext({ entryKey: entryKey(entry), target: entry.context, x, y });
+        },
+        [contextActions]
+    );
+    const closeContext = useCallback(() => setContext(null), []);
+    // Actions are rebuilt each render, so they reflect current state (e.g.
+    // whether the asset is a favorite).
+    const openActions = context ? contextActions(context.target) : EMPTY;
+    const hasOpenActions = openActions.length > 0;
+    useEffect(() => {
+        if (context && !hasOpenActions) setContext(null);
+    }, [context, hasOpenActions]);
+
     const openMenu = useCallback((menu: toolbar.ToolbarItem) => setPath({ menu }), []);
     const openCategory = useCallback(
         (category: toolbar.AssetCategory) => setPath((p) => ({ ...p, category })),
@@ -573,6 +660,10 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         if (now - lastBackAt.current < BACK_DEBOUNCE_MS) return;
         lastBackAt.current = now;
 
+        if (contextOpen.current) {
+            setContext(null);
+            return;
+        }
         if (query) {
             setQuery("");
             return;
@@ -598,6 +689,9 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     // otherwise pick the first result.
     useEffect(() => {
         const subscription = acceptSuggestion$.subscribe(() => {
+            // Swallowed while a context menu is open: it must never pick the
+            // result behind the menu.
+            if (contextOpen.current) return;
             if (completionRef.current !== null) setQuery(completionRef.current);
             else submitRef.current?.();
         });
@@ -630,6 +724,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
             e.preventDefault(); // don't move focus out of the field
         } else if (e.keyCode === KEY_PAGE_UP || e.keyCode === KEY_PAGE_DOWN) {
             e.preventDefault();
+            setContext(null);
             pageRef.current?.(e.keyCode === KEY_PAGE_DOWN ? 1 : -1);
         }
     };
@@ -640,6 +735,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         const now = Date.now();
         if (now - lastPageFlipAt.current < PAGE_WHEEL_THROTTLE_MS) return;
         lastPageFlipAt.current = now;
+        setContext(null);
         pageRef.current(e.deltaY > 0 ? 1 : -1);
     };
 
@@ -653,7 +749,30 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         };
     }, [back, backRef]);
 
-    const searchProps: SearchProps = { query, submitRef, completionRef, pageRef, example };
+    // Typing or moving to another level changes what's on the wheel.
+    useEffect(() => setContext(null), [query, path]);
+
+    // A left click that reaches the backdrop closes an open context menu, or
+    // else the radial menu. Right-clicks on items stop before this, so one here
+    // missed every item.
+    const onBackdropClick = () => {
+        if (contextOpen.current) setContext(null);
+        else close();
+    };
+    const onBackdropMouseUp = (e: MouseEvent) => {
+        if (e.button === MOUSE_SECONDARY) setContext(null);
+    };
+
+    const searchProps: SearchProps = {
+        query,
+        submitRef,
+        completionRef,
+        pageRef,
+        example,
+        contextKey: context?.entryKey ?? null,
+        openContext,
+        closeContext,
+    };
     let level;
     if (path.menu && path.category) {
         level = (
@@ -672,7 +791,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     }
 
     return (
-        <div className={styles.backdrop} onClick={() => close()} onWheel={onWheel}>
+        <div className={styles.backdrop} onClick={onBackdropClick} onMouseUp={onBackdropMouseUp} onWheel={onWheel}>
             <input
                 ref={inputRef}
                 className={styles.searchInput}
@@ -684,6 +803,16 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
                 onBlur={() => requestAnimationFrame(focusInput)}
             />
             <WheelAnchorContext.Provider value={anchor}>{level}</WheelAnchorContext.Provider>
+            {context && hasOpenActions && (
+                <ContextMenu
+                    // Remounts (and re-measures) when opened on another item.
+                    key={`${context.entryKey}@${context.x},${context.y}`}
+                    x={context.x}
+                    y={context.y}
+                    actions={openActions}
+                    onClose={closeContext}
+                />
+            )}
         </div>
     );
 };

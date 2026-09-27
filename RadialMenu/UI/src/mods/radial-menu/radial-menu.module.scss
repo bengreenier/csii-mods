@@ -153,3 +153,45 @@ $hub-size: 240rem;
     width: 100%;
     height: 100%;
 }
+
+// Right-click menu on wheel items (context-menu.tsx). Positioned in view
+// pixels on the backdrop, outside the scaled wheel.
+.contextMenu {
+    position: absolute;
+    min-width: 200rem;
+    padding: 6rem 0;
+    border: 2rem solid rgba(255, 255, 255, 0.25);
+    border-radius: 6rem;
+    background-color: rgba(24, 33, 51, 0.97);
+    color: white;
+}
+
+.contextAction {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 8rem 16rem;
+    font-size: 16rem;
+
+    &:hover {
+        background-color: rgba(64, 128, 224, 0.95);
+    }
+}
+
+.contextActionDisabled {
+    opacity: 0.4;
+
+    &:hover {
+        background-color: transparent;
+    }
+}
+
+.contextActionIcon {
+    width: 20rem;
+    height: 20rem;
+    margin-right: 10rem;
+}
+
+.contextActionLabel {
+    white-space: nowrap;
+}

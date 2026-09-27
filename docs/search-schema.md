@@ -209,6 +209,34 @@ under **Options > Radial Menu > Search & Filters**. It comes from `LocaleEn` in
 Everything shown in-game writes filters in the spaced `key: value` form, and
 uses plain ASCII only.
 
+## Context menu
+
+Right-clicking a wheel item opens a small menu of actions for it at the cursor
+(`context-menu.tsx`). Which actions an item offers is decided in one place,
+`useContextActions` in `context-actions.ts`, by the item's `context` target
+(only assets so far). An item with no actions opens nothing. Right-click never
+steps back a level; Escape and clicking the hub do.
+
+- **Opening:** a right-button press and release on the same item (vanilla's
+  `useSecondaryClick` pattern, not the DOM `contextmenu` event). Right-clicking
+  another item moves the menu there.
+- **Position:** at the cursor, flipped or shifted to stay inside the view.
+  It's drawn outside the scaled wheel, so "Menu size" doesn't affect it.
+- **While open:**
+
+| Input | Result |
+|---|---|
+| Click an action | Runs it, closes the menu |
+| Left-click anywhere else (item, hub, backdrop) | Closes only the context menu |
+| Right-click on empty space or the hub | Closes it |
+| Escape / game "Back" | Closes it (before clearing the query or going back) |
+| Typing, a page flip, changing level, closing the radial menu | Closes it |
+| The item leaving the wheel (e.g. results changed) | Closes it |
+| Accept key | Ignored, so it can't pick the result behind the menu |
+
+- The hub keeps showing the right-clicked item while the menu is open.
+- Menu rows don't take keyboard focus from the search field.
+
 ## Performance design
 
 - **Index, not per-keystroke work.** `search.ts` builds one `AssetRecord` per
@@ -257,6 +285,7 @@ uses plain ASCII only.
 | `search.ts` | Hook glue: data subscriptions, index, lazy `fx:` details, caps | no |
 | `bindings.ts` / `RadialMenuUISystem.AssetMeta.cs` | `assetMeta`: static per-asset data from C# (packs, lot size, zone, level) | no |
 | `radial-menu.tsx` | Hub display, keys (accept event / Escape) | no |
+| `context-menu.tsx` / `context-actions.ts` | Right-click menu on wheel items, and the actions each item offers | no |
 
 ### Adding a filter
 
