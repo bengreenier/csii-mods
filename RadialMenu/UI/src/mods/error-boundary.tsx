@@ -3,6 +3,8 @@ import mod from "mod.json";
 
 interface Props {
     children: ReactNode;
+    // Rendered instead once something has failed (default: nothing).
+    fallback?: ReactNode;
 }
 
 interface State {
@@ -23,6 +25,6 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     render() {
-        return this.state.failed ? null : this.props.children;
+        return this.state.failed ? this.props.fallback ?? null : this.props.children;
     }
 }

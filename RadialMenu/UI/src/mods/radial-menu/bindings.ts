@@ -21,6 +21,9 @@ export const openAtCursor$ = bindValue<boolean>(GROUP, "openAtCursor", false);
 
 export const hideVanillaToolbar$ = bindValue<boolean>(GROUP, "hideVanillaToolbar", false);
 
+// "Bulldozer in radial menu"; see useBulldozerPlacement in bulldozer.ts.
+export const bulldozerInRadial$ = bindValue<boolean>(GROUP, "bulldozerInRadial", true);
+
 // Fired by C# when the "Accept search suggestion" key is pressed while open.
 export const acceptSuggestion$ = bindEvent<void>(GROUP, "acceptSuggestion");
 

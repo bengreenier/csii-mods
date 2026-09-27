@@ -49,6 +49,11 @@ namespace RadialMenu
         [SettingsUISection(KSection, KGeneralGroup)]
         public bool HideVanillaToolbar { get; set; }
 
+        // Off: the bulldozer is left out of the radial menu and stays in the
+        // vanilla toolbar, even while the other tab buttons are hidden.
+        [SettingsUISection(KSection, KGeneralGroup)]
+        public bool BulldozerInRadial { get; set; }
+
         // Scale factor for the whole wheel (1 = 100%), shown as a percentage like
         // the vanilla audio sliders.
         [SettingsUISlider(min = 50f, max = 200f, step = 5f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
@@ -138,6 +143,7 @@ namespace RadialMenu
         public override void SetDefaults()
         {
             HideVanillaToolbar = true;
+            BulldozerInRadial = true;
             MenuScale = 1f;
             RingDistance = 1f;
             ItemSpacing = 1f;
@@ -166,7 +172,10 @@ namespace RadialMenu
                 { _setting.GetOptionGroupLocaleID(Setting.KKeybindingGroup), "Key bindings" },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.HideVanillaToolbar)), "Hide vanilla toolbar tabs" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.HideVanillaToolbar)), "Hide the bottom toolbar's tab buttons and the asset panel that opens from them, so the radial menu replaces them" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.HideVanillaToolbar)), "Hide the bottom toolbar's tab buttons and the asset panel that opens from them, so the radial menu replaces them. The bulldozer stays if 'Bulldozer in radial menu' is off." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.BulldozerInRadial)), "Bulldozer in radial menu" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.BulldozerInRadial)), "Show the bulldozer in the radial menu. Turn off to leave it out of the radial menu and keep it in the bottom toolbar instead, even while the other tab buttons are hidden." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.OpenAtCursor)), "Open at mouse cursor" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.OpenAtCursor)), "Center the radial menu on the mouse cursor when it opens, instead of the middle of the screen. The menu stays where it opened while you use it, and is nudged away from the screen edges so it fits." },

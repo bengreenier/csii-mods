@@ -16,6 +16,7 @@ import {
     openAtCursor$,
     ringDistance$,
 } from "./bindings";
+import { isBulldozer, useBulldozerPlacement } from "./bulldozer";
 import { layoutWheel, searchPageSize, wheelFitRadius, wheelGeometry } from "./layout";
 import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
@@ -408,11 +409,14 @@ const Wheel = ({ entries, grouped, current, search, query, submitRef, completion
 
 const RootLevel = ({ onOpenMenu, ...searchProps }: SearchProps & { onOpenMenu: (menu: toolbar.ToolbarItem) => void }) => {
     const groups = useValue(toolbar.toolbarGroups$);
+    const { inRadial: bulldozerInRadial } = useBulldozerPlacement();
     const search = useAssetSearch(searchProps.query, useLocalization(), groups, "all");
     const entries = useMemo(
         () =>
             groups.flatMap((group, groupIndex) =>
-                group.children.map<WheelEntry>((item) => ({
+                group.children
+                    .filter((item) => bulldozerInRadial || !isBulldozer(item))
+                    .map<WheelEntry>((item) => ({
                     entity: item.entity,
                     name: item.name,
                     icon: item.icon,
@@ -425,7 +429,7 @@ const RootLevel = ({ onOpenMenu, ...searchProps }: SearchProps & { onOpenMenu: (
                     },
                 }))
             ),
-        [groups, onOpenMenu]
+        [groups, bulldozerInRadial, onOpenMenu]
     );
     const resultEntries = useMemo(() => searchResultEntries(search.results), [search.results]);
 

@@ -101,6 +101,7 @@ Check these when writing UI code; each is explained in the references.
 | A focused `<input>` blocks **all** game keyboard actions (yours too) | Read bound keys directly in C# (`references/input.md`) |
 | Escape goes to the game's "Back" then "Pause Menu" actions, not your keydown | Consume "Back" through the input stack (`references/input.md`) |
 | Vanilla UI state you hide can still filter data (e.g. selected themes filter `toolbar.assets$`) | Know which hidden vanilla state feeds your data |
+| `useValue` on a binding C# never updated throws `was not called before getValueUnsafe` (e.g. `toolbar.bulldozeTool$` on PC) | Only read bindings vanilla itself reads in that context; wrap `extend`/`override` wrappers in their own error boundary with the vanilla component as fallback |
 | Remounting under a still cursor / DOM swaps | Stale hover and cursor; keep structure stable where it matters |
 
 ## References (read when relevant)

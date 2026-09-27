@@ -38,6 +38,8 @@ namespace RadialMenu
             // Polled each update, so toggling the option applies live.
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "hideVanillaToolbar",
                 () => Mod.Settings?.HideVanillaToolbar ?? false));
+            AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "bulldozerInRadial",
+                () => Mod.Settings?.BulldozerInRadial ?? true));
             AddUpdateBinding(new GetterValueBinding<float>(kGroup, "menuScale", GetMenuScale));
             AddUpdateBinding(new GetterValueBinding<float>(kGroup, "ringDistance",
                 () => InRangeOrDefault(Mod.Settings?.RingDistance, 0f, 4f)));

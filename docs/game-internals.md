@@ -20,6 +20,7 @@ used, what breaks if it changes, and how to re-find it.
 - [Escape, "Back" and the pause menu (input isolation)](#escape-back-and-the-pause-menu-input-isolation)
 - [Keyboard focus and hasInputFieldFocus](#keyboard-focus-and-hasinputfieldfocus)
 - [Tool info views ("Show info views for radial menu selections")](#tool-info-views-show-info-views-for-radial-menu-selections)
+- [The bulldozer ("Bulldozer in radial menu")](#the-bulldozer-bulldozer-in-radial-menu)
 - [Other runtime quirks](#other-runtime-quirks)
 - [Log messages](#log-messages)
 
@@ -28,7 +29,7 @@ used, what breaks if it changes, and how to re-find it.
 | Module path | Export | Used in | If it breaks |
 |---|---|---|---|
 | `game-ui/common/input-events/input-controller.ts` | `useInputController` | `radial-menu.tsx` (`useModalInput`), driven by `isolateInput` from `RadialMenuUISystem` | Guarded. Logs `useInputController not found` to `UI.log`; the menu works, but see the [pause-menu bug](#escape-back-and-the-pause-menu-input-isolation) |
-| `game-ui/game/components/toolbar/top/toolbar-button-strip/toolbar-button-strip.tsx` | `ToolbarButtonStrip` | `hide-vanilla.tsx` | Guarded (try/catch). The vanilla tab strip is no longer hidden |
+| `game-ui/game/components/toolbar/top/toolbar-button-strip/toolbar-button-strip.tsx` | `ToolbarButtonStrip` | `hide-vanilla.tsx` (`trimStrip`) | Guarded (try/catch). The vanilla tab strip is no longer hidden |
 | `game-ui/game/components/asset-menu/asset-menu.tsx` | `AssetMenu` | `hide-vanilla.tsx` | Same; the vanilla asset panel shows again |
 | `game-ui/game/components/asset-menu/console-asset-menu.tsx` | `ConsoleAssetMenu` | `hide-vanilla.tsx` | Same, for the gamepad UI |
 
@@ -285,6 +286,74 @@ If a game update breaks this:
 - **What to check:** decompile `Game.Tools.ToolSystem` (`OnUpdate`,
   `ToolUpdate`, `SetInfoview`, the `m_LastToolInfoview` / `m_LastToolInfomodes`
   fields) and `ToolBaseSystem.UpdateInfoview`.
+
+## The bulldozer ("Bulldozer in radial menu")
+
+On PC the bulldozer is an ordinary item in `toolbar.toolbarGroups$`
+(`ToolbarUISystem.ProcessToolbarBinding`), so the radial menu's top level gets
+it for free, and the vanilla `ToolbarButtonStrip` draws it along with the tab
+buttons. The mod recognises it by `selectSound === "bulldoze"`, which
+`ProcessToolbarBinding` sets only for the `BulldozePrefab` item.
+
+**Don't use `toolbar.bulldozeTool$`.** It's the same item on its own, but only
+the gamepad toolbar reads it, and on PC it's never updated. `useValue` on it
+throws `'toolbar.bulldozeTool.update' was not called before getValueUnsafe!`,
+and because that ran inside the `ToolbarButtonStrip` extension it unmounted
+the entire game UI. The vanilla extensions in `hide-vanilla.tsx` are now
+wrapped in an error boundary that falls back to the untouched vanilla
+component (`safely`).
+
+With the setting off and "Hide vanilla toolbar tabs" on, the bulldozer is
+moved next to the toolbar's right-hand buttons. The bottom toolbar's top row
+is three flex areas, `start` / `middle` (the tab strip, `flex: 2.5`) / `end`
+(`EconomyPanelToggle`, `TransportationOverviewToggle`, `CityStatisticsToggle`,
+`ContourLineToggle`, `UndergroundModeToggle`, `PhotoModeToggle`, all in
+`toolbar/top/toggles.tsx` except the underground toggle). CSS can't move the
+bulldozer across areas; trimming the strip in place left it in the middle of
+the toolbar, either drifted (`display: none` on the other groups) or at the
+strip's right end (`visibility: hidden`), both confirmed in game.
+
+So `hide-vanilla.tsx` hides the whole original strip (still mounted, so the
+bulldozer hotkey works) and extends `EconomyPanelToggle` to render a **second
+copy of the vanilla `ToolbarButtonStrip`** before it (`withMovedBulldozer`),
+with `enableShortcuts={false}` (two handlers would toggle the hotkey twice)
+and `.onlyGroup<k>` to show only the bulldozer's group. The strip renders one
+div per `toolbarGroups$` group, in order, and vanilla ships the bulldozer
+**alone in the last group** (confirmed in game, 4 groups):
+
+```
+Zones, Areas, Signatures | Roads, Electricity, Water & Sewage |
+Health & Deathcare ... Landscaping | Bulldoze Tool
+```
+
+`useBulldozerPlacement` in `bulldozer.ts` finds the bulldozer's group; it
+doesn't assume a position. The bulldozer stays in the radial menu (and the
+whole strip is hidden) unless all of these hold, so it can't go missing from
+both places:
+- the `ToolbarButtonStrip` extension registered (`bulldozerHost.ready`);
+- the `EconomyPanelToggle` wrapper is actually **mounted**
+  (`useMarkBulldozerHostMounted`). Registering can succeed for a component
+  that's never rendered, e.g. if an update or mod moves it off the toolbar;
+- the bulldozer has a group to itself. If not (game update, or a mod adds to
+  its group), a `bulldozer doesn't have a toolbar group to itself` warning in
+  `UI.log` lists the groups.
+
+Known side effects:
+- There are two bulldozer buttons (the hidden original and the copy). A
+  tutorial pointing at the bulldozer (`uiTag`) may target the hidden one.
+- The copy joins the right-hand buttons' gamepad focus order. The gamepad
+  toolbar (`ConsoleToolbarButtonStrip`) is separate and untouched.
+- The copy renders whatever `ToolbarButtonStrip` the registry hands us, so a
+  mod that extended it before us would have its additions in the copy too.
+
+After a game update, check: `toolbarGroups$` still ends with the bulldozer
+alone (the warning above), `toggles.tsx#EconomyPanelToggle` still exists and
+is still the first right-hand button, and the strip still renders one div per
+group.
+
+Vanilla's CSS never uses `:not()` or `:nth-child(-n + k)`, only
+`:nth-child(k)` and `:nth-child(n + k)`, so each `.onlyGroup<k>` hides the
+groups before k one by one and the rest with `n + (k+1)`.
 
 ## Other runtime quirks
 
