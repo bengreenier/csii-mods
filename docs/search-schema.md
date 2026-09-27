@@ -245,8 +245,14 @@ search results, and the hub shows which items are on screen ("1-61 of 80").
 Right-clicking a wheel item opens a small menu of actions for it at the cursor
 (`context-menu.tsx`). Which actions an item offers is decided in one place,
 `useContextActions` in `context-actions.ts`, by the item's `context` target
-(only assets so far). An item with no actions opens nothing. Assets offer
-"Add to favorites" or "Remove from favorites". Right-click never
+(only assets so far). An item with no actions opens nothing. Assets offer:
+
+- "Add to favorites" or "Remove from favorites";
+- for a mod asset, "Copy Paradox Mods link"
+  (`https://mods.paradoxplaza.com/mods/<id>/Windows`, `modId` from `assetMeta`);
+- for a DLC asset, "Copy DLC store link": its page on paradoxinteractive.com
+  where one is known (`DLC_PAGES` in `store-links.ts`), otherwise the add-ons
+  listing. Links are copied with vanilla's `app.setClipboard` trigger. Right-click never
 steps back a level; Escape and clicking the hub do.
 
 - **Opening:** a right-button press and release on the same item (vanilla's
@@ -318,6 +324,7 @@ steps back a level; Escape and clicking the hub do.
 | `bindings.ts` / `RadialMenuUISystem.AssetMeta.cs` | `assetMeta`: static per-asset data from C# (packs, lot size, zone, level) | no |
 | `radial-menu.tsx` | Hub display, keys (accept event / Escape) | no |
 | `context-menu.tsx` / `context-actions.ts` | Right-click menu on wheel items, and the actions each item offers | no |
+| `store-links.ts` | DLC store / Paradox Mods URLs for "Copy ... link" | yes |
 | `favorites.ts` | Shared favorites bits: `useFavoriteKeys`, icons, texts (Favorites level, context actions, `is:favorite`) | no |
 
 ### Adding a filter

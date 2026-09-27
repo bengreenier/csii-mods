@@ -40,6 +40,8 @@ export interface AssetMeta {
     zone: string | null;
     // Building level; 0 if none.
     level: number;
+    // Paradox Mods ID of the mod the asset comes from; null otherwise.
+    modId: string | null;
 }
 export const assetMeta$ = bindValue<AssetMeta[]>(GROUP, "assetMeta", []);
 
@@ -75,6 +77,9 @@ export const addFavorite = (asset: Entity) => trigger(GROUP, "addFavorite", asse
 export const removeFavorite = (asset: Entity) => trigger(GROUP, "removeFavorite", asset);
 
 export const close = () => trigger(GROUP, "close");
+
+// Vanilla's clipboard trigger (AppBindings: GUIUtility.systemCopyBuffer).
+export const setClipboard = (text: string) => trigger("app", "setClipboard", text);
 
 // Call right after a vanilla toolbar select: C# records the resulting
 // selection as the radial menu's (see RadialSelection in ToolInfoviewSystem.cs).

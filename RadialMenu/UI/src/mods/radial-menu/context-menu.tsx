@@ -12,6 +12,8 @@ import styles from "./radial-menu.module.scss";
 export interface AssetContextTarget {
     kind: "asset";
     entity: Entity;
+    // Asset.dlc: the DLC (or Paradox Mods) icon, if the asset needs one.
+    dlc: string | null;
 }
 export type ContextTarget = AssetContextTarget;
 

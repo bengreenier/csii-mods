@@ -437,7 +437,7 @@ namespace RadialMenu
                     "pick the first result, ready to place. You can change this key on the Main tab.\n" +
                     "Mouse wheel, Page Up or Page Down - show the next or previous page of results, when there are more than fit on the wheel\n" +
                     "Escape or clicking the middle - clear what you typed; press again to go back a level\n" +
-                    "Right-click an item - more actions, like adding it to your favorites\n" +
+                    "Right-click an item - more actions, like adding it to your favorites or copying its DLC or mod link\n" +
                     "Your toggle key (Tab by default) - close the menu"
                 },
                 {

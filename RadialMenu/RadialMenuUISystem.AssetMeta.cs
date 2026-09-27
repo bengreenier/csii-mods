@@ -29,8 +29,10 @@ namespace RadialMenu
             public string Zone;
             // SpawnableBuildingData.m_Level; 0 = none.
             public int Level;
+            // Paradox Mods ID of the mod the asset comes from; null otherwise.
+            public string ModId;
 
-            public bool IsEmpty => Packs == null && LotWidth == 0 && Zone == null && Level == 0;
+            public bool IsEmpty => Packs == null && LotWidth == 0 && Zone == null && Level == 0 && ModId == null;
         }
 
         private RawValueBinding _assetMeta;
@@ -79,6 +81,9 @@ namespace RadialMenu
                 else writer.WriteNull();
                 writer.PropertyName("level");
                 writer.Write(meta.Level);
+                writer.PropertyName("modId");
+                if (meta.ModId != null) writer.Write(meta.ModId);
+                else writer.WriteNull();
                 writer.TypeEnd();
             }
             writer.ArrayEnd();
@@ -105,9 +110,23 @@ namespace RadialMenu
                     meta.Level = spawnable.m_Level;
                 }
                 meta.Zone = GetZoneWords(zonePrefab);
+                meta.ModId = GetModId(entity);
                 if (!meta.IsEmpty) result.Add(meta);
             }
             return result;
+        }
+
+        // PrefabBase adds ModPrerequisiteData exactly when the prefab's asset has
+        // a platformID, which is the asset's Paradox Mods ID (as Find It uses it
+        // for its mods.paradoxplaza.com links). ToolbarUISystem.BindAsset shows
+        // those assets with the Paradox Mods icon.
+        private string GetModId(Entity entity)
+        {
+            if (!EntityManager.HasComponent<ModPrerequisiteData>(entity) ||
+                !_prefabSystem.TryGetPrefab(entity, out PrefabBase prefab) || prefab.asset == null)
+                return null;
+            var id = prefab.asset.GetMeta().platformID;
+            return string.IsNullOrEmpty(id) ? null : id;
         }
 
         // Offices are Industrial areas with ZoneFlags.Office (as in LevelSection,

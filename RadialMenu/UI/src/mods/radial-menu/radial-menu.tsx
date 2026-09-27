@@ -234,7 +234,7 @@ function assetEntry(asset: toolbar.Asset, lockPlaced: boolean, onSelect: () => v
         // them). A placed unique one can: the tool then shows "already exists".
         disabled: asset.locked || (lockPlaced && asset.unique && asset.placed),
         showPreview: true,
-        context: { kind: "asset", entity: asset.entity },
+        context: { kind: "asset", entity: asset.entity, dlc: asset.dlc },
         onSelect,
     };
 }

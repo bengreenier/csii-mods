@@ -52,6 +52,13 @@ Used through `cs2/bindings` / `cs2/api`:
   filter" button, with `CityConfigurationSystem.defaultTheme` from C#).
 - `prefab.*`: `prefabDetails$`, `themes$`.
 - `selectedInfo.clearSelection` and `map.disableMapTileView`.
+- `app.setClipboard(text)` ("Copy ... link" in the context menu): C#
+  `AppBindings.SetClipboard`, which sets `GUIUtility.systemCopyBuffer`.
+- DLC store pages: `Asset.dlc` is `Media/DLC/<name>.svg`, from
+  `PlatformManager.GetDlcName`. `store-links.ts` maps the lowercased `<name>` to
+  a paradoxinteractive.com slug. The site renders only part of its add-on list
+  server-side, so the slugs were confirmed by requesting each page (HTTP 200);
+  unknown DLCs fall back to the add-ons listing.
 
 The mod replays vanilla's toolbar-button click sequence (see
 `activateToolbarItem`). If the vanilla sequence changes, compare it with the
@@ -389,6 +396,10 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
     which needs `ZonePropertiesData` on the zone prefab. It always returns
     Low for plain industrial, so no density is sent there.
 - **Level (`level:`):** `SpawnableBuildingData.m_Level`.
+- **Paradox Mods ID (`modId`, "Copy Paradox Mods link"):**
+  `prefab.asset.GetMeta().platformID`. `PrefabBase` adds `ModPrerequisiteData`
+  exactly when that's set, which is also when `BindAsset` shows the Paradox
+  Mods icon. Find It uses the same ID for its mods.paradoxplaza.com links.
 - **Mods (`is:mod`):** no C# needed. `ToolbarUISystem.BindAsset` sets
   `Asset.dlc` to `Media/Glyphs/ParadoxModsCloud.svg` for prefabs with
   `ModPrerequisiteData`, overriding any DLC icon.
