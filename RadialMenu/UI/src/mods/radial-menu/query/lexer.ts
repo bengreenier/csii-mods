@@ -36,6 +36,19 @@ export function tokenize(input: string): Token[] {
             const bodyStart = i;
             while (i < input.length && !/\s/.test(input[i])) i++;
             body = input.slice(bodyStart, i);
+
+            // "key: value" - a space after the colon is allowed, so the value
+            // is the next word (unless that starts a new '-' or '"' token).
+            if (body.length > 1 && body.endsWith(":")) {
+                let j = i;
+                while (j < input.length && /\s/.test(input[j])) j++;
+                if (j > i && j < input.length && input[j] !== "-" && input[j] !== '"') {
+                    const valueStart = j;
+                    while (j < input.length && !/\s/.test(input[j])) j++;
+                    body += input.slice(valueStart, j);
+                    i = j;
+                }
+            }
         }
         tokens.push({ raw: input.slice(start, i), negated, quoted, body });
     }

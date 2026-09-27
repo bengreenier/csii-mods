@@ -106,13 +106,14 @@ export function parse(input: string, ctx: FilterContext): ParsedQuery {
     return q;
 }
 
-// Suggests a completion for the token being typed (the last one, if the input
-// doesn't end in whitespace).
+// Suggests a completion for the token being typed: the last one, if the input
+// doesn't end in whitespace - or a "key:" awaiting its value after a space.
 function hintFor(input: string, ctx: FilterContext): Hint | null {
-    if (!input || /\s$/.test(input)) return null;
+    if (!input) return null;
     const tokens = tokenize(input);
     const last = tokens[tokens.length - 1];
     if (!last || last.quoted) return null;
+    if (/\s$/.test(input) && !last.body.endsWith(":")) return null;
 
     const before = input.slice(0, input.length - last.raw.length);
     const sign = last.negated ? "-" : "";
@@ -124,7 +125,7 @@ function hintFor(input: string, ctx: FilterContext): Hint | null {
         if (body.length < 2) return null;
         const key = FILTERS.find((f) => f.key.startsWith(body) && f.key !== body)?.key ?? (FILTERS_BY_KEY.has(body) ? body : null);
         if (!key) return null;
-        return { text: `→ ${key}:`, completion: `${before}${sign}${key}:` };
+        return { text: `> ${key}:`, completion: `${before}${sign}${key}:` };
     }
 
     const key = body.slice(0, colon);
@@ -137,9 +138,10 @@ function hintFor(input: string, ctx: FilterContext): Hint | null {
     const partial = valuePart.slice(comma + 1);
     const options = def.suggest(ctx).filter((v) => v.startsWith(partial) && v !== partial);
     if (options.length === 0) return null;
-    const head = `${key}:${valuePart.slice(0, comma + 1)}`;
     return {
-        text: (partial ? "→ " : "") + options.slice(0, MAX_HINT_VALUES).join(" · "),
-        completion: `${before}${sign}${head}${options[0]}`,
+        text: (partial ? "> " : "") + options.slice(0, MAX_HINT_VALUES).join(" / "),
+        // The partial value is always at the very end of the input (keeps any
+        // space the user typed after the colon).
+        completion: input.slice(0, input.length - partial.length) + options[0],
     };
 }

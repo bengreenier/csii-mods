@@ -96,3 +96,22 @@ export const FILTERS: FilterDef[] = [
 ];
 
 export const FILTERS_BY_KEY = new Map(FILTERS.map((f) => [f.key, f]));
+
+// Example queries for the idle hub's rotating "Hint: try ..." line.
+// Written with a space after the colon for readability; "is:ok" works too.
+export const FILTER_EXAMPLES = [
+    "is: new",
+    "is: ok school",
+    "is: unique -is: placed",
+    "is: new,unique",
+    "theme: european",
+    "dlc: none",
+    "-dlc: none",
+    "in: parks",
+    "in: health is: ok",
+    "fx: crime",
+    "fx: wellbeing",
+    "fx: entertainment",
+    "\"bus stop\"",
+    "road -highway",
+];

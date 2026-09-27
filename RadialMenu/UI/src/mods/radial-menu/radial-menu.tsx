@@ -7,6 +7,7 @@ import { Entity, entityKey } from "cs2/utils";
 import classNames from "classnames";
 import { close, isOpen$ } from "./bindings";
 import { layoutWheel } from "./layout";
+import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
 import { SearchResult, SearchResults, SearchScope, useAssetSearch } from "./search";
 import styles from "./radial-menu.module.scss";
@@ -62,6 +63,8 @@ interface SearchProps {
     query: string;
     submitRef: MutableRefObject<(() => void) | null>;
     completionRef: MutableRefObject<string | null>;
+    // Example query for the idle hub hint; picked once per menu open.
+    example: string;
 }
 
 // Mirrors what the vanilla toolbar button does on select
@@ -118,9 +121,9 @@ const PrefabPreview = ({ entity, fallbackIcon }: { entity: Entity; fallbackIcon:
 };
 
 function matchSummary({ active, results, total, pending }: SearchResults) {
-    if (!active) return "Keep typing…";
-    const checking = pending > 0 ? ` (checking ${pending}…)` : "";
-    if (total === 0) return pending > 0 ? `Checking ${pending}…` : "No matches";
+    if (!active) return "Keep typing...";
+    const checking = pending > 0 ? ` (checking ${pending}...)` : "";
+    if (total === 0) return pending > 0 ? `Checking ${pending}...` : "No matches";
     if (total > results.length) return `${results.length} of ${total} matches${checking}`;
     return (total === 1 ? "1 match" : `${total} matches`) + checking;
 }
@@ -149,11 +152,11 @@ const QueryDisplay = ({ tokens }: { tokens: DisplayToken[] }) => {
     }
     return (
         <div className={styles.hubQuery}>
-            {shown.length < tokens.length && "… "}
+            {/* Single text node per span: Gameface splits adjacent text nodes. */}
+            {shown.length < tokens.length && <span>{"... "}</span>}
             {shown.map((t, i) => (
                 <span key={i} className={TOKEN_CLASS[t.status]}>
-                    {i > 0 && " "}
-                    {t.raw}
+                    {(i > 0 ? " " : "") + t.raw}
                 </span>
             ))}
         </div>
@@ -170,7 +173,7 @@ interface WheelProps extends SearchProps {
     onBack?: () => void;
 }
 
-const Wheel = ({ entries, grouped, current, search, query, submitRef, completionRef, onBack }: WheelProps) => {
+const Wheel = ({ entries, grouped, current, search, query, submitRef, completionRef, example, onBack }: WheelProps) => {
     const [hovered, setHovered] = useState<WheelEntry | null>(null);
     const slots = useMemo(
         () => layoutWheel(entries, grouped ? (e) => e.group ?? 0 : undefined),
@@ -201,7 +204,14 @@ const Wheel = ({ entries, grouped, current, search, query, submitRef, completion
                     </div>
                 )}
                 {onBack && !hoveredEntry && <div className={styles.hubHint}>Back</div>}
-                {!hoveredEntry && <div className={styles.hubTypeHint}>Type to search</div>}
+                {!hoveredEntry && (
+                    <>
+                        <div className={styles.hubTypeHint}>Type to search</div>
+                        <div className={styles.hubFilterHints}>Use '-word' to exclude</div>
+                        {/* One string: Gameface lays out adjacent JSX text nodes as separate lines. */}
+                        <div className={styles.hubFilterHints}>{`Hint: try "${example}"`}</div>
+                    </>
+                )}
             </>
         );
     } else {
@@ -358,6 +368,7 @@ const OpenRadialMenu = () => {
     const [query, setQuery] = useState("");
     const submitRef = useRef<(() => void) | null>(null);
     const completionRef = useRef<string | null>(null);
+    const [example] = useState(() => FILTER_EXAMPLES[Math.floor(Math.random() * FILTER_EXAMPLES.length)]);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const openMenu = useCallback((menu: toolbar.ToolbarItem) => setPath({ menu }), []);
@@ -426,7 +437,7 @@ const OpenRadialMenu = () => {
         if (e.button === 2) back();
     };
 
-    const searchProps: SearchProps = { query, submitRef, completionRef };
+    const searchProps: SearchProps = { query, submitRef, completionRef, example };
     let level;
     if (path.menu && path.category) {
         level = (

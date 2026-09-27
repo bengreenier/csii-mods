@@ -26,13 +26,16 @@ further. This document is the specification. The implementation lives in
 query    := token (whitespace token)*
 token    := ['-'] ( phrase | filter | word )     leading '-' excludes / negates
 phrase   := '"' chars ['"']                       an unclosed quote runs to the end
-filter   := KEY ':' value?                        KEY must be exactly a known key
+filter   := KEY ':' [space] value?                KEY must be exactly a known key
 value    := atom (',' atom)*                      comma = OR
 word     := any other run of non-whitespace
 ```
 
 - Case-insensitive throughout.
 - Keys must be typed in full (`theme:`, not `th:`). Hints complete them.
+- A space after the colon is allowed: `is: ok` is the same as `is:ok`. The
+  value is then the next word, unless that word starts with `-` or `"`, which
+  begin a new token. Examples in the hub use the spaced form.
 - Values match by **prefix**: `is:u` means `is:unique`, and `theme:eu` matches
   "European". A prefix that fits several values matches any of them.
 - `-` only negates at the **start** of a token: `-park` excludes, `2-lane` is a
@@ -115,7 +118,7 @@ Tabs that aren't unlocked are skipped at the top ring.
 | `is` / `in` / `theme` | normal | plain words (no special casing). The hint offers the filter. |
 
 If *everything* typed is ignored, the menu keeps showing the normal level and
-the hub shows "Keep typing…".
+the hub shows "Keep typing...".
 
 ## Ranking
 
@@ -137,12 +140,12 @@ When text is typed and nothing is hovered, the hub shows:
 
 1. **The query**, coloured per token: text is white, recognized filters blue,
    incomplete or ignored ones dimmed, invalid or unknown ones red and struck
-   through. Long queries show their tail behind `…`.
+   through. Long queries show their tail behind `...`.
 2. **Match count**: "12 matches", "60 of 214 matches", "No matches", or
-   "(checking N…)" while `fx:` details load.
+   "(checking N...)" while `fx:` details load.
 3. **Hint** for the token being typed:
-   - a key completion (`th` → `theme:`);
-   - value suggestions (`is:` → `ok · new · unique · placed`);
+   - a key completion (`th` shows `> theme:`);
+   - value suggestions (`is:` shows `ok / new / unique / placed`);
    - or `unknown filter "foo"`.
 
 Hovering a result shows its preview and title instead.
@@ -156,7 +159,14 @@ Hovering a result shows its preview and title instead.
 | toggle key (default Tab) | close the menu |
 
 Right Arrow completes instead of Tab because Tab is the default toggle key.
-With nothing typed, the idle hub shows "Type to search".
+Hub text is plain ASCII (`>`, `/`, `...`): the game's UI font lacks glyphs
+such as `·`, `→` and `…`.
+With nothing typed, the idle hub shows "Type to search", "Use '-word' to
+exclude", and `Hint: try "<example>"`. The example is picked at random from
+`FILTER_EXAMPLES` (`query/filters.ts`) each time the menu opens.
+
+A condensed version of this reference is built into the mod's settings, under
+**Options > Radial Menu > Filters**. It comes from `LocaleEn` in `Setting.cs`.
 
 ## Performance design
 
@@ -213,7 +223,9 @@ With nothing typed, the idle hub shows "Type to search".
 2. Add an entry to `FILTERS` in `filters.ts`, with `compile` (null means
    invalid) and `suggest`. Set `needsDetails: true` only if it needs
    `prefabDetails`.
-3. Document it in this file.
+3. Document it in this file and in the settings reference
+   (`SearchFiltersText` in `Setting.cs`). Optionally add an example to
+   `FILTER_EXAMPLES`.
 
 ## Known limitations / to verify in game
 
