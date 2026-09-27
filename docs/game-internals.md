@@ -54,11 +54,19 @@ Used through `cs2/bindings` / `cs2/api`:
 - `selectedInfo.clearSelection` and `map.disableMapTileView`.
 - `app.setClipboard(text)` ("Copy ... link" in the context menu): C#
   `AppBindings.SetClipboard`, which sets `GUIUtility.systemCopyBuffer`.
-- DLC store pages: `Asset.dlc` is `Media/DLC/<name>.svg`, from
-  `PlatformManager.GetDlcName`. `store-links.ts` maps the lowercased `<name>` to
-  a paradoxinteractive.com slug. The site renders only part of its add-on list
-  server-side, so the slugs were confirmed by requesting each page (HTTP 200);
-  unknown DLCs fall back to the add-ons listing.
+- DLC Steam pages (`RadialMenu.dlcSteamApps`, `RadialMenuUISystem.StoreLinks.cs`):
+  `Asset.dlc` is `Media/DLC/<name>.svg`, with `<name>` from
+  `PlatformManager.GetDlcName`. Each DLC's Steam app ID is resolved as the
+  game's Steam backend does (`SteamworksPlatform.RemapDLCs`):
+  - `Game.Dlc.SteamworksDlcsMapping.Lookup` first (the oldest DLCs: Landmark
+    Buildings, San Francisco Set, Bridges & Ports);
+  - then the `steamAppId` in the DLC's attributes (`DlcHelper.GetDlcAttributes()`,
+    loaded from each DLC's content `.ntl` file), via
+    `DlcAttributeExtension.GetSteamAppId`.
+
+  This is static data, available on any launcher (needs `Colossal.PSI.Common`
+  and `Colossal.PSI.Steamworks` references). DLCs without an ID link to the
+  game's DLC list on Steam. A failure logs `Could not resolve DLC Steam app IDs`.
 
 The mod replays vanilla's toolbar-button click sequence (see
 `activateToolbarItem`). If the vanilla sequence changes, compare it with the
@@ -523,6 +531,7 @@ messages mostly exist to flag breakage after a game update.
 | `Favorites not loaded: unknown format version N` (warning) | The save was written by a newer version of the mod; the city loads with no favorites |
 | `Favorites could not be read from the save; starting empty` (error) | The favorites block was unreadable; the city still loads |
 | `Removed Radial Menu data from this city` | The "Remove Radial Menu data from this city" button was confirmed; `Remove Radial Menu data skipped: no city loaded` if there was no city |
+| `Could not resolve DLC Steam app IDs; DLC links point to the DLC list` (warning) | The game's DLC data couldn't be read (after a game update?); "Copy Steam store link" copies the DLC list instead |
 | `Reset vanilla theme filter` | The "Reset vanilla theme filter" button was used; followed by `... skipped: no city loaded` if there was no city |
 | `ToolSystem.m_LastToolInfoview/m_LastToolInfomodes not found; ...` (warning) | A game update renamed vanilla's private fields. The flicker-free tool info view path is off, and the fallback is used. See [Tool info views](#tool-info-views-show-info-views-for-radial-menu-selections). |
 | `Tool info view suppressed via fallback ...` | The fallback ran, once per session: the overlay may flash for a frame. Normally absent. |

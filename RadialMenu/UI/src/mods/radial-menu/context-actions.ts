@@ -3,7 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { useValue } from "cs2/api";
 import { entityKey } from "cs2/utils";
-import { addFavorite, assetMeta$, removeFavorite, setClipboard } from "./bindings";
+import { addFavorite, assetMeta$, dlcSteamApps$, removeFavorite, setClipboard } from "./bindings";
 import { ContextAction, ContextTarget } from "./context-menu";
 import { FAVORITE_ICON, UNFAVORITE_ICON, useFavoriteKeys } from "./favorites";
 import { dlcStoreUrl, modPageUrl } from "./store-links";
@@ -20,6 +20,11 @@ export function useContextActions(): ContextActionProvider {
     const modIds = useMemo(
         () => new Map(assetMeta.filter((m) => m.modId).map((m) => [entityKey(m.entity), m.modId!])),
         [assetMeta]
+    );
+    const dlcSteamApps = useValue(dlcSteamApps$);
+    const steamAppIds = useMemo(
+        () => new Map(dlcSteamApps.map((d) => [d.name.toLowerCase(), d.appId])),
+        [dlcSteamApps]
     );
 
     return useCallback(
@@ -43,7 +48,7 @@ export function useContextActions(): ContextActionProvider {
                               },
                     ];
                     const modId = modIds.get(key);
-                    const dlcUrl = dlcStoreUrl(target.dlc);
+                    const dlcUrl = dlcStoreUrl(target.dlc, steamAppIds);
                     if (modId) {
                         actions.push({
                             id: "copyLink",
@@ -54,7 +59,7 @@ export function useContextActions(): ContextActionProvider {
                     } else if (dlcUrl && target.dlc) {
                         actions.push({
                             id: "copyLink",
-                            label: "Copy DLC store link",
+                            label: "Copy Steam store link",
                             icon: target.dlc,
                             onSelect: () => setClipboard(dlcUrl),
                         });
@@ -63,6 +68,6 @@ export function useContextActions(): ContextActionProvider {
                 }
             }
         },
-        [favoriteKeys, modIds]
+        [favoriteKeys, modIds, steamAppIds]
     );
 }

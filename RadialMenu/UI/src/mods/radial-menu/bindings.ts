@@ -78,6 +78,14 @@ export const removeFavorite = (asset: Entity) => trigger(GROUP, "removeFavorite"
 
 export const close = () => trigger(GROUP, "close");
 
+// Each DLC's Steam app ID, by DLC name (the icon name in Asset.dlc); see
+// RadialMenuUISystem.StoreLinks.cs. Static game data.
+export interface DlcSteamApp {
+    name: string;
+    appId: number;
+}
+export const dlcSteamApps$ = bindValue<DlcSteamApp[]>(GROUP, "dlcSteamApps", []);
+
 // Vanilla's clipboard trigger (AppBindings: GUIUtility.systemCopyBuffer).
 export const setClipboard = (text: string) => trigger("app", "setClipboard", text);
 

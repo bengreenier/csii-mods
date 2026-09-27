@@ -250,9 +250,12 @@ Right-clicking a wheel item opens a small menu of actions for it at the cursor
 - "Add to favorites" or "Remove from favorites";
 - for a mod asset, "Copy Paradox Mods link"
   (`https://mods.paradoxplaza.com/mods/<id>/Windows`, `modId` from `assetMeta`);
-- for a DLC asset, "Copy DLC store link": its page on paradoxinteractive.com
-  where one is known (`DLC_PAGES` in `store-links.ts`), otherwise the add-ons
-  listing. Links are copied with vanilla's `app.setClipboard` trigger. Right-click never
+- for a DLC asset, "Copy Steam store link": the DLC's Steam page
+  (`https://store.steampowered.com/app/<appId>/`, app ID from the
+  `dlcSteamApps` binding), or the game's DLC list on Steam if the ID isn't
+  known.
+
+Links are copied with vanilla's `app.setClipboard` trigger. Right-click never
 steps back a level; Escape and clicking the hub do.
 
 - **Opening:** a right-button press and release on the same item (vanilla's

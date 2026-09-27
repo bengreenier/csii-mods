@@ -57,6 +57,7 @@ namespace RadialMenu
             // After CreateAllAssetsBinding: shares its ToolbarUISystem and
             // UniqueAssetTrackingSystem references.
             CreateFavoritesBindings();
+            CreateStoreLinkBindings();
         }
 
         protected override void OnGamePreload(Colossal.Serialization.Entities.Purpose purpose, GameMode mode)
