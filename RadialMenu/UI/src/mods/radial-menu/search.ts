@@ -8,10 +8,6 @@ import { FilterContext } from "./query/filters";
 import { parse, ParsedQuery } from "./query/parser";
 import { AssetRecord, buildRecord, dlcSlug as iconSlug, fxTerms } from "./query/record";
 
-// Results shown per page: enough to fill three rings (14 + 20 + 27 slots)
-// without leaving the screen.
-export const SEARCH_PAGE_SIZE = 60;
-
 // ToolbarItemType.menu, see radial-menu.tsx.
 const TOOLBAR_ITEM_TYPE_MENU = 1;
 
@@ -35,7 +31,7 @@ export interface SearchResults {
     parsed: ParsedQuery;
     // Whether the query constrains anything; if not, show the normal level.
     active: boolean;
-    // Every match, ranked; the wheel shows one page at a time.
+    // Every match, ranked; the wheel shows one page at a time (see searchPageSize).
     results: SearchResult[];
     // Candidates still waiting on fx: details.
     pending: number;

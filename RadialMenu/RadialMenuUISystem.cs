@@ -39,6 +39,10 @@ namespace RadialMenu
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "hideVanillaToolbar",
                 () => Mod.Settings?.HideVanillaToolbar ?? false));
             AddUpdateBinding(new GetterValueBinding<float>(kGroup, "menuScale", GetMenuScale));
+            AddUpdateBinding(new GetterValueBinding<float>(kGroup, "ringDistance",
+                () => InRangeOrDefault(Mod.Settings?.RingDistance, 0f, 4f)));
+            AddUpdateBinding(new GetterValueBinding<float>(kGroup, "itemSpacing",
+                () => InRangeOrDefault(Mod.Settings?.ItemSpacing, 0f, 4f)));
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "openAtCursor", () => Mod.Settings?.OpenAtCursor ?? false));
         }
 
@@ -118,11 +122,11 @@ namespace RadialMenu
         }
 
         // Clamped to the slider's range, in case a settings file holds something odd.
-        private static float GetMenuScale()
-        {
-            var scale = Mod.Settings?.MenuScale ?? 1f;
-            return scale < 0.5f || scale > 2f ? 1f : scale;
-        }
+        private static float GetMenuScale() => InRangeOrDefault(Mod.Settings?.MenuScale, 0.5f, 2f);
+
+        // Percentage settings: out-of-range values fall back to 100%.
+        private static float InRangeOrDefault(float? value, float min, float max) =>
+            value is float v && v >= min && v <= max ? v : 1f;
 
         private void SetIsolateInput(bool isolate)
         {

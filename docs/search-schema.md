@@ -131,9 +131,12 @@ Results are sorted by, in order:
 3. **Toolbar order** (tab, then category, then vanilla asset order). This keeps
    results stable as you type.
 
-Filters are yes/no: they don't affect rank. Results are shown **60** at a time
-(three rings). When there are more, the hub shows which page you're on
-("61-120 of 214 matches"). Scroll the mouse wheel anywhere over the menu, or
+Filters are yes/no: they don't affect rank. Results are shown a page at a
+time: as many as fit in the first **three rings** (61 at the default "Distance
+from center" and "Item spacing"). Rings that would reach past the screen
+edge, e.g. at large menu sizes, are left out, so pages get smaller rather than
+leaving the screen (`searchPageSize` in `layout.ts`). When there are more
+results, the hub shows which page you're on ("62-122 of 214 matches"). Scroll the mouse wheel anywhere over the menu, or
 press PageUp/PageDown, to flip pages. Changing the query starts again at the
 first page.
 
@@ -144,7 +147,7 @@ When text is typed and nothing is hovered, the hub shows:
 1. **The query**, coloured per token: text is white, recognized filters blue,
    incomplete or ignored ones dimmed, invalid or unknown ones red and struck
    through. Long queries show their tail behind `...`.
-2. **Match count**: "12 matches", "1-60 of 214 matches", "No matches", or
+2. **Match count**: "12 matches", "1-61 of 214 matches", "No matches", or
    "(checking N...)" while `fx:` details load. With more than one page, a
    "Scroll or PgUp/PgDn for more" line follows the hint.
 3. **Hint** for the token being typed:

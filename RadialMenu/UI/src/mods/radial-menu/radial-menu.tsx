@@ -5,11 +5,21 @@ import * as l10n from "cs2/l10n";
 import { getModule } from "cs2/modding";
 import { Entity, entityKey, useCssLength } from "cs2/utils";
 import classNames from "classnames";
-import { acceptSuggestion$, close, isOpen$, isolateInput$, markRadialSelection, menuScale$, openAtCursor$ } from "./bindings";
-import { layoutWheel, WHEEL_FIT_RADIUS } from "./layout";
+import {
+    acceptSuggestion$,
+    close,
+    isOpen$,
+    isolateInput$,
+    itemSpacing$,
+    markRadialSelection,
+    menuScale$,
+    openAtCursor$,
+    ringDistance$,
+} from "./bindings";
+import { layoutWheel, searchPageSize, wheelFitRadius, wheelGeometry } from "./layout";
 import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
-import { SEARCH_PAGE_SIZE, SearchResult, SearchResults, SearchScope, useAssetSearch } from "./search";
+import { SearchResult, SearchResults, SearchScope, useAssetSearch } from "./search";
 import styles from "./radial-menu.module.scss";
 
 // ToolbarItemType.menu. Compared numerically because the ambient enum from
@@ -96,6 +106,13 @@ const trackMouse = (e: { clientX: number; clientY: number }) => {
 };
 window.addEventListener("mousemove", trackMouse);
 window.addEventListener("mousedown", trackMouse);
+
+// Ring and item spacing, from the "Distance from center" / "Item spacing" settings.
+function useWheelGeometry() {
+    const ringDistance = useValue(ringDistance$);
+    const itemSpacing = useValue(itemSpacing$);
+    return useMemo(() => wheelGeometry(ringDistance, itemSpacing), [ringDistance, itemSpacing]);
+}
 
 // Where the wheel's center sits, in view pixels; null = middle of the screen.
 const WheelAnchorContext = createContext<{ x: number; y: number } | null>(null);
@@ -213,14 +230,14 @@ const PrefabPreview = ({ entity, fallbackIcon }: { entity: Entity; fallbackIcon:
     return <img className={styles.hubPreview} src={src} />;
 };
 
-function matchSummary({ active, results, pending }: SearchResults, page: number) {
+function matchSummary({ active, results, pending }: SearchResults, page: number, pageSize: number) {
     if (!active) return "Keep typing...";
     const total = results.length;
     const checking = pending > 0 ? ` (checking ${pending}...)` : "";
     if (total === 0) return pending > 0 ? `Checking ${pending}...` : "No matches";
-    if (total > SEARCH_PAGE_SIZE) {
-        const first = page * SEARCH_PAGE_SIZE + 1;
-        const last = Math.min(total, (page + 1) * SEARCH_PAGE_SIZE);
+    if (total > pageSize) {
+        const first = page * pageSize + 1;
+        const last = Math.min(total, (page + 1) * pageSize);
         return `${first}-${last} of ${total} matches${checking}`;
     }
     return (total === 1 ? "1 match" : `${total} matches`) + checking;
@@ -275,22 +292,29 @@ const Wheel = ({ entries, grouped, current, search, query, submitRef, completion
     const [hovered, setHovered] = useState<WheelEntry | null>(null);
     const scale = useValue(menuScale$);
     const anchor = useContext(WheelAnchorContext);
+    const geo = useWheelGeometry();
+
+    // A page is as many results as fit in the first few rings, dropping rings
+    // that would leave the screen (half the smaller view side, in wheel rem).
+    const remPx = useCssLength("1rem") * scale;
+    const maxRadius = remPx > 0 ? Math.min(window.innerWidth, window.innerHeight) / 2 / remPx : Infinity;
+    const pageSize = searchPageSize(geo, maxRadius);
 
     // Search results are shown a page at a time. The page belongs to the query
     // it was picked for, so typing starts over at the first page; it's clamped
     // in case the results shrink (e.g. as fx: details load).
     const paged = !!search?.active;
-    const pageCount = paged ? Math.max(1, Math.ceil(entries.length / SEARCH_PAGE_SIZE)) : 1;
+    const pageCount = paged ? Math.max(1, Math.ceil(entries.length / pageSize)) : 1;
     const [pageState, setPageState] = useState({ query, page: 0 });
     const page = pageState.query === query ? Math.min(pageState.page, pageCount - 1) : 0;
     const visible = useMemo(
-        () => (paged ? entries.slice(page * SEARCH_PAGE_SIZE, (page + 1) * SEARCH_PAGE_SIZE) : entries),
-        [paged, entries, page]
+        () => (paged ? entries.slice(page * pageSize, (page + 1) * pageSize) : entries),
+        [paged, entries, page, pageSize]
     );
 
     const slots = useMemo(
-        () => layoutWheel(visible, grouped ? (e) => e.group ?? 0 : undefined),
-        [visible, grouped]
+        () => layoutWheel(visible, geo, grouped ? (e) => e.group ?? 0 : undefined),
+        [visible, geo, grouped]
     );
 
     // Entries are rebuilt as results change; drop a hover that no longer exists.
@@ -337,7 +361,7 @@ const Wheel = ({ entries, grouped, current, search, query, submitRef, completion
         hubContent = (
             <>
                 <QueryDisplay tokens={search.parsed.tokens} />
-                <div className={styles.hubHint}>{matchSummary(search, page)}</div>
+                <div className={styles.hubHint}>{matchSummary(search, page, pageSize)}</div>
                 {hint && <div className={styles.hubTypeHint}>{hint.text}</div>}
                 {pageCount > 1 && <div className={styles.hubFilterHints}>Scroll or PgUp/PgDn for more</div>}
             </>
@@ -506,7 +530,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     // Fixed for as long as the menu is open (captured on open only, so the
     // buttons stay put while you move the mouse to them).
     const openAtCursor = useValue(openAtCursor$);
-    const fitRadiusPx = useCssLength(`${WHEEL_FIT_RADIUS}rem`) * useValue(menuScale$);
+    const fitRadiusPx = useCssLength(`${wheelFitRadius(useWheelGeometry())}rem`) * useValue(menuScale$);
     const [anchor] = useState(() => (openAtCursor ? anchorAtCursor(fitRadiusPx) : null));
 
     const openMenu = useCallback((menu: toolbar.ToolbarItem) => setPath({ menu }), []);

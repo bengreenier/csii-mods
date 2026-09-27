@@ -55,6 +55,16 @@ namespace RadialMenu
         [SettingsUISection(KSection, KGeneralGroup)]
         public float MenuScale { get; set; }
 
+        // Gap between the center and the first ring (1 = 100%; 0 = touching).
+        [SettingsUISlider(min = 0f, max = 400f, step = 25f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
+        [SettingsUISection(KSection, KGeneralGroup)]
+        public float RingDistance { get; set; }
+
+        // Gap between neighbouring buttons and between rings (1 = 100%; 0 = touching).
+        [SettingsUISlider(min = 0f, max = 400f, step = 25f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
+        [SettingsUISection(KSection, KGeneralGroup)]
+        public float ItemSpacing { get; set; }
+
         [SettingsUISection(KSection, KGeneralGroup)]
         public bool OpenAtCursor { get; set; }
 
@@ -129,6 +139,8 @@ namespace RadialMenu
         {
             HideVanillaToolbar = true;
             MenuScale = 1f;
+            RingDistance = 1f;
+            ItemSpacing = 1f;
             OpenAtCursor = false;
             ShowToolInfoviews = true;
         }
@@ -164,6 +176,12 @@ namespace RadialMenu
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.MenuScale)), "Menu size" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.MenuScale)), "Scale the whole radial menu - rings, buttons and the center - up or down. Changes apply immediately." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.RingDistance)), "Distance from center" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.RingDistance)), "How much space is left between the center of the menu and the ring of buttons. At 0% the buttons touch the center. This is the closest the ring gets: a ring with many buttons, like the top level, grows outward to fit them all. Changes apply immediately." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.ItemSpacing)), "Item spacing" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.ItemSpacing)), "How much space is left between neighbouring buttons, and between rings when there are several. At 0% buttons touch. Wider spacing fits fewer search results on each page. Changes apply immediately." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ToggleKeyboardBinding)), "Toggle radial menu" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ToggleKeyboardBinding)), "Keyboard key that opens or closes the radial menu" },
