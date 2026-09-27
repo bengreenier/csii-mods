@@ -3,7 +3,8 @@ import { useMapValues, useValue } from "cs2/api";
 import { prefab, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
 import { Entity, entityKey } from "cs2/utils";
-import { allAssets$, AssetMeta, assetMeta$, favorites$, searchAllThemes$ } from "./bindings";
+import { allAssets$, AssetMeta, assetMeta$, searchAllThemes$ } from "./bindings";
+import { useFavoriteKeys } from "./favorites";
 import { evaluate } from "./query/evaluate";
 import { FilterContext } from "./query/filters";
 import { parse, ParsedQuery } from "./query/parser";
@@ -19,7 +20,6 @@ const DETAIL_SLOT_SIZE = 100;
 
 const EMPTY: never[] = [];
 const EMPTY_META = new Map<string, AssetMeta>();
-const EMPTY_KEYS: ReadonlySet<string> = new Set<string>();
 
 export interface SearchScope {
     menu: toolbar.ToolbarItem;
@@ -57,7 +57,8 @@ interface SearchIndex {
 /**
  * Searches assets within `scope` (every unlocked menu at the root, else the
  * given categories) using the query language in docs/search-schema.md.
- * `onlyKeys` (entity keys) narrows that to a set of assets, e.g. favorites.
+ * `favoritesOnly` narrows that to this city's favorites (the Favorites level),
+ * using the same flag as is:favorite.
  * Nothing is subscribed while `query` is empty.
  */
 export function useAssetSearch(
@@ -65,7 +66,7 @@ export function useAssetSearch(
     loc: l10n.Localization,
     groups: toolbar.ToolbarGroup[],
     scope: SearchScope[] | "all",
-    onlyKeys?: ReadonlySet<string>
+    favoritesOnly = false
 ): SearchResults {
     const searching = query.trim().length > 0;
     // toolbar.themes$ may only cover the vanilla panel's current category, so
@@ -104,12 +105,8 @@ export function useAssetSearch(
     const searchAllThemes = useValue(searchAllThemes$);
     const assetsPerCategory = useMapValues(searchAllThemes ? allAssets$ : toolbar.assets$, categoryKeys);
 
-    // For is:favorite. Changes only when a favorite is added or removed.
-    const favorites = useValue(favorites$);
-    const favoriteKeys = useMemo(
-        () => (searching ? new Set(favorites.map((f) => entityKey(f.asset.entity))) : EMPTY_KEYS),
-        [searching, favorites]
-    );
+    // For is:favorite and favoritesOnly.
+    const favoriteKeys = useFavoriteKeys(searching);
 
     // Rebuilt only when game data changes, never per keystroke.
     const index = useMemo(
@@ -141,8 +138,8 @@ export function useAssetSearch(
     }, slotValues);
 
     const records = useMemo(
-        () => (onlyKeys ? index.records.filter((r) => onlyKeys.has(r.key)) : index.records),
-        [index.records, onlyKeys]
+        () => (favoritesOnly ? index.records.filter((r) => r.favorite) : index.records),
+        [index.records, favoritesOnly]
     );
     const evaluation = useMemo(
         () => (parsed.active ? evaluate(parsed, records, (k) => FX_CACHE.get(k)) : null),

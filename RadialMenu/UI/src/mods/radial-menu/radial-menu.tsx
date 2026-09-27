@@ -24,6 +24,7 @@ import {
 } from "./bindings";
 import { isBulldozer, useBulldozerPlacement } from "./bulldozer";
 import { useContextActions } from "./context-actions";
+import { FAVORITE_ICON, FAVORITES_EMPTY_MESSAGE, FAVORITES_TITLE } from "./favorites";
 import { ContextMenu, ContextTarget, OpenContextMenu } from "./context-menu";
 import { layoutWheel, searchPageSize, wheelFitRadius, wheelGeometry } from "./layout";
 import { FILTER_EXAMPLES } from "./query/filters";
@@ -251,24 +252,40 @@ function selectAssetChain(menu: Entity, category: Entity, asset: Entity) {
     close();
 }
 
-const favoriteEntries = (favorites: Favorite[]): WheelEntry[] =>
-    favorites.map(({ asset, menu, category }) =>
-        assetEntry(asset, false, () => selectAssetChain(menu, category, asset.entity))
+// An asset shown outside its own category, with the menu and category that
+// picking it selects: search results and favorites.
+interface AssetElsewhere {
+    asset: toolbar.Asset;
+    menu: Entity;
+    category: Entity;
+}
+
+const assetElsewhereEntries = (items: AssetElsewhere[], lockPlaced: boolean): WheelEntry[] =>
+    items.map(({ asset, menu, category }) =>
+        assetEntry(asset, lockPlaced, () => selectAssetChain(menu, category, asset.entity))
     );
+
+// Favorites are never disabled for being placed.
+const favoriteEntries = (favorites: Favorite[]) => assetElsewhereEntries(favorites, false);
+
+// Wheel entries for search results, memoized. `neverLockPlaced` for the
+// Favorites level, whose results are all favorites.
+function useResultEntries(results: SearchResult[], neverLockPlaced = false): WheelEntry[] {
+    const lockPlaced = useValue(lockPlacedUnique$) && !neverLockPlaced;
+    return useMemo(
+        () =>
+            assetElsewhereEntries(
+                results.map(({ asset, menu, category }) => ({ asset, menu: menu.entity, category: category.entity })),
+                lockPlaced
+            ),
+        [results, lockPlaced]
+    );
+}
 
 // The top ring's entry for the Favorites level.
 const FAVORITES_KEY = "radialMenu.favorites";
-const FAVORITES_TITLE = "Favorites";
-const FAVORITES_ICON = "Media/Glyphs/StarFilled.svg";
 // For entries and hub labels that aren't prefabs (Entity.Null).
 const NO_ENTITY: Entity = { index: 0, version: 0 };
-
-// A search hit may live in another menu/category.
-function searchResultEntries(results: SearchResult[], lockPlaced: boolean): WheelEntry[] {
-    return results.map(({ menu, category, asset }) =>
-        assetEntry(asset, lockPlaced, () => selectAssetChain(menu.entity, category.entity, asset.entity))
-    );
-}
 
 const HubTitle = ({ label }: { label: HubLabel }) =>
     label.title !== undefined ? <>{label.title}</> : <PrefabTitle entity={label.entity} fallback={label.name} />;
@@ -564,15 +581,14 @@ const RootLevel = ({ onOpenMenu, onOpenFavorites, ...searchProps }: RootLevelPro
                 entity: NO_ENTITY,
                 name: FAVORITES_TITLE,
                 title: FAVORITES_TITLE,
-                icon: FAVORITES_ICON,
+                icon: FAVORITE_ICON,
                 disabled: false,
                 group: groups.length,
                 onSelect: onOpenFavorites,
             }),
         [groups, bulldozerInRadial, onOpenMenu, onOpenFavorites]
     );
-    const lockPlaced = useValue(lockPlacedUnique$);
-    const resultEntries = useMemo(() => searchResultEntries(search.results, lockPlaced), [search.results, lockPlaced]);
+    const resultEntries = useResultEntries(search.results);
 
     if (search.active) return <Wheel entries={resultEntries} search={search} {...searchProps} />;
     return <Wheel entries={entries} grouped search={search} {...searchProps} />;
@@ -603,8 +619,7 @@ const MenuLevel = ({ menu, onOpenCategory, onBack, ...searchProps }: MenuLevelPr
             })),
         [categories, onOpenCategory]
     );
-    const lockPlaced = useValue(lockPlacedUnique$);
-    const resultEntries = useMemo(() => searchResultEntries(search.results, lockPlaced), [search.results, lockPlaced]);
+    const resultEntries = useResultEntries(search.results);
 
     if (categories.length === 1) {
         return <CategoryLevel menu={menu} category={categories[0]} current={menu} onBack={onBack} {...searchProps} />;
@@ -629,11 +644,9 @@ interface FavoritesLevelProps extends SearchProps {
 const FavoritesLevel = ({ onBack, ...searchProps }: FavoritesLevelProps) => {
     const favorites = useValue(favorites$);
     const groups = useValue(toolbar.toolbarGroups$);
-    const favoriteKeys = useMemo(() => new Set(favorites.map((f) => entityKey(f.asset.entity))), [favorites]);
-    const search = useAssetSearch(searchProps.query, useLocalization(), groups, "all", favoriteKeys);
+    const search = useAssetSearch(searchProps.query, useLocalization(), groups, "all", true);
     const entries = useMemo(() => favoriteEntries(favorites), [favorites]);
-    // Favorites are never greyed out for being placed.
-    const resultEntries = useMemo(() => searchResultEntries(search.results, false), [search.results]);
+    const resultEntries = useResultEntries(search.results, true);
 
     return (
         <Wheel
@@ -648,7 +661,6 @@ const FavoritesLevel = ({ onBack, ...searchProps }: FavoritesLevelProps) => {
 };
 
 const FAVORITES_LABEL: HubLabel = { entity: NO_ENTITY, name: FAVORITES_TITLE, title: FAVORITES_TITLE };
-const FAVORITES_EMPTY_MESSAGE = ["No favorites yet", "Right-click any item and choose 'Add to favorites'"];
 
 interface CategoryLevelProps extends SearchProps {
     menu: toolbar.ToolbarItem;
@@ -674,7 +686,7 @@ const CategoryLevel = ({ menu, category, current, onBack, ...searchProps }: Cate
             ),
         [assets, lockPlaced]
     );
-    const resultEntries = useMemo(() => searchResultEntries(search.results, lockPlaced), [search.results, lockPlaced]);
+    const resultEntries = useResultEntries(search.results);
 
     return (
         <Wheel

@@ -318,6 +318,7 @@ steps back a level; Escape and clicking the hub do.
 | `bindings.ts` / `RadialMenuUISystem.AssetMeta.cs` | `assetMeta`: static per-asset data from C# (packs, lot size, zone, level) | no |
 | `radial-menu.tsx` | Hub display, keys (accept event / Escape) | no |
 | `context-menu.tsx` / `context-actions.ts` | Right-click menu on wheel items, and the actions each item offers | no |
+| `favorites.ts` | Shared favorites bits: `useFavoriteKeys`, icons, texts (Favorites level, context actions, `is:favorite`) | no |
 
 ### Adding a filter
 
