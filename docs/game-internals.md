@@ -399,6 +399,10 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
 ## Other runtime quirks
 
 - **rem** is about 1px at 1080p. Size UI in hundreds of rem.
+- **`:nth-child(n + k)`** only parses with the spaces (vanilla's form). The
+  production build's CSS minifier writes `n+k`, which Gameface rejects: the
+  whole rule is dropped, with `CSS parsing error "syntax error" near text: +k`
+  in `UI.log`. Use `:nth-child(k) ~ *` instead (`hide-vanilla.module.scss`).
 - **Adjacent JSX text nodes** render as separate lines in Gameface. Build one
   string per element.
 - **Font:** the UI font lacks `·` `→` `…`. Keep hub text ASCII.

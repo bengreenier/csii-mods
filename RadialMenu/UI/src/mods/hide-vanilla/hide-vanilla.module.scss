@@ -6,16 +6,17 @@
 
 // The moved bulldozer's copy of the tab button strip (see withMovedBulldozer):
 // .onlyGroup<k> hides every group div but the k-th (1-based). Uses only
-// selector forms vanilla's own CSS uses (`:nth-child(k)`, `:nth-child(n + k)`);
-// `:not()` and `-n + k` don't appear there. Keep the count in sync with
-// MAX_KEEPABLE_GROUP in bulldozer.ts.
+// selector forms vanilla's own CSS uses (`:nth-child(k)`, `~`); `:not()` and
+// `-n + k` don't appear there. Not `:nth-child(n + k)`: the minifier writes it
+// as `n+k`, which Gameface fails to parse (UI.log "CSS parsing error"), so the
+// rule was dropped. Keep the count in sync with MAX_KEEPABLE_GROUP in bulldozer.ts.
 @for $k from 1 through 8 {
     @for $i from 1 to $k {
         .onlyGroup#{$k}.onlyGroup#{$k} > :nth-child(#{$i}) {
             display: none;
         }
     }
-    .onlyGroup#{$k}.onlyGroup#{$k} > :nth-child(n + #{$k + 1}) {
+    .onlyGroup#{$k}.onlyGroup#{$k} > :nth-child(#{$k}) ~ * {
         display: none;
     }
 }
