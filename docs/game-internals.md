@@ -196,9 +196,14 @@ What to check:
 - A focused DOM `<input>` sets `Game.Input.InputManager.hasInputFieldFocus`,
   which blocks keyboard input actions, **including the mod's own toggle
   action**.
-- `RadialMenuUISystem` therefore reads the bound toggle keys directly while the
-  menu is open and typing: `InputSystem.FindControl(binding.path)` on
-  `ProxyAction.bindings`, including modifiers.
+- `RadialMenuUISystem` therefore reads bound keys directly while the menu is
+  open: `InputSystem.FindControl(binding.path)` on `ProxyAction.bindings`,
+  including modifiers.
+  - The toggle action is read this way while typing.
+  - The "Accept suggestion / pick first result" action is **only** read this
+    way. It stays disabled (its binding is just data) and has its own usage,
+    `RadialMenuSearch`, so it never conflicts with game shortcuts. It fires the
+    `acceptSuggestion` UI event.
 - The field is blurred in a layout-effect cleanup before it unmounts, matching
   vanilla, which blurs text fields on Escape/Enter.
 

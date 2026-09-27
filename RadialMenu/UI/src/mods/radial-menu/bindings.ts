@@ -1,4 +1,4 @@
-import { bindValue, trigger } from "cs2/api";
+import { bindEvent, bindValue, trigger } from "cs2/api";
 import mod from "mod.json";
 
 // Must match RadialMenuUISystem.kGroup on the C# side.
@@ -13,5 +13,8 @@ export const isolateInput$ = bindValue<boolean>(GROUP, "isolateInput", false);
 export const menuScale$ = bindValue<number>(GROUP, "menuScale", 1);
 
 export const hideVanillaToolbar$ = bindValue<boolean>(GROUP, "hideVanillaToolbar", false);
+
+// Fired by C# when the "Accept search suggestion" key is pressed while open.
+export const acceptSuggestion$ = bindEvent<void>(GROUP, "acceptSuggestion");
 
 export const close = () => trigger(GROUP, "close");

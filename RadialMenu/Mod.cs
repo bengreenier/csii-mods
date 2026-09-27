@@ -13,8 +13,14 @@ namespace RadialMenu
         public static readonly ILog LOG = LogManager.GetLogger($"{nameof(RadialMenu)}.{nameof(Mod)}").SetShowsErrorsInUI(false);
 
         public const string KToggleActionName = "ToggleRadialMenu";
+        public const string KAcceptSuggestionActionName = "AcceptSearchSuggestion";
 
         public static ProxyAction ToggleAction { get; private set; }
+
+        // Only its binding is used: RadialMenuUISystem reads the bound key directly
+        // while the menu's search field has focus (which blocks game actions), so
+        // the action itself stays disabled.
+        public static ProxyAction AcceptSuggestionAction { get; private set; }
 
         public static Setting Settings { get; private set; }
 
@@ -34,6 +40,7 @@ namespace RadialMenu
             _setting.RegisterKeyBindings();
             ToggleAction = _setting.GetAction(KToggleActionName);
             ToggleAction.shouldBeEnabled = true;
+            AcceptSuggestionAction = _setting.GetAction(KAcceptSuggestionActionName);
 
             AssetDatabase.global.LoadSettings(nameof(RadialMenu), _setting, new Setting(this));
             Settings = _setting;

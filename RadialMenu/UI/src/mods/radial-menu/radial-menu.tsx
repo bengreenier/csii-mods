@@ -5,7 +5,7 @@ import * as l10n from "cs2/l10n";
 import { getModule } from "cs2/modding";
 import { Entity, entityKey } from "cs2/utils";
 import classNames from "classnames";
-import { close, isOpen$, isolateInput$, menuScale$ } from "./bindings";
+import { acceptSuggestion$, close, isOpen$, isolateInput$, menuScale$ } from "./bindings";
 import { layoutWheel } from "./layout";
 import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
@@ -78,7 +78,6 @@ const BACK_DEBOUNCE_MS = 100;
 const KEY_ENTER = 13;
 const KEY_ESCAPE = 27;
 const KEY_TAB = 9;
-const KEY_RIGHT = 39;
 
 const EMPTY: never[] = [];
 
@@ -101,8 +100,8 @@ interface WheelEntry {
 }
 
 // Shared by every level: the typed query, plus slots the wheel fills for the
-// key handler: "select the first match" (Enter) and the hint's completed
-// query (Right Arrow).
+// accept key (Enter by default): the hint's completed query, or else
+// "select the first match".
 interface SearchProps {
     query: string;
     submitRef: MutableRefObject<(() => void) | null>;
@@ -458,6 +457,18 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     const focusInput = useCallback(() => inputRef.current?.focus(), []);
     useEffect(focusInput, [focusInput]);
 
+    // The "Accept suggestion / pick first result" key (rebindable, Enter by
+    // default) is read on the C# side, since the focused field blocks game
+    // actions. One key, one path: accept the hint's completion if there is one,
+    // otherwise pick the first result.
+    useEffect(() => {
+        const subscription = acceptSuggestion$.subscribe(() => {
+            if (completionRef.current !== null) setQuery(completionRef.current);
+            else submitRef.current?.();
+        });
+        return () => subscription.dispose();
+    }, []);
+
     // Release focus when the menu closes. The game only clears its "text field
     // focused" state (which blocks keyboard actions like the pause menu) on a
     // blur; unmounting a focused field doesn't send one. Layout-effect cleanup
@@ -477,15 +488,9 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
             e.preventDefault();
             back();
         } else if (e.keyCode === KEY_ENTER) {
+            // Handled via the configurable accept key (Enter by default) from
+            // the C# side; see the acceptSuggestion$ subscription below.
             e.preventDefault();
-            submitRef.current?.();
-        } else if (e.keyCode === KEY_RIGHT) {
-            // Accept the hint's completion. Not Tab: that's the default toggle
-            // key, which the C# side reads directly.
-            if (completionRef.current !== null) {
-                e.preventDefault();
-                setQuery(completionRef.current);
-            }
         } else if (e.keyCode === KEY_TAB) {
             e.preventDefault(); // don't move focus out of the field
         }

@@ -19,6 +19,7 @@ namespace RadialMenu
         public const string kGroup = nameof(RadialMenu);
 
         private ValueBinding<bool> _isOpen;
+        private EventBinding _acceptSuggestion;
 
         // Declares which modes this system is active in (not the current mode).
         public override GameMode gameMode => GameMode.Game;
@@ -29,6 +30,7 @@ namespace RadialMenu
             AddBinding(_isOpen = new ValueBinding<bool>(kGroup, "isOpen", false));
             AddBinding(_isolateInput = new ValueBinding<bool>(kGroup, "isolateInput", false));
             AddBinding(new TriggerBinding(kGroup, "close", () => SetOpen(false)));
+            AddBinding(_acceptSuggestion = new EventBinding(kGroup, "acceptSuggestion"));
             // Polled each update, so toggling the option applies live.
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "hideVanillaToolbar",
                 () => Mod.Settings?.HideVanillaToolbar ?? false));
@@ -58,6 +60,10 @@ namespace RadialMenu
             // actions (ours included), so read the bound keys directly to still
             // allow closing. Only while open, so typing in other fields can't open it.
             var typingInMenu = _isOpen.value && InputManager.instance.hasInputFieldFocus;
+            // The accept-suggestion key is only ever read directly (see Mod.AcceptSuggestionAction).
+            if (_isOpen.value && Mod.AcceptSuggestionAction != null && WasBindingPressedThisFrame(Mod.AcceptSuggestionAction))
+                _acceptSuggestion.Trigger();
+
             if (Mod.ToggleAction.WasPerformedThisFrame() || (typingInMenu && WasBindingPressedThisFrame(Mod.ToggleAction)))
                 SetOpen(!_isOpen.value);
         }

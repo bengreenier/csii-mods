@@ -154,12 +154,17 @@ Hovering a result shows its preview and title instead.
 | Key | Action |
 |---|---|
 | typing | edit the query |
-| **Right Arrow** | accept the hint's completion |
-| **Enter** | pick the first placeable result |
+| **Accept key** (default **Enter**, rebindable) | accept the hint's completion if one is shown; otherwise pick the first placeable result |
 | **Escape** / right-click / click hub | clear the query; if already empty, step back a level |
 | toggle key (default Tab) | close the menu |
 
-Right Arrow completes instead of Tab because Tab is the default toggle key.
+The accept key is a mod key binding ("Accept suggestion / pick first result",
+Options > Radial Menu > Key bindings). It uses its own input usage and is only
+read on the C# side while the menu is open, when the game's keyboard shortcuts
+are paused by the focused search field. So it can't collide with other game
+shortcuts, and can share a key with them. It should not be the menu's toggle
+key, or a key that types a character. C# sends an `acceptSuggestion` event to
+the UI, which accepts or picks.
 Hub text is plain ASCII (`>`, `/`, `...`): the game's UI font lacks glyphs
 such as `·`, `→` and `…`.
 With nothing typed, the idle hub shows "Type to search", "Use '-word' to
@@ -225,7 +230,7 @@ uses plain ASCII only.
 | `query/record.ts` | `AssetRecord`, `buildRecord()`, `fxTerms()`, word-prefix matching | yes |
 | `query/evaluate.ts` | `evaluate()`: filter, rank, pending/need-details | yes |
 | `search.ts` | Hook glue: data subscriptions, index, lazy `fx:` details, caps | no |
-| `radial-menu.tsx` | Hub display, keys (Enter / Right Arrow / Escape) | no |
+| `radial-menu.tsx` | Hub display, keys (accept event / Escape) | no |
 
 ### Adding a filter
 

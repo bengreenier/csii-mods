@@ -18,11 +18,15 @@ namespace RadialMenu
         KSearchDlcGroup, KSearchInGroup, KSearchFxGroup, KSearchCombiningGroup, KSearchKeysGroup)]
     [SettingsUIKeyboardAction(Mod.KToggleActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
     [SettingsUIMouseAction(Mod.KToggleActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
+    // Own usage: only read while typing in the menu, so it shouldn't be reported
+    // as conflicting with e.g. the arrow-key camera controls.
+    [SettingsUIKeyboardAction(Mod.KAcceptSuggestionActionName, ActionType.Button, usages: new[] { KSearchUsage })]
     public class Setting : ModSetting
     {
         public const string KSection = "Main";
         public const string KGeneralGroup = "General";
         public const string KKeybindingGroup = "KeyBinding";
+        public const string KSearchUsage = "RadialMenuSearch";
 
         // Built-in reference for the search language (see docs/search-schema.md).
         public const string KFiltersSection = "Filters";
@@ -58,6 +62,10 @@ namespace RadialMenu
         [SettingsUIMouseBinding(BindingMouse.Forward, Mod.KToggleActionName)]
         [SettingsUISection(KSection, KKeybindingGroup)]
         public ProxyBinding ToggleMouseBinding { get; set; }
+
+        [SettingsUIKeyboardBinding(BindingKeyboard.Enter, Mod.KAcceptSuggestionActionName)]
+        [SettingsUISection(KSection, KKeybindingGroup)]
+        public ProxyBinding AcceptSuggestionBinding { get; set; }
 
         [SettingsUISection(KSection, KKeybindingGroup)]
         public bool ResetBindings
@@ -149,6 +157,13 @@ namespace RadialMenu
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ToggleMouseBinding)), "Toggle radial menu (mouse)" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ToggleMouseBinding)), "Mouse button that opens or closes the radial menu" },
 
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.AcceptSuggestionBinding)), "Accept suggestion / pick first result" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.AcceptSuggestionBinding)), "While searching in the radial menu, accepts the suggestion shown in the middle of the wheel, " +
+                    "or picks the first result when there is no suggestion. " +
+                    "By design this key can't collide with other shortcuts: it's only read while you're typing in the radial menu, " +
+                    "when the game's own keyboard shortcuts are paused, so it can safely share a key with them (like the arrow-key camera controls). " +
+                    "Just avoid the radial menu's own toggle key and keys that type a character." },
+
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ResetBindings)), "Reset key bindings" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ResetBindings)), "Reset all key bindings of the mod" },
 
@@ -203,7 +218,7 @@ namespace RadialMenu
                     "The space after the colon is optional.\n" +
                     "\n" +
                     "You don't need to remember the values: start typing a filter and suggestions appear " +
-                    "in the middle of the wheel. Press Right Arrow to accept one. " +
+                    "in the middle of the wheel. Press Enter to accept one. " +
                     "Values can also be shortened, so 'is: u' means 'is: unique'.\n" +
                     "\n" +
                     "A filter you haven't finished, or one the menu doesn't recognise, is shown faded or " +
@@ -264,13 +279,14 @@ namespace RadialMenu
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchKeysText)),
-                    "Enter - pick the first result, ready to place\n" +
-                    "Right Arrow - accept the suggestion shown in the middle of the wheel\n" +
+                    "Enter - accept the suggestion shown in the middle of the wheel, or, if there is none, " +
+                    "pick the first result, ready to place. You can change this key on the Main tab.\n" +
                     "Escape, right-click or clicking the middle - clear what you typed; press again to go back a level\n" +
                     "Your toggle key (Tab by default) - close the menu"
                 },
 
                 { _setting.GetBindingKeyLocaleID(Mod.KToggleActionName), "Toggle radial menu" },
+                { _setting.GetBindingKeyLocaleID(Mod.KAcceptSuggestionActionName), "Accept suggestion / pick first result" },
 
                 { _setting.GetBindingMapLocaleID(), "Radial Menu" },
             };
