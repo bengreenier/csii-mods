@@ -85,6 +85,8 @@ fabric.properties
 #
 # Get latest from https://github.com/github/gitignore/blob/main/Unity.gitignore
 /[Ll]ibrary/
+# Per-mod Library/ (e.g. ilpp.pid) written by the ModPostProcessor at build time
+/*/[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/
 /[Bb]uild/
@@ -330,7 +332,8 @@ publish/
 *.azurePubxml
 # Note: Comment the next line if you want to checkin your web deploy settings,
 # but database connection strings (with potential passwords) will be unencrypted
-*.pubxml
+# *.pubxml -- not ignored: the mods' Properties/PublishProfiles/*.pubxml drive
+# ModPublisher (publish / new version / update) and contain no credentials.
 *.publishproj
 
 # Microsoft Azure Web App publish settings. Comment the next line if you want to
