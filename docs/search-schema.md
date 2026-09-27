@@ -66,6 +66,9 @@ Titles come from the localization key `Assets.NAME[<prefab name>]`.
 | | `mod` | come from a mod (the asset's DLC icon is the Paradox Mods one) | cheap |
 | `theme:` | a theme word, e.g. `european`, `north`, `american` | belong to that theme (word prefix over the theme's name and title) | cheap |
 | `pack:` | an asset pack word, e.g. a pack's name or title | belong to that asset pack (word prefix over the pack's name and title) | cheap (C#) |
+| `zone:` | `residential`, `commercial`, `industrial`, `office`, and densities `low`, `medium`, `high` | are zoned buildings (e.g. signature buildings) or zone types (the Zones tab) of that zone type or density. Plain industrial has no density. | cheap (C#) |
+| `size:` | `W`, `WxD` or `xD` in cells, e.g. `2`, `2x3`, `x4` | are buildings with that lot frontage (W) and/or depth (D). Not rotated: `2x3` doesn't match a 3x2 lot. | cheap (C#) |
+| `level:` | a number, e.g. `1`, `3,4` | are zoned buildings of that level | cheap (C#) |
 | `dlc:` | `none`, or part of a DLC's icon name, e.g. `sanfrancisco` | `none` = base game (no DLC, not a mod); otherwise the asset's DLC icon file name contains the value. Mod assets are not a DLC here: use `is:mod`. | cheap |
 | `in:` | a tab or category name, e.g. `health`, `roads`, `parks` | live in a toolbar tab or asset category whose name has a word starting with the value | cheap |
 | `fx:` | an effect word, e.g. `crime`, `wellbeing`, `health`, `entertainment`, `attractiveness`, `park`, `beach` | have an effect of that kind: a city-wide or local modifier (types split on camelCase, so `CrimeAccumulation` gives `crime` and `accumulation`), a leisure provider type, or a wellbeing/health happiness effect | **details** |
@@ -92,6 +95,10 @@ The direction of an `fx:` effect (positive or negative) is not considered.
 | `dlc:none` / `-dlc:none` | Base game only / DLC and mod content only |
 | `is:mod` / `-is:mod` | Mod assets only / no mod assets |
 | `in:health` | Everything in Healthcare & Deathcare (useful from the top ring) |
+| `zone:office` | Office signature buildings and office zones |
+| `zone:residential zone:high` | High-density residential (two filters, ANDed) |
+| `size:2x2` / `size:2` | Buildings on a 2x2 lot / with 2 cells of frontage |
+| `level:3,4` | Zoned buildings of level 3 or 4 |
 | `pack:<name>` | Assets from one asset pack; type `pack:` to see the packs in scope |
 | `in:parks is:ok` | Placeable park assets |
 | `fx:crime` | Anything with a crime effect, e.g. police |
@@ -190,7 +197,8 @@ under **Options > Radial Menu > Search & Filters**. It comes from `LocaleEn` in
 - quick start;
 - searching by name;
 - filters in general;
-- one section each for `is:`, `theme:`, `pack:`, `dlc:`, `in:` and `fx:`;
+- one section each for `is:`, `theme:`, `pack:`, `zone:`, `size:`, `level:`,
+  `dlc:`, `in:` and `fx:`;
 - combining searches;
 - keys.
 
@@ -238,12 +246,12 @@ uses plain ASCII only.
 | File | Role | Pure (no game imports) |
 |---|---|---|
 | `query/lexer.ts` | `tokenize()`: tokens with negation/quote info; never throws | yes |
-| `query/filters.ts` | Filter registry (`is`, `theme`, `pack`, `dlc`, `in`, `fx`): compile, validate, suggest | yes |
+| `query/filters.ts` | Filter registry (`is`, `theme`, `pack`, `zone`, `size`, `level`, `dlc`, `in`, `fx`): compile, validate, suggest | yes |
 | `query/parser.ts` | `parse()`: words, phrases, excludes, filters, token statuses, hint | yes |
 | `query/record.ts` | `AssetRecord`, `buildRecord()`, `fxTerms()`, word-prefix matching | yes |
 | `query/evaluate.ts` | `evaluate()`: filter, rank, pending/need-details | yes |
 | `search.ts` | Hook glue: data subscriptions, index, lazy `fx:` details, caps | no |
-| `bindings.ts` / `RadialMenuUISystem.AssetMeta.cs` | `assetMeta`: static per-asset data from C# (packs) | no |
+| `bindings.ts` / `RadialMenuUISystem.AssetMeta.cs` | `assetMeta`: static per-asset data from C# (packs, lot size, zone, level) | no |
 | `radial-menu.tsx` | Hub display, keys (accept event / Escape) | no |
 
 ### Adding a filter

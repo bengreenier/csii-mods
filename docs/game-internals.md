@@ -375,11 +375,24 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
   elements whose `m_Pack` has `AssetPackData`, the same test as
   `ToolbarUISystem.FilterByPacks` / `BindPacks`. The pack's prefab name is
   sent; the UI adds its title.
+- **Lot size (`size:`):** `BuildingData.m_LotSize` (x = frontage, y = depth,
+  in cells), for any building prefab.
+- **Zone (`zone:`):** the zone prefab is `SpawnableBuildingData.m_ZonePrefab`
+  for zoned buildings (e.g. signature buildings), or the prefab itself for the
+  Zones tab's items. From its `ZoneData`:
+  - `m_AreaType` gives residential / commercial / industrial. Offices are
+    `Industrial` with `ZoneFlags.Office` (`ZoneData.IsOffice()`, as vanilla's
+    `LevelSection` and `TaxationUISystem` check).
+  - Density is `PropertyUtils.GetZoneDensity(ZoneData, ZonePropertiesData)`,
+    which needs `ZonePropertiesData` on the zone prefab. It always returns
+    Low for plain industrial, so no density is sent there.
+- **Level (`level:`):** `SpawnableBuildingData.m_Level`.
 - **Mods (`is:mod`):** no C# needed. `ToolbarUISystem.BindAsset` sets
   `Asset.dlc` to `Media/Glyphs/ParadoxModsCloud.svg` for prefabs with
   `ModPrerequisiteData`, overriding any DLC icon.
 - **If a game update breaks this:** re-decompile `ToolbarUISystem`
-  (`BindAsset`, `FilterByPacks`) and compare. A missing component type fails
+  (`BindAsset`, `FilterByPacks`) and `PropertyUtils.GetZoneDensity` and
+  compare. A missing component type fails
   the C# build rather than failing silently.
 
 ## Other runtime quirks

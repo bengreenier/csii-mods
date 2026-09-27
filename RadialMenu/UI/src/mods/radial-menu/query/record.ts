@@ -13,6 +13,11 @@ export interface RecordSource {
     themeText: string | null;
     // Asset pack display text (names + titles) for the asset's packs, if any.
     packText: string | null;
+    // From the C# assetMeta binding; 0 / null when not applicable.
+    lotWidth: number;
+    lotDepth: number;
+    zone: string | null;
+    level: number;
     // Asset.dlc icon path, if any. Mod assets get the Paradox Mods icon instead
     // of a DLC's (ToolbarUISystem.BindAsset).
     dlcIcon: string | null;
@@ -30,6 +35,13 @@ export interface AssetRecord {
     locationLc: string;
     themeLc: string;
     packLc: string;
+    // Lot size in cells (frontage x depth); 0 if not a building.
+    lotWidth: number;
+    lotDepth: number;
+    // Zone words, e.g. "residential high"; "" if none.
+    zoneLc: string;
+    // Building level; 0 if none.
+    level: number;
     // Lowercased DLC icon file name without extension; "" for base game and mods.
     dlcLc: string;
     // From a mod (Paradox Mods), not the base game or a DLC.
@@ -64,6 +76,10 @@ export function buildRecord(src: RecordSource, order: number): AssetRecord {
         locationLc: `${src.menuTitle} ${src.menuName} ${src.categoryTitle} ${src.categoryName}`.toLowerCase(),
         themeLc: (src.themeText ?? "").toLowerCase(),
         packLc: (src.packText ?? "").toLowerCase(),
+        lotWidth: src.lotWidth,
+        lotDepth: src.lotDepth,
+        zoneLc: (src.zone ?? "").toLowerCase(),
+        level: src.level,
         dlcLc: mod ? "" : dlc,
         mod,
         unique: src.unique,

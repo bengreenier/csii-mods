@@ -3,7 +3,9 @@ using Colossal.Entities;
 using Colossal.Serialization.Entities;
 using Colossal.UI.Binding;
 using Game;
+using Game.Buildings;
 using Game.Prefabs;
+using Game.Zones;
 using Unity.Collections;
 using Unity.Entities;
 
@@ -20,8 +22,15 @@ namespace RadialMenu
         {
             public Entity Entity;
             public List<string> Packs;
+            // BuildingData.m_LotSize in cells: x = frontage, y = depth. 0 = not a building.
+            public int LotWidth;
+            public int LotDepth;
+            // Zone words, e.g. "residential high", "office low", "industrial".
+            public string Zone;
+            // SpawnableBuildingData.m_Level; 0 = none.
+            public int Level;
 
-            public bool IsEmpty => Packs == null;
+            public bool IsEmpty => Packs == null && LotWidth == 0 && Zone == null && Level == 0;
         }
 
         private RawValueBinding _assetMeta;
@@ -60,6 +69,15 @@ namespace RadialMenu
                 if (meta.Packs != null)
                     foreach (var pack in meta.Packs) writer.Write(pack);
                 writer.ArrayEnd();
+                writer.PropertyName("lotWidth");
+                writer.Write(meta.LotWidth);
+                writer.PropertyName("lotDepth");
+                writer.Write(meta.LotDepth);
+                writer.PropertyName("zone");
+                if (meta.Zone != null) writer.Write(meta.Zone);
+                else writer.WriteNull();
+                writer.PropertyName("level");
+                writer.Write(meta.Level);
                 writer.TypeEnd();
             }
             writer.ArrayEnd();
@@ -72,9 +90,52 @@ namespace RadialMenu
             foreach (var entity in entities)
             {
                 var meta = new AssetMeta { Entity = entity, Packs = GetPacks(entity) };
+                if (EntityManager.TryGetComponent(entity, out BuildingData building))
+                {
+                    meta.LotWidth = building.m_LotSize.x;
+                    meta.LotDepth = building.m_LotSize.y;
+                }
+                // Zoned buildings (e.g. signature buildings) take their zone from
+                // their zone prefab; the Zones tab's items are zone prefabs.
+                var zonePrefab = entity;
+                if (EntityManager.TryGetComponent(entity, out SpawnableBuildingData spawnable))
+                {
+                    zonePrefab = spawnable.m_ZonePrefab;
+                    meta.Level = spawnable.m_Level;
+                }
+                meta.Zone = GetZoneWords(zonePrefab);
                 if (!meta.IsEmpty) result.Add(meta);
             }
             return result;
+        }
+
+        // Offices are Industrial areas with ZoneFlags.Office (as in LevelSection,
+        // TaxationUISystem). Density as PropertyUtils.GetZoneDensity, which
+        // always says "low" for plain industrial, so that's left out.
+        private string GetZoneWords(Entity zonePrefab)
+        {
+            if (zonePrefab == Entity.Null || !EntityManager.TryGetComponent(zonePrefab, out ZoneData zone)) return null;
+
+            var office = zone.IsOffice();
+            string type;
+            switch (zone.m_AreaType)
+            {
+                case AreaType.Residential: type = "residential"; break;
+                case AreaType.Commercial: type = "commercial"; break;
+                case AreaType.Industrial: type = office ? "office" : "industrial"; break;
+                default: return null;
+            }
+            if ((zone.m_AreaType == AreaType.Industrial && !office) ||
+                !EntityManager.TryGetComponent(zonePrefab, out ZonePropertiesData properties))
+                return type;
+
+            switch (PropertyUtils.GetZoneDensity(zone, properties))
+            {
+                case ZoneDensity.Low: return type + " low";
+                case ZoneDensity.Medium: return type + " medium";
+                case ZoneDensity.High: return type + " high";
+                default: return type;
+            }
         }
 
         // Same membership test as ToolbarUISystem.FilterByPacks / BindPacks.

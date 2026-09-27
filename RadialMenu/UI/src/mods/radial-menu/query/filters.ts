@@ -7,6 +7,11 @@ export interface FilterContext {
     themes: string[];
     dlcs: string[];
     packs: string[];
+    zones: string[];
+    // "WxD", ordered by area.
+    sizes: string[];
+    // "1".."5", ascending.
+    levels: string[];
 }
 
 // `fx` is undefined for filters that don't need prefab details.
@@ -52,6 +57,16 @@ const FX_SUGGESTIONS = [
 // Values that start with `atom`.
 const prefixed = (values: string[], atom: string) => values.filter((v) => v.startsWith(atom));
 
+// size: atoms: "2" (frontage), "2x3" (frontage x depth), "x3" (depth); a
+// trailing "x" ("2x") is the same as "2". Null if it isn't one of those.
+function sizeTest(atom: string): ((r: AssetRecord) => boolean) | null {
+    const m = /^(\d*)(?:x(\d*))?$/.exec(atom);
+    if (!m || (!m[1] && !m[2])) return null;
+    const width = m[1] ? Number(m[1]) : 0;
+    const depth = m[2] ? Number(m[2]) : 0;
+    return (r) => r.lotWidth > 0 && (!width || r.lotWidth === width) && (!depth || r.lotDepth === depth);
+}
+
 // Themes/DLCs/packs are matched by word prefix, e.g. "theme:north" or "theme:american".
 const knownWordPrefix = (values: string[], atom: string) =>
     values.length === 0 || values.some((v) => hasWordPrefix(v, atom));
@@ -81,6 +96,32 @@ export const FILTERS: FilterDef[] = [
         compile: (atoms, ctx) => {
             if (!atoms.every((a) => knownWordPrefix(ctx.packs, a))) return null;
             return (r) => atoms.some((a) => hasWordPrefix(r.packLc, a));
+        },
+    },
+    {
+        key: "zone",
+        suggest: (ctx) => ctx.zones,
+        compile: (atoms, ctx) => {
+            if (!atoms.every((a) => knownWordPrefix(ctx.zones, a))) return null;
+            return (r) => atoms.some((a) => hasWordPrefix(r.zoneLc, a));
+        },
+    },
+    {
+        key: "size",
+        suggest: (ctx) => ctx.sizes,
+        compile: (atoms) => {
+            const tests = atoms.map(sizeTest);
+            if (tests.some((t) => !t)) return null;
+            return (r) => tests.some((t) => t!(r));
+        },
+    },
+    {
+        key: "level",
+        suggest: (ctx) => ctx.levels,
+        compile: (atoms) => {
+            if (!atoms.every((a) => /^\d+$/.test(a))) return null;
+            const levels = atoms.map(Number);
+            return (r) => r.level > 0 && levels.includes(r.level);
         },
     },
     {
@@ -119,6 +160,9 @@ export const FILTER_EXAMPLES = [
     "is: mod",
     "-is: mod",
     "theme: european",
+    "zone: office",
+    "zone: residential zone: high",
+    "size: 2x2",
     "dlc: none",
     "-dlc: none",
     "in: parks",

@@ -171,6 +171,8 @@ function buildIndex(
     const records: AssetRecord[] = [];
     const byKey = new Map<string, SearchResult>();
     const dlcs = new Set<string>();
+    const sizes = new Map<string, { text: string; area: number }>();
+    const levels = new Set<number>();
 
     scope.forEach((s, i) => {
         const menuTitle = title(loc, s.menu.name);
@@ -179,6 +181,7 @@ function buildIndex(
             const key = entityKey(asset.entity);
             if (byKey.has(key)) continue;
             byKey.set(key, { ...s, asset });
+            const meta = metaByKey.get(key);
             const record = buildRecord(
                 {
                     key,
@@ -191,7 +194,11 @@ function buildIndex(
                     // Unmapped theme icons fall back to the icon's file name,
                     // so theme: still has something to match.
                     themeText: asset.theme ? themeText.get(asset.theme) ?? iconSlug(asset.theme) : null,
-                    packText: metaByKey.get(key)?.packs.map(packTextOf).join(" ") || null,
+                    packText: meta?.packs.map(packTextOf).join(" ") || null,
+                    lotWidth: meta?.lotWidth ?? 0,
+                    lotDepth: meta?.lotDepth ?? 0,
+                    zone: meta?.zone ?? null,
+                    level: meta?.level ?? 0,
                     dlcIcon: asset.dlc,
                     unique: asset.unique,
                     placed: asset.placed,
@@ -202,6 +209,11 @@ function buildIndex(
             );
             records.push(record);
             if (record.dlcLc) dlcs.add(record.dlcLc);
+            if (record.lotWidth > 0) {
+                const text = `${record.lotWidth}x${record.lotDepth}`;
+                sizes.set(text, { text, area: record.lotWidth * record.lotDepth });
+            }
+            if (record.level > 0) levels.add(record.level);
         }
     });
 
@@ -218,7 +230,14 @@ function buildIndex(
     return {
         records,
         byKey,
-        ctx: { themes: words((r) => r.themeLc), dlcs: [...dlcs].sort(), packs: words((r) => r.packLc) },
+        ctx: {
+            themes: words((r) => r.themeLc),
+            dlcs: [...dlcs].sort(),
+            packs: words((r) => r.packLc),
+            zones: words((r) => r.zoneLc),
+            sizes: [...sizes.values()].sort((a, b) => a.area - b.area || a.text.localeCompare(b.text)).map((s) => s.text),
+            levels: [...levels].sort((a, b) => a - b).map(String),
+        },
     };
 }
 

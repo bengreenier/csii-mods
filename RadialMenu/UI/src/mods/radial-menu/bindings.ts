@@ -32,6 +32,13 @@ export interface AssetMeta {
     entity: Entity;
     // Asset pack prefab names; titles are Assets.NAME[<name>].
     packs: string[];
+    // Building lot size in cells (frontage x depth); 0 if not a building.
+    lotWidth: number;
+    lotDepth: number;
+    // Zone words, e.g. "residential high", "office low", "industrial".
+    zone: string | null;
+    // Building level; 0 if none.
+    level: number;
 }
 export const assetMeta$ = bindValue<AssetMeta[]>(GROUP, "assetMeta", []);
 

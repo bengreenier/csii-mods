@@ -12,10 +12,12 @@ namespace RadialMenu
     [SettingsUITabOrder(KSection, KFiltersSection)]
     [SettingsUIGroupOrder(KGeneralGroup, KKeybindingGroup,
         KSearchQuickStartGroup, KSearchNamesGroup, KSearchFiltersGroup, KSearchIsGroup, KSearchThemeGroup,
-        KSearchPackGroup, KSearchDlcGroup, KSearchInGroup, KSearchFxGroup, KSearchCombiningGroup, KSearchKeysGroup)]
+        KSearchPackGroup, KSearchZoneGroup, KSearchDlcGroup, KSearchInGroup, KSearchFxGroup, KSearchCombiningGroup,
+        KSearchKeysGroup)]
     [SettingsUIShowGroupName(KGeneralGroup, KKeybindingGroup,
         KSearchQuickStartGroup, KSearchNamesGroup, KSearchFiltersGroup, KSearchIsGroup, KSearchThemeGroup,
-        KSearchPackGroup, KSearchDlcGroup, KSearchInGroup, KSearchFxGroup, KSearchCombiningGroup, KSearchKeysGroup)]
+        KSearchPackGroup, KSearchZoneGroup, KSearchDlcGroup, KSearchInGroup, KSearchFxGroup, KSearchCombiningGroup,
+        KSearchKeysGroup)]
     [SettingsUIKeyboardAction(Mod.KToggleActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
     [SettingsUIMouseAction(Mod.KToggleActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
     // Own usage: only read while typing in the menu, so it shouldn't be reported
@@ -36,6 +38,7 @@ namespace RadialMenu
         public const string KSearchIsGroup = "SearchIs";
         public const string KSearchThemeGroup = "SearchTheme";
         public const string KSearchPackGroup = "SearchPack";
+        public const string KSearchZoneGroup = "SearchZone";
         public const string KSearchDlcGroup = "SearchDlc";
         public const string KSearchInGroup = "SearchIn";
         public const string KSearchFxGroup = "SearchFx";
@@ -124,6 +127,10 @@ namespace RadialMenu
         [SettingsUIMultilineText]
         [SettingsUISection(KFiltersSection, KSearchPackGroup)]
         public string SearchPackText => string.Empty;
+
+        [SettingsUIMultilineText]
+        [SettingsUISection(KFiltersSection, KSearchZoneGroup)]
+        public string SearchZoneText => string.Empty;
 
         [SettingsUIMultilineText]
         [SettingsUISection(KFiltersSection, KSearchDlcGroup)]
@@ -220,6 +227,7 @@ namespace RadialMenu
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchIsGroup), "is: - what you can build" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchThemeGroup), "theme: - building style" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchPackGroup), "pack: - asset packs" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSearchZoneGroup), "zone:, size:, level: - zones and lots" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchDlcGroup), "dlc: - base game or DLC" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchInGroup), "in: - which tab it lives in" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFxGroup), "fx: - what it does for your city" },
@@ -298,6 +306,15 @@ namespace RadialMenu
                     "Type 'pack:' to see suggestions for the packs you can search.\n" +
                     "\n" +
                     "Note: like themes, only packs enabled in the vanilla asset menu's pack filter can be found."
+                },
+                {
+                    _setting.GetOptionLabelLocaleID(nameof(Setting.SearchZoneText)),
+                    "'zone: office' - zoned buildings, like signature buildings, and zone types of that kind. " +
+                    "Use 'residential', 'commercial', 'industrial' or 'office', or a density: 'low', 'medium' or 'high'. " +
+                    "For high density housing, use two filters: 'zone: residential zone: high'\n" +
+                    "'size: 2x3' - buildings on a lot 2 cells wide along the road and 3 cells deep. " +
+                    "'size: 2' only looks at the width, 'size: x3' only at the depth.\n" +
+                    "'level: 3' - zoned buildings of that level"
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchDlcText)),
