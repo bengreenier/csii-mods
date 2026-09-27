@@ -59,8 +59,8 @@ namespace RadialMenu
             }
             catch (Exception e)
             {
-                // Links then fall back to the game's DLC list on Steam.
-                Mod.LOG.Warn(e, "Could not resolve DLC Steam app IDs; DLC links point to the DLC list");
+                // DLC assets then offer no Steam link.
+                Mod.LOG.Warn(e, "Could not resolve DLC Steam app IDs; DLC assets get no store link");
             }
             return result;
         }

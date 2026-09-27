@@ -125,9 +125,26 @@ namespace RadialMenu
             if (!EntityManager.HasComponent<ModPrerequisiteData>(entity) ||
                 !_prefabSystem.TryGetPrefab(entity, out PrefabBase prefab) || prefab.asset == null)
                 return null;
-            var id = prefab.asset.GetMeta().platformID;
-            return string.IsNullOrEmpty(id) ? null : id;
+            // Guarded: a throw here would stop the whole assetMeta list (and the
+            // search filters built on it) from being sent. A bad asset just gets
+            // no "Copy Paradox Mods link".
+            try
+            {
+                var id = prefab.asset.GetMeta().platformID;
+                return string.IsNullOrEmpty(id) ? null : id;
+            }
+            catch (System.Exception e)
+            {
+                if (!_loggedModIdFailure)
+                {
+                    _loggedModIdFailure = true;
+                    Mod.LOG.Warn(e, $"Could not read the Paradox Mods ID of {prefab.name}; its mod link is left out (logged once)");
+                }
+                return null;
+            }
         }
+
+        private bool _loggedModIdFailure;
 
         // Offices are Industrial areas with ZoneFlags.Office (as in LevelSection,
         // TaxationUISystem). Density as PropertyUtils.GetZoneDensity, which

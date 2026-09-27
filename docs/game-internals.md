@@ -65,8 +65,8 @@ Used through `cs2/bindings` / `cs2/api`:
     `DlcAttributeExtension.GetSteamAppId`.
 
   This is static data, available on any launcher (needs `Colossal.PSI.Common`
-  and `Colossal.PSI.Steamworks` references). DLCs without an ID link to the
-  game's DLC list on Steam. A failure logs `Could not resolve DLC Steam app IDs`.
+  and `Colossal.PSI.Steamworks` references). DLCs without an ID get no link
+  action. A failure logs `Could not resolve DLC Steam app IDs`.
 
 The mod replays vanilla's toolbar-button click sequence (see
 `activateToolbarItem`). If the vanilla sequence changes, compare it with the
@@ -531,7 +531,8 @@ messages mostly exist to flag breakage after a game update.
 | `Favorites not loaded: unknown format version N` (warning) | The save was written by a newer version of the mod; the city loads with no favorites |
 | `Favorites could not be read from the save; starting empty` (error) | The favorites block was unreadable; the city still loads |
 | `Removed Radial Menu data from this city` | The "Remove Radial Menu data from this city" button was confirmed; `Remove Radial Menu data skipped: no city loaded` if there was no city |
-| `Could not resolve DLC Steam app IDs; DLC links point to the DLC list` (warning) | The game's DLC data couldn't be read (after a game update?); "Copy Steam store link" copies the DLC list instead |
+| `Could not resolve DLC Steam app IDs; DLC assets get no store link` (warning) | The game's DLC data couldn't be read (after a game update?); DLC assets offer no "Copy Steam store link" |
+| `Could not read the Paradox Mods ID of <prefab>; ...` (warning, once) | An asset's mod metadata couldn't be read; that asset (and any other failing one) gets no "Copy Paradox Mods link" |
 | `Reset vanilla theme filter` | The "Reset vanilla theme filter" button was used; followed by `... skipped: no city loaded` if there was no city |
 | `ToolSystem.m_LastToolInfoview/m_LastToolInfomodes not found; ...` (warning) | A game update renamed vanilla's private fields. The flicker-free tool info view path is off, and the fallback is used. See [Tool info views](#tool-info-views-show-info-views-for-radial-menu-selections). |
 | `Tool info view suppressed via fallback ...` | The fallback ran, once per session: the overlay may flash for a frame. Normally absent. |

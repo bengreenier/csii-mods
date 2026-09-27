@@ -252,8 +252,7 @@ Right-clicking a wheel item opens a small menu of actions for it at the cursor
   (`https://mods.paradoxplaza.com/mods/<id>/Windows`, `modId` from `assetMeta`);
 - for a DLC asset, "Copy Steam store link": the DLC's Steam page
   (`https://store.steampowered.com/app/<appId>/`, app ID from the
-  `dlcSteamApps` binding), or the game's DLC list on Steam if the ID isn't
-  known.
+  `dlcSteamApps` binding). Left out when the DLC's app ID isn't known.
 
 Links are copied with vanilla's `app.setClipboard` trigger. Right-click never
 steps back a level; Escape and clicking the hub do.
