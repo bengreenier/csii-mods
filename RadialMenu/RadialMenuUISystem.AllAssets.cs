@@ -27,7 +27,17 @@ namespace RadialMenu
         private static bool _themeResetRequested;
 
         /// <summary>From the "Reset vanilla theme filter" settings button.</summary>
-        public static void RequestThemeReset() => _themeResetRequested = true;
+        /// This system only updates in a city, so outside one the request is
+        /// dropped right away rather than left to fire after the next load.
+        public static void RequestThemeReset()
+        {
+            if (GameManager.instance.gameMode != GameMode.Game)
+            {
+                Mod.LOG.Info("Reset vanilla theme filter skipped: no city loaded");
+                return;
+            }
+            _themeResetRequested = true;
+        }
 
         private void CreateAllAssetsBinding()
         {
@@ -47,7 +57,7 @@ namespace RadialMenu
             if (!_themeResetRequested) return;
 
             var theme = _cityConfigurationSystem.defaultTheme;
-            if (GameManager.instance.gameMode != GameMode.Game || theme == Entity.Null)
+            if (theme == Entity.Null)
             {
                 _themeResetRequested = false;
                 Mod.LOG.Info("Reset vanilla theme filter skipped: no city loaded");

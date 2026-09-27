@@ -58,6 +58,8 @@ namespace RadialMenu
         {
             base.OnGamePreload(purpose, mode);
             SetOpen(false);
+            // Loading resets vanilla's theme filter anyway (ToolbarUISystem.OnGameLoaded).
+            _themeResetRequested = false;
         }
 
         protected override void OnUpdate()
