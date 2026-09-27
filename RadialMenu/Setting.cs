@@ -262,7 +262,7 @@ namespace RadialMenu
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.SearchAllThemes)), "Search every theme and asset pack" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.SearchAllThemes)), "Search finds assets from every theme and asset pack, such as North American buildings in a European city. Turn off to only find what the vanilla asset menu's theme and pack filters show. For browsing without searching, see 'Show every theme and asset pack'." },
 
-                { _setting.GetOptionLabelLocaleID(nameof(Setting.LockPlacedUnique)), "Grey out placed unique buildings" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.LockPlacedUnique)), "Disable placed unique buildings" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.LockPlacedUnique)), "Dim unique buildings, such as signature buildings, once one is placed in your city, and don't let them be picked from the radial menu, as the vanilla asset menu does. When off, they can always be picked. Favorites are never greyed out this way. Things you haven't unlocked yet are always greyed out." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.BrowseAllThemes)), "Show every theme and asset pack" },
@@ -299,7 +299,7 @@ namespace RadialMenu
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ResetBindings)), "Reset key bindings" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ResetBindings)), "Reset all key bindings of the mod" },
 
-                { _setting.GetOptionTabLocaleID(Setting.KFiltersSection), "Search & Filters" },
+                { _setting.GetOptionTabLocaleID(Setting.KFiltersSection), "Usage Guide" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchQuickStartGroup), "Quick start" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchNamesGroup), "Searching by name" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFiltersGroup), "Filters" },
@@ -314,7 +314,7 @@ namespace RadialMenu
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchKeysGroup), "Keys while searching" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFavoritesGroup), "Favorites" },
 
-                // Help text for the Search & Filters tab. Plain ASCII only (the game
+                // Help text for the Usage Guide tab. Plain ASCII only (the game
                 // font lacks some symbols); filters are written "key: value".
                 // Rendered by the game's markup renderer: never use < > (makes a
                 // link), ** (bold), a leading "- " (list item) or \ (escape) unless

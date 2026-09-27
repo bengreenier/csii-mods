@@ -222,7 +222,7 @@ function activateToolbarItem(item: toolbar.ToolbarItem) {
     }
 }
 
-// `lockPlaced`: dim and block unique buildings already placed (the "Grey out
+// `lockPlaced`: dim and block unique buildings already placed (the "Disable
 // placed unique buildings" setting; vanilla's asset grid always does).
 function assetEntry(asset: toolbar.Asset, lockPlaced: boolean, onSelect: () => void): WheelEntry {
     return {

@@ -45,7 +45,7 @@ export const assetMeta$ = bindValue<AssetMeta[]>(GROUP, "assetMeta", []);
 
 // "Search every theme and asset pack": search reads allAssets$ instead of toolbar.assets$.
 export const searchAllThemes$ = bindValue<boolean>(GROUP, "searchAllThemes", true);
-// "Grey out placed unique buildings": dim and block unique buildings already
+// "Disable placed unique buildings": dim and block unique buildings already
 // placed, as vanilla does. Favorites ignore it.
 export const lockPlacedUnique$ = bindValue<boolean>(GROUP, "lockPlacedUnique", false);
 

@@ -143,7 +143,7 @@ Results are sorted by, in order:
 
 1. **Placeable first.** Locked assets and unique buildings already placed go
    last. Locked ones are dimmed and can't be picked. Placed unique buildings
-   are too only with "Grey out placed unique buildings" on (off by default);
+   are too only with "Disable placed unique buildings" on (off by default);
    otherwise they can be picked, and the game's tool then reports that the
    building already exists.
 2. **Text rank** on the first word or phrase: title starts with it, then a word
@@ -200,7 +200,7 @@ exclude", and `Hint: try "<example>"`. The example is picked at random from
 `FILTER_EXAMPLES` (`query/filters.ts`) each time the menu opens.
 
 A player-facing version of this reference is built into the mod's settings,
-under **Options > Radial Menu > Search & Filters**. It comes from `LocaleEn` in
+under **Options > Radial Menu > Usage Guide**. It comes from `LocaleEn` in
 `Setting.cs`, with one read-only text block per section:
 - quick start;
 - searching by name;
@@ -230,8 +230,8 @@ added. Favorites are stored in each save (`FavoritesSystem.cs`; see
   same asset list as other searches, so with "Search every theme and asset
   pack" off, favorites from themes vanilla's filter hides aren't found.
 - **Locked** favorites are dimmed and can't be picked, as elsewhere. Unique
-  buildings already placed are never greyed out in Favorites, whatever "Grey
-  out placed unique buildings" is set to.
+  buildings already placed are never greyed out in Favorites, whatever "Disable
+  placed unique buildings" is set to.
 - **Clearing them all:** Options > Radial Menu > Utilities > "Remove Radial
   Menu data from this city", then save the city.
 
