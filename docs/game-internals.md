@@ -208,6 +208,17 @@ What to check:
 - **Adjacent JSX text nodes** render as separate lines in Gameface. Build one
   string per element.
 - **Font:** the UI font lacks `·` `→` `…`. Keep hub text ASCII.
+- **Settings text is markup.** `[SettingsUIMultilineText]` renders through
+  `FormattedParagraphs` / `FormattedText` using
+  `game-ui/common/text/renderers/markup-renderer.tsx`:
+  - `<data>` or `<data|label>` becomes a **clickable, green link**. It does
+    nothing for mod settings. A literal `<name>` in help text showed up this way.
+  - `**text**` is bold.
+  - A line starting with `- ` is a list item.
+  - `\` escapes the next character.
+  - Every line is its own paragraph, and **blank lines are dropped**.
+
+  Avoid these characters in plain help text (`Setting.cs`, `LocaleEn`).
 - **Cursor:** it only re-evaluates on mouse move. The wheel forces
   `cursor: default` everywhere, so elements swapped under a still mouse don't
   leave a stale cursor.

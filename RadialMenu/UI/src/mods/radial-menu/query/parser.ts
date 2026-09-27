@@ -125,7 +125,8 @@ function hintFor(input: string, ctx: FilterContext): Hint | null {
         if (body.length < 2) return null;
         const key = FILTERS.find((f) => f.key.startsWith(body) && f.key !== body)?.key ?? (FILTERS_BY_KEY.has(body) ? body : null);
         if (!key) return null;
-        return { text: `> ${key}:`, completion: `${before}${sign}${key}:` };
+        // Completes to the spaced "key: " form; value suggestions follow.
+        return { text: `> ${key}:`, completion: `${before}${sign}${key}: ` };
     }
 
     const key = body.slice(0, colon);

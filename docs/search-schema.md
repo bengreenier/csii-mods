@@ -144,7 +144,8 @@ When text is typed and nothing is hovered, the hub shows:
 2. **Match count**: "12 matches", "60 of 214 matches", "No matches", or
    "(checking N...)" while `fx:` details load.
 3. **Hint** for the token being typed:
-   - a key completion (`th` shows `> theme:`);
+   - a key completion (`th` shows `> theme:`; accepting it inserts the spaced
+     form `theme: `, so value suggestions follow right away);
    - value suggestions (`is:` shows `ok / new / unique / placed`);
    - or `unknown filter "foo"`.
 
@@ -165,8 +166,18 @@ With nothing typed, the idle hub shows "Type to search", "Use '-word' to
 exclude", and `Hint: try "<example>"`. The example is picked at random from
 `FILTER_EXAMPLES` (`query/filters.ts`) each time the menu opens.
 
-A condensed version of this reference is built into the mod's settings, under
-**Options > Radial Menu > Filters**. It comes from `LocaleEn` in `Setting.cs`.
+A player-facing version of this reference is built into the mod's settings,
+under **Options > Radial Menu > Search & Filters**. It comes from `LocaleEn` in
+`Setting.cs`, with one read-only text block per section:
+- quick start;
+- searching by name;
+- filters in general;
+- one section each for `is:`, `theme:`, `dlc:`, `in:` and `fx:`;
+- combining searches;
+- keys.
+
+Everything shown in-game writes filters in the spaced `key: value` form, and
+uses plain ASCII only.
 
 ## Performance design
 
@@ -223,8 +234,9 @@ A condensed version of this reference is built into the mod's settings, under
 2. Add an entry to `FILTERS` in `filters.ts`, with `compile` (null means
    invalid) and `suggest`. Set `needsDetails: true` only if it needs
    `prefabDetails`.
-3. Document it in this file and in the settings reference
-   (`SearchFiltersText` in `Setting.cs`). Optionally add an example to
+3. Document it in this file and in the settings reference. In `Setting.cs`, add
+   a group constant, a `[SettingsUIMultilineText]` property and its `LocaleEn`
+   text, following `SearchIsText`. Optionally add an example to
    `FILTER_EXAMPLES`.
 
 ## Known limitations / to verify in game
