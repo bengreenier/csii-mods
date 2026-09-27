@@ -27,6 +27,7 @@ const IS_VALUES: Record<string, (r: AssetRecord) => boolean> = {
     unique: (r) => r.unique,
     placed: (r) => r.placed,
     locked: (r) => r.locked,
+    mod: (r) => r.mod,
 };
 
 // Curated hint list; matching accepts any effect/leisure type word.
@@ -79,7 +80,9 @@ export const FILTERS: FilterDef[] = [
         compile: (atoms, ctx) => {
             if (!atoms.every((a) => "none".startsWith(a) || knownWordPrefix(ctx.dlcs, a) || ctx.dlcs.some((d) => d.includes(a))))
                 return null;
-            return (r) => atoms.some((a) => ("none".startsWith(a) && r.dlcLc === "") || (r.dlcLc !== "" && r.dlcLc.includes(a)));
+            // "none" is the base game: neither a DLC nor a mod (see is:mod).
+            return (r) =>
+                atoms.some((a) => ("none".startsWith(a) && r.dlcLc === "" && !r.mod) || (r.dlcLc !== "" && r.dlcLc.includes(a)));
         },
     },
     {
@@ -104,6 +107,8 @@ export const FILTER_EXAMPLES = [
     "is: ok school",
     "is: unique -is: placed",
     "is: new,unique",
+    "is: mod",
+    "-is: mod",
     "theme: european",
     "dlc: none",
     "-dlc: none",

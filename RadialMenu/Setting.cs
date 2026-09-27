@@ -273,6 +273,7 @@ namespace RadialMenu
                     "'is: unique' - unique buildings, of which you can only have one per city\n" +
                     "'is: placed' - unique buildings you have already built\n" +
                     "'is: locked' - things you haven't unlocked yet\n" +
+                    "'is: mod' - things that come from mods (Paradox Mods)\n" +
                     "\n" +
                     "Try 'is: unique -is: placed' to find the unique buildings still waiting for a spot."
                 },
@@ -287,8 +288,8 @@ namespace RadialMenu
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchDlcText)),
-                    "'dlc: none' - base game content only\n" +
-                    "'-dlc: none' - only content from DLCs and content packs\n" +
+                    "'dlc: none' - base game content only (no DLCs, content packs or mods)\n" +
+                    "'-dlc: none' - only content from DLCs, content packs and mods\n" +
                     "'dlc:' followed by part of a DLC's name - one DLC in particular. " +
                     "Type 'dlc:' to see suggestions for the ones you have."
                 },

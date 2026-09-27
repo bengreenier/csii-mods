@@ -11,7 +11,8 @@ export interface RecordSource {
     categoryTitle: string;
     // Theme display text (name + title) for the asset's theme, if any.
     themeText: string | null;
-    // Asset.dlc icon path, if any.
+    // Asset.dlc icon path, if any. Mod assets get the Paradox Mods icon instead
+    // of a DLC's (ToolbarUISystem.BindAsset).
     dlcIcon: string | null;
     unique: boolean;
     placed: boolean;
@@ -26,8 +27,10 @@ export interface AssetRecord {
     // "menu title + menu name + category title + category name", lowercased.
     locationLc: string;
     themeLc: string;
-    // Lowercased DLC icon file name without extension; "" for base game.
+    // Lowercased DLC icon file name without extension; "" for base game and mods.
     dlcLc: string;
+    // From a mod (Paradox Mods), not the base game or a DLC.
+    mod: boolean;
     unique: boolean;
     placed: boolean;
     isNew: boolean;
@@ -38,6 +41,9 @@ export interface AssetRecord {
     order: number;
 }
 
+// Asset.dlc for mod assets: "Media/Glyphs/ParadoxModsCloud.svg".
+const MOD_DLC_SLUG = "paradoxmodscloud";
+
 export function dlcSlug(icon: string | null): string {
     if (!icon) return "";
     const file = icon.slice(icon.lastIndexOf("/") + 1);
@@ -46,13 +52,16 @@ export function dlcSlug(icon: string | null): string {
 }
 
 export function buildRecord(src: RecordSource, order: number): AssetRecord {
+    const dlc = dlcSlug(src.dlcIcon);
+    const mod = dlc === MOD_DLC_SLUG;
     return {
         key: src.key,
         titleLc: src.title.toLowerCase(),
         nameLc: src.name.toLowerCase(),
         locationLc: `${src.menuTitle} ${src.menuName} ${src.categoryTitle} ${src.categoryName}`.toLowerCase(),
         themeLc: (src.themeText ?? "").toLowerCase(),
-        dlcLc: dlcSlug(src.dlcIcon),
+        dlcLc: mod ? "" : dlc,
+        mod,
         unique: src.unique,
         placed: src.placed,
         isNew: src.highlight,

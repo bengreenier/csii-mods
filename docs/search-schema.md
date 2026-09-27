@@ -62,8 +62,9 @@ Titles come from the localization key `Assets.NAME[<prefab name>]`.
 | | `unique` | are unique (signature/landmark-style, one per city) | cheap |
 | | `placed` | are unique and already placed | cheap |
 | | `locked` | aren't unlocked yet | cheap |
+| | `mod` | come from a mod (the asset's DLC icon is the Paradox Mods one) | cheap |
 | `theme:` | a theme word, e.g. `european`, `north`, `american` | belong to that theme (word prefix over the theme's name and title) | cheap |
-| `dlc:` | `none`, or part of a DLC's icon name, e.g. `sanfrancisco` | `none` = base game; otherwise the asset's DLC icon file name contains the value | cheap |
+| `dlc:` | `none`, or part of a DLC's icon name, e.g. `sanfrancisco` | `none` = base game (no DLC, not a mod); otherwise the asset's DLC icon file name contains the value. Mod assets are not a DLC here: use `is:mod`. | cheap |
 | `in:` | a tab or category name, e.g. `health`, `roads`, `parks` | live in a toolbar tab or asset category whose name has a word starting with the value | cheap |
 | `fx:` | an effect word, e.g. `crime`, `wellbeing`, `health`, `entertainment`, `attractiveness`, `park`, `beach` | have an effect of that kind: a city-wide or local modifier (types split on camelCase, so `CrimeAccumulation` gives `crime` and `accumulation`), a leisure provider type, or a wellbeing/health happiness effect | **details** |
 
@@ -86,7 +87,8 @@ The direction of an `fx:` effect (positive or negative) is not considered.
 | `is:unique -is:placed` | Unique buildings you haven't built yet |
 | `is:new` | Newly unlocked assets |
 | `theme:european` | European-theme assets |
-| `dlc:none` / `-dlc:none` | Base game only / DLC only |
+| `dlc:none` / `-dlc:none` | Base game only / DLC and mod content only |
+| `is:mod` / `-is:mod` | Mod assets only / no mod assets |
 | `in:health` | Everything in Healthcare & Deathcare (useful from the top ring) |
 | `in:parks is:ok` | Placeable park assets |
 | `fx:crime` | Anything with a crime effect, e.g. police |
