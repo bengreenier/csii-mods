@@ -10,6 +10,9 @@ export interface FilterContext {
     zones: string[];
     // "WxD", ordered by area.
     sizes: string[];
+    // Lot widths / depths in scope, ascending.
+    widths: string[];
+    depths: string[];
     // "1".."5", ascending.
     levels: string[];
 }
@@ -57,14 +60,27 @@ const FX_SUGGESTIONS = [
 // Values that start with `atom`.
 const prefixed = (values: string[], atom: string) => values.filter((v) => v.startsWith(atom));
 
-// size: atoms: "2" (frontage), "2x3" (frontage x depth), "x3" (depth); a
-// trailing "x" ("2x") is the same as "2". Null if it isn't one of those.
+// size: atoms are "WxD" (frontage x depth, in cells). Null if not.
 function sizeTest(atom: string): ((r: AssetRecord) => boolean) | null {
-    const m = /^(\d*)(?:x(\d*))?$/.exec(atom);
-    if (!m || (!m[1] && !m[2])) return null;
-    const width = m[1] ? Number(m[1]) : 0;
-    const depth = m[2] ? Number(m[2]) : 0;
-    return (r) => r.lotWidth > 0 && (!width || r.lotWidth === width) && (!depth || r.lotDepth === depth);
+    const m = /^(\d+)x(\d+)$/.exec(atom);
+    if (!m) return null;
+    const width = Number(m[1]);
+    const depth = Number(m[2]);
+    return (r) => r.lotWidth === width && r.lotDepth === depth;
+}
+
+// A filter whose values are whole numbers (comma = OR), matched exactly
+// against a record field where 0 means "none".
+function numberFilter(key: string, field: (r: AssetRecord) => number, values: (ctx: FilterContext) => string[]): FilterDef {
+    return {
+        key,
+        suggest: values,
+        compile: (atoms) => {
+            if (!atoms.every((a) => /^\d+$/.test(a))) return null;
+            const wanted = atoms.map(Number);
+            return (r) => field(r) > 0 && wanted.includes(field(r));
+        },
+    };
 }
 
 // Themes/DLCs/packs are matched by word prefix, e.g. "theme:north" or "theme:american".
@@ -115,15 +131,9 @@ export const FILTERS: FilterDef[] = [
             return (r) => tests.some((t) => t!(r));
         },
     },
-    {
-        key: "level",
-        suggest: (ctx) => ctx.levels,
-        compile: (atoms) => {
-            if (!atoms.every((a) => /^\d+$/.test(a))) return null;
-            const levels = atoms.map(Number);
-            return (r) => r.level > 0 && levels.includes(r.level);
-        },
-    },
+    numberFilter("width", (r) => r.lotWidth, (ctx) => ctx.widths),
+    numberFilter("depth", (r) => r.lotDepth, (ctx) => ctx.depths),
+    numberFilter("level", (r) => r.level, (ctx) => ctx.levels),
     {
         key: "dlc",
         suggest: (ctx) => ["none", ...ctx.dlcs],
@@ -163,6 +173,7 @@ export const FILTER_EXAMPLES = [
     "zone: office",
     "zone: residential zone: high",
     "size: 2x2",
+    "width: 4 depth: 4",
     "dlc: none",
     "-dlc: none",
     "in: parks",

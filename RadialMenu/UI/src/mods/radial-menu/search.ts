@@ -172,6 +172,8 @@ function buildIndex(
     const byKey = new Map<string, SearchResult>();
     const dlcs = new Set<string>();
     const sizes = new Map<string, { text: string; area: number }>();
+    const widths = new Set<number>();
+    const depths = new Set<number>();
     const levels = new Set<number>();
 
     scope.forEach((s, i) => {
@@ -212,6 +214,8 @@ function buildIndex(
             if (record.lotWidth > 0) {
                 const text = `${record.lotWidth}x${record.lotDepth}`;
                 sizes.set(text, { text, area: record.lotWidth * record.lotDepth });
+                widths.add(record.lotWidth);
+                depths.add(record.lotDepth);
             }
             if (record.level > 0) levels.add(record.level);
         }
@@ -227,6 +231,8 @@ function buildIndex(
         return [...found].sort();
     };
 
+    const numbers = (values: Set<number>) => [...values].sort((a, b) => a - b).map(String);
+
     return {
         records,
         byKey,
@@ -236,7 +242,9 @@ function buildIndex(
             packs: words((r) => r.packLc),
             zones: words((r) => r.zoneLc),
             sizes: [...sizes.values()].sort((a, b) => a.area - b.area || a.text.localeCompare(b.text)).map((s) => s.text),
-            levels: [...levels].sort((a, b) => a - b).map(String),
+            widths: numbers(widths),
+            depths: numbers(depths),
+            levels: numbers(levels),
         },
     };
 }

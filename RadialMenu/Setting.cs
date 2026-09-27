@@ -227,7 +227,7 @@ namespace RadialMenu
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchIsGroup), "is: - what you can build" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchThemeGroup), "theme: - building style" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchPackGroup), "pack: - asset packs" },
-                { _setting.GetOptionGroupLocaleID(Setting.KSearchZoneGroup), "zone:, size:, level: - zones and lots" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSearchZoneGroup), "zone:, size:, width:, depth:, level: - zones and lots" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchDlcGroup), "dlc: - base game or DLC" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchInGroup), "in: - which tab it lives in" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFxGroup), "fx: - what it does for your city" },
@@ -313,7 +313,8 @@ namespace RadialMenu
                     "Use 'residential', 'commercial', 'industrial' or 'office', or a density: 'low', 'medium' or 'high'. " +
                     "For high density housing, use two filters: 'zone: residential zone: high'\n" +
                     "'size: 2x3' - buildings on a lot 2 cells wide along the road and 3 cells deep. " +
-                    "'size: 2' only looks at the width, 'size: x3' only at the depth.\n" +
+                    "'width: 2' and 'depth: 3' look at just one side, and can be combined: " +
+                    "'width: 4 depth: 4' is the same as 'size: 4x4'.\n" +
                     "'level: 3' - zoned buildings of that level"
                 },
                 {
