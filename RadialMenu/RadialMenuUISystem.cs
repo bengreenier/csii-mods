@@ -44,6 +44,8 @@ namespace RadialMenu
                 () => Mod.Settings?.SearchAllThemes ?? true));
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "browseAllThemes",
                 () => Mod.Settings?.BrowseAllThemes ?? false));
+            AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "lockPlacedUnique",
+                () => Mod.Settings?.LockPlacedUnique ?? false));
             AddUpdateBinding(new GetterValueBinding<float>(kGroup, "menuScale", GetMenuScale));
             AddUpdateBinding(new GetterValueBinding<float>(kGroup, "ringDistance",
                 () => InRangeOrDefault(Mod.Settings?.RingDistance, 0f, 4f)));

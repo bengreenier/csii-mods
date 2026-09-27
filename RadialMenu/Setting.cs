@@ -73,6 +73,11 @@ namespace RadialMenu
         [SettingsUISection(KSection, KGeneralGroup)]
         public bool BrowseAllThemes { get; set; }
 
+        // On: unique buildings already placed are dimmed and can't be picked
+        // (vanilla's rule). Off: they stay pickable. Favorites never dim them.
+        [SettingsUISection(KSection, KGeneralGroup)]
+        public bool LockPlacedUnique { get; set; }
+
         // Scale factor for the whole wheel (1 = 100%), shown as a percentage like
         // the vanilla audio sliders.
         [SettingsUISlider(min = 50f, max = 200f, step = 5f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
@@ -212,6 +217,7 @@ namespace RadialMenu
             BulldozerInRadial = true;
             SearchAllThemes = true;
             BrowseAllThemes = false;
+            LockPlacedUnique = false;
             MenuScale = 1f;
             RingDistance = 1f;
             ItemSpacing = 1f;
@@ -255,6 +261,9 @@ namespace RadialMenu
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.SearchAllThemes)), "Search every theme and asset pack" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.SearchAllThemes)), "Search finds assets from every theme and asset pack, such as North American buildings in a European city. Turn off to only find what the vanilla asset menu's theme and pack filters show. For browsing without searching, see 'Show every theme and asset pack'." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.LockPlacedUnique)), "Grey out placed unique buildings" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.LockPlacedUnique)), "Dim unique buildings, such as signature buildings, once one is placed in your city, and don't let them be picked from the radial menu, as the vanilla asset menu does. When off, they can always be picked. Favorites are never greyed out this way. Things you haven't unlocked yet are always greyed out." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.BrowseAllThemes)), "Show every theme and asset pack" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.BrowseAllThemes)), "When browsing the radial menu without searching, show assets from every theme and asset pack, such as North American buildings in a European city. Turn off to only show what the vanilla asset menu's theme and pack filters show. Picking an asset from another theme switches the vanilla theme filter to it, as in the vanilla asset menu." },
@@ -419,7 +428,7 @@ namespace RadialMenu
                     "\n" +
                     "Put a minus in front of a filter to exclude it: '-dlc: none' shows only DLC content.\n" +
                     "\n" +
-                    "Results you can't place right now are dimmed and listed last."
+                    "Results you can't place right now are listed last. Things you haven't unlocked yet are dimmed."
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchKeysText)),

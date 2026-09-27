@@ -142,7 +142,10 @@ the hub shows "Keep typing...".
 Results are sorted by, in order:
 
 1. **Placeable first.** Locked assets and unique buildings already placed go
-   last. They're shown dimmed and can't be picked.
+   last. Locked ones are dimmed and can't be picked. Placed unique buildings
+   are too only with "Grey out placed unique buildings" on (off by default);
+   otherwise they can be picked, and the game's tool then reports that the
+   building already exists.
 2. **Text rank** on the first word or phrase: title starts with it, then a word
    in the title starts with it, then contains it.
 3. **Toolbar order** (tab, then category, then vanilla asset order). This keeps
@@ -226,8 +229,9 @@ added. Favorites are stored in each save (`FavoritesSystem.cs`; see
 - **Searching in Favorites** covers only the favorites. It goes through the
   same asset list as other searches, so with "Search every theme and asset
   pack" off, favorites from themes vanilla's filter hides aren't found.
-- **Locked** favorites, and unique buildings already placed, are shown
-  dimmed and can't be picked, as elsewhere.
+- **Locked** favorites are dimmed and can't be picked, as elsewhere. Unique
+  buildings already placed are never greyed out in Favorites, whatever "Grey
+  out placed unique buildings" is set to.
 - **Clearing them all:** Options > Radial Menu > Utilities > "Remove Radial
   Menu data from this city", then save the city.
 

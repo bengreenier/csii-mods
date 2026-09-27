@@ -14,6 +14,7 @@ import {
     favorites$,
     isOpen$,
     isolateInput$,
+    lockPlacedUnique$,
     resetVanillaThemes$,
     itemSpacing$,
     markRadialSelection,
@@ -221,13 +222,16 @@ function activateToolbarItem(item: toolbar.ToolbarItem) {
     }
 }
 
-function assetEntry(asset: toolbar.Asset, onSelect: () => void): WheelEntry {
+// `lockPlaced`: dim and block unique buildings already placed (the "Grey out
+// placed unique buildings" setting; vanilla's asset grid always does).
+function assetEntry(asset: toolbar.Asset, lockPlaced: boolean, onSelect: () => void): WheelEntry {
     return {
         entity: asset.entity,
         name: asset.name,
         icon: asset.icon,
-        // Same rule the vanilla asset grid uses for its "Select" hint.
-        disabled: asset.locked || (asset.unique && asset.placed),
+        // Locked assets can't be selected at all (vanilla's selectAsset refuses
+        // them). A placed unique one can: the tool then shows "already exists".
+        disabled: asset.locked || (lockPlaced && asset.unique && asset.placed),
         showPreview: true,
         context: { kind: "asset", entity: asset.entity },
         onSelect,
@@ -249,7 +253,7 @@ function selectAssetChain(menu: Entity, category: Entity, asset: Entity) {
 
 const favoriteEntries = (favorites: Favorite[]): WheelEntry[] =>
     favorites.map(({ asset, menu, category }) =>
-        assetEntry(asset, () => selectAssetChain(menu, category, asset.entity))
+        assetEntry(asset, false, () => selectAssetChain(menu, category, asset.entity))
     );
 
 // The top ring's entry for the Favorites level.
@@ -260,9 +264,9 @@ const FAVORITES_ICON = "Media/Glyphs/StarFilled.svg";
 const NO_ENTITY: Entity = { index: 0, version: 0 };
 
 // A search hit may live in another menu/category.
-function searchResultEntries(results: SearchResult[]): WheelEntry[] {
+function searchResultEntries(results: SearchResult[], lockPlaced: boolean): WheelEntry[] {
     return results.map(({ menu, category, asset }) =>
-        assetEntry(asset, () => selectAssetChain(menu.entity, category.entity, asset.entity))
+        assetEntry(asset, lockPlaced, () => selectAssetChain(menu.entity, category.entity, asset.entity))
     );
 }
 
@@ -567,7 +571,8 @@ const RootLevel = ({ onOpenMenu, onOpenFavorites, ...searchProps }: RootLevelPro
             }),
         [groups, bulldozerInRadial, onOpenMenu, onOpenFavorites]
     );
-    const resultEntries = useMemo(() => searchResultEntries(search.results), [search.results]);
+    const lockPlaced = useValue(lockPlacedUnique$);
+    const resultEntries = useMemo(() => searchResultEntries(search.results, lockPlaced), [search.results, lockPlaced]);
 
     if (search.active) return <Wheel entries={resultEntries} search={search} {...searchProps} />;
     return <Wheel entries={entries} grouped search={search} {...searchProps} />;
@@ -598,7 +603,8 @@ const MenuLevel = ({ menu, onOpenCategory, onBack, ...searchProps }: MenuLevelPr
             })),
         [categories, onOpenCategory]
     );
-    const resultEntries = useMemo(() => searchResultEntries(search.results), [search.results]);
+    const lockPlaced = useValue(lockPlacedUnique$);
+    const resultEntries = useMemo(() => searchResultEntries(search.results, lockPlaced), [search.results, lockPlaced]);
 
     if (categories.length === 1) {
         return <CategoryLevel menu={menu} category={categories[0]} current={menu} onBack={onBack} {...searchProps} />;
@@ -626,7 +632,8 @@ const FavoritesLevel = ({ onBack, ...searchProps }: FavoritesLevelProps) => {
     const favoriteKeys = useMemo(() => new Set(favorites.map((f) => entityKey(f.asset.entity))), [favorites]);
     const search = useAssetSearch(searchProps.query, useLocalization(), groups, "all", favoriteKeys);
     const entries = useMemo(() => favoriteEntries(favorites), [favorites]);
-    const resultEntries = useMemo(() => searchResultEntries(search.results), [search.results]);
+    // Favorites are never greyed out for being placed.
+    const resultEntries = useMemo(() => searchResultEntries(search.results, false), [search.results]);
 
     return (
         <Wheel
@@ -656,17 +663,18 @@ const CategoryLevel = ({ menu, category, current, onBack, ...searchProps }: Cate
     const assets = useMapValue(browseAllThemes ? allAssets$ : toolbar.assets$, category.entity) ?? EMPTY;
     const scope = useMemo<SearchScope[]>(() => [{ menu, category }], [menu, category]);
     const search = useAssetSearch(searchProps.query, useLocalization(), EMPTY, scope);
+    const lockPlaced = useValue(lockPlacedUnique$);
     const entries = useMemo(
         () =>
             assets.map((asset) =>
-                assetEntry(asset, () => {
+                assetEntry(asset, lockPlaced, () => {
                     selectAsset(asset.entity, true);
                     close();
                 })
             ),
-        [assets]
+        [assets, lockPlaced]
     );
-    const resultEntries = useMemo(() => searchResultEntries(search.results), [search.results]);
+    const resultEntries = useMemo(() => searchResultEntries(search.results, lockPlaced), [search.results, lockPlaced]);
 
     return (
         <Wheel
