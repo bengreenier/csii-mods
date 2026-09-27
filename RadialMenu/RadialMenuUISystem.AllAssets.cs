@@ -1,6 +1,9 @@
 using Colossal.Entities;
 using Colossal.UI.Binding;
+using Game;
+using Game.City;
 using Game.Prefabs;
+using Game.SceneFlow;
 using Game.UI;
 using Game.UI.InGame;
 using Unity.Collections;
@@ -19,12 +22,45 @@ namespace RadialMenu
         private RawMapBinding<Entity> _allAssets;
         private ToolbarUISystem _toolbarUISystem;
         private UniqueAssetTrackingSystem _uniqueAssetTrackingSystem;
+        private CityConfigurationSystem _cityConfigurationSystem;
+        private RawEventBinding _resetVanillaThemes;
+        private static bool _themeResetRequested;
+
+        /// <summary>From the "Reset vanilla theme filter" settings button.</summary>
+        public static void RequestThemeReset() => _themeResetRequested = true;
 
         private void CreateAllAssetsBinding()
         {
             _toolbarUISystem = World.GetOrCreateSystemManaged<ToolbarUISystem>();
             _uniqueAssetTrackingSystem = World.GetOrCreateSystemManaged<UniqueAssetTrackingSystem>();
             AddBinding(_allAssets = new RawMapBinding<Entity>(kGroup, "allAssets", BindAllAssets));
+            _cityConfigurationSystem = World.GetOrCreateSystemManaged<CityConfigurationSystem>();
+            AddBinding(_resetVanillaThemes = new RawEventBinding(kGroup, "resetVanillaThemes"));
+        }
+
+        // The UI applies it through vanilla's toolbar.clearAssetSelection and
+        // toolbar.setSelectedThemes triggers, so ToolbarUISystem does its usual
+        // bookkeeping (see radial-menu.tsx). Clearing first means the theme
+        // change can't swap the active tool to the "closest" asset in the theme.
+        private void HandleThemeResetRequest()
+        {
+            if (!_themeResetRequested) return;
+
+            var theme = _cityConfigurationSystem.defaultTheme;
+            if (GameManager.instance.gameMode != GameMode.Game || theme == Entity.Null)
+            {
+                _themeResetRequested = false;
+                Mod.LOG.Info("Reset vanilla theme filter skipped: no city loaded");
+                return;
+            }
+            // The in-game UI may not be listening while the options screen is
+            // up; keep the request until it is.
+            if (!_resetVanillaThemes.active) return;
+
+            _themeResetRequested = false;
+            var writer = _resetVanillaThemes.EventBegin();
+            writer.Write(theme);
+            _resetVanillaThemes.EventEnd();
         }
 
         // Unlocks and unique placements change entries (vanilla refreshes its

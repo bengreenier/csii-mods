@@ -47,7 +47,8 @@ Used through `cs2/bindings` / `cs2/api`:
 
 - `toolbar.*`: `toolbarGroups$`, `assetCategories$`, `assets$`, `themes$`,
   `selectAssetMenu`, `selectAssetCategory`, `selectAsset`,
-  `clearAssetSelection`.
+  `clearAssetSelection`, `setSelectedThemes` (the "Reset vanilla theme
+  filter" button, with `CityConfigurationSystem.defaultTheme` from C#).
 - `prefab.*`: `prefabDetails$`, `themes$`.
 - `selectedInfo.clearSelection` and `map.disableMapTileView`.
 
@@ -448,6 +449,7 @@ messages mostly exist to flag breakage after a game update.
 |---|---|
 | `OnLoad`, `Current mod asset at ...`, `OnDispose` | Normal mod lifecycle, once per session |
 | `Reset key bindings` | The "Reset key bindings" button was used |
+| `Reset vanilla theme filter` | The "Reset vanilla theme filter" button was used; followed by `... skipped: no city loaded` if there was no city |
 | `ToolSystem.m_LastToolInfoview/m_LastToolInfomodes not found; ...` (warning) | A game update renamed vanilla's private fields. The flicker-free tool info view path is off, and the fallback is used. See [Tool info views](#tool-info-views-show-info-views-for-radial-menu-selections). |
 | `Tool info view suppressed via fallback ...` | The fallback ran, once per session: the overlay may flash for a frame. Normally absent. |
 

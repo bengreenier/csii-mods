@@ -64,6 +64,7 @@ namespace RadialMenu
         {
             base.OnUpdate();
             UpdateInputIsolation();
+            HandleThemeResetRequest();
 
             if (GameManager.instance.gameMode != GameMode.Game)
             {

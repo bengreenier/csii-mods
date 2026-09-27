@@ -52,6 +52,10 @@ export const browseAllThemes$ = bindValue<boolean>(GROUP, "browseAllThemes", fal
 // search (RadialMenuUISystem.AllAssets.cs). Refreshed whenever the menu opens.
 export const allAssets$ = bindMap<Entity, toolbar.Asset[]>(GROUP, "allAssets");
 
+// Fired by C# from the "Reset vanilla theme filter" settings button, with the
+// city's default theme.
+export const resetVanillaThemes$ = bindEvent<Entity>(GROUP, "resetVanillaThemes");
+
 // Fired by C# when the "Accept search suggestion" key is pressed while open.
 export const acceptSuggestion$ = bindEvent<void>(GROUP, "acceptSuggestion");
 

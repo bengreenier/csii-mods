@@ -12,6 +12,7 @@ import {
     close,
     isOpen$,
     isolateInput$,
+    resetVanillaThemes$,
     itemSpacing$,
     markRadialSelection,
     menuScale$,
@@ -522,9 +523,23 @@ export const RadialMenu = () => {
     // open menu briefly; the open menu plugs its back() into backRef.
     const backRef = useRef<(() => void) | null>(null);
     useModalInput(useValue(isolateInput$), backRef);
+    useResetVanillaThemes();
     // Mounted only while open, so navigation and search reset on every open.
     return isOpen ? <OpenRadialMenu backRef={backRef} /> : null;
 };
+
+// "Reset vanilla theme filter" (settings). Clears the asset selection first:
+// vanilla's setSelectedThemes would otherwise switch the active tool to the
+// closest asset in the new theme.
+function useResetVanillaThemes() {
+    useEffect(() => {
+        const subscription = resetVanillaThemes$.subscribe((theme) => {
+            toolbar.clearAssetSelection();
+            toolbar.setSelectedThemes([theme]);
+        });
+        return () => subscription.dispose();
+    }, []);
+}
 
 const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | null> }) => {
     const [path, setPath] = useState<Path>({});

@@ -300,7 +300,12 @@ uses plain ASCII only.
     `radial-menu.tsx`).
   - Picking a result from another theme goes through `toolbar.selectAsset`.
     Vanilla's `SelectAsset` then switches its theme selection to that asset's
-    theme (`FilterThemesByAsset`), so browsing follows the last pick.
+    theme (`FilterThemesByAsset`), so browsing follows the last pick. The
+    "Reset vanilla theme filter" button (Options > Radial Menu > Utilities)
+    sets it back to the city's default theme. It clears the asset selection
+    first, because `setSelectedThemes` would otherwise swap the active tool.
+    Restoring the theme automatically when the menu closes was ruled out for
+    the same reason: the picked asset is the active tool at that point.
   - `allAssets` is refreshed (`UpdateAll`) whenever the menu opens and after
     a game load, rather than on every unlock like vanilla. Something unlocked
     while the menu is open shows up the next time it opens.

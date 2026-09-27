@@ -10,11 +10,11 @@ namespace RadialMenu
 {
     [FileLocation(nameof(RadialMenu))]
     [SettingsUITabOrder(KSection, KFiltersSection)]
-    [SettingsUIGroupOrder(KGeneralGroup, KKeybindingGroup,
+    [SettingsUIGroupOrder(KGeneralGroup, KKeybindingGroup, KUtilitiesGroup,
         KSearchQuickStartGroup, KSearchNamesGroup, KSearchFiltersGroup, KSearchIsGroup, KSearchThemeGroup,
         KSearchPackGroup, KSearchZoneGroup, KSearchDlcGroup, KSearchInGroup, KSearchFxGroup, KSearchCombiningGroup,
         KSearchKeysGroup)]
-    [SettingsUIShowGroupName(KGeneralGroup, KKeybindingGroup,
+    [SettingsUIShowGroupName(KGeneralGroup, KKeybindingGroup, KUtilitiesGroup,
         KSearchQuickStartGroup, KSearchNamesGroup, KSearchFiltersGroup, KSearchIsGroup, KSearchThemeGroup,
         KSearchPackGroup, KSearchZoneGroup, KSearchDlcGroup, KSearchInGroup, KSearchFxGroup, KSearchCombiningGroup,
         KSearchKeysGroup)]
@@ -28,6 +28,7 @@ namespace RadialMenu
         public const string KSection = "Main";
         public const string KGeneralGroup = "General";
         public const string KKeybindingGroup = "KeyBinding";
+        public const string KUtilitiesGroup = "Utilities";
         public const string KSearchUsage = "RadialMenuSearch";
 
         // Built-in reference for the search language (see docs/search-schema.md).
@@ -109,6 +110,18 @@ namespace RadialMenu
             {
                 Mod.LOG.Info("Reset key bindings");
                 ResetKeyBindings();
+            }
+        }
+
+        // Picking an asset from another theme switches the vanilla asset menu's
+        // theme filter to it; this puts it back to the city's default theme.
+        [SettingsUISection(KSection, KUtilitiesGroup)]
+        public bool ResetVanillaThemes
+        {
+            set
+            {
+                Mod.LOG.Info("Reset vanilla theme filter");
+                RadialMenuUISystem.RequestThemeReset();
             }
         }
 
@@ -194,6 +207,10 @@ namespace RadialMenu
 
                 { _setting.GetOptionGroupLocaleID(Setting.KGeneralGroup), "General" },
                 { _setting.GetOptionGroupLocaleID(Setting.KKeybindingGroup), "Key bindings" },
+                { _setting.GetOptionGroupLocaleID(Setting.KUtilitiesGroup), "Utilities" },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.ResetVanillaThemes)), "Reset vanilla theme filter" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.ResetVanillaThemes)), "Set the vanilla asset menu's theme filter back to your city's default theme, as it is after loading the city. Picking an asset from another theme switches that filter to the asset's theme. Any asset you are placing is deselected. Only works while a city is loaded." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.HideVanillaToolbar)), "Hide vanilla toolbar tabs" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.HideVanillaToolbar)), "Hide the bottom toolbar's tab buttons and the asset panel that opens from them, so the radial menu replaces them. The bulldozer stays if 'Bulldozer in radial menu' is off." },
