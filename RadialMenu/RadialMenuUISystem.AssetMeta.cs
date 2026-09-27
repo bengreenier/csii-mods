@@ -53,6 +53,7 @@ namespace RadialMenu
             // The UI may have subscribed mid-load and received a partial list.
             _assetMetaCache = null;
             _assetMeta.Update();
+            RefreshAllAssets();
         }
 
         private void WriteAssetMeta(IJsonWriter writer)

@@ -281,23 +281,25 @@ uses plain ASCII only.
     merged with `toolbar.themes`) and uses the theme's name and titles
     (`ToolOptions.TOOLTIP_TITLE[<name>]`, `Assets.NAME[<name>]`). If a theme
     isn't in either list, it falls back to the icon's file name.
-- **Only your selected themes are searchable (observed in game).**
+- **Themes and packs: search reads its own asset list.** Vanilla's
   `toolbar.assets$` only contains assets from the themes selected in the
-  vanilla asset menu's theme filter, plus assets with no theme. In testing,
-  only `european` was offered for `theme:`.
-  - Vanilla's toggle (`toolbar.setSelectedThemes`) always keeps at least one
-    theme selected, which is consistent with it filtering the asset list.
-  - This also limits normal browsing in the radial menu, not just search.
-  - With "Hide vanilla toolbar tabs" on, the vanilla filter is hidden, so the
-    selection can't be changed. Turn that option off to change themes in the
-    vanilla panel.
-  - Asset packs behave the same (`ToolbarUISystem.FilterByPacks`). While
-    nothing is selected in vanilla's pack filter, everything is listed. Once
-    any pack, "Base game" or "Mods" is selected there, only those are. So
-    `pack:` only finds packs whose assets are currently listed.
-
-  Possible fixes, deferred:
-  1. Select all themes and packs while the menu is open, and restore the
-     previous selection on close.
-  2. Always select all while the vanilla panel is hidden.
+  vanilla asset menu's theme filter (the city's default theme after loading),
+  plus assets with no theme. Packs work the same way
+  (`ToolbarUISystem.FilterByPacks`), although selecting a tab or category
+  resets vanilla's pack filter.
+  - With "Search every theme and asset pack" on (the default), search reads
+    `RadialMenu.allAssets` instead (`RadialMenuUISystem.AllAssets.cs`). It is
+    `BindAssets` without those two filters, so `theme: american` works in a
+    European city.
+  - Changing vanilla's selection instead (`toolbar.setSelectedThemes`) was
+    ruled out: it re-runs `ToolbarUISystem.Apply` with `updateTool`, which
+    can pick and activate a different asset.
+  - Browsing the wheel still uses `toolbar.assets$`, so it follows vanilla's
+    filters.
+  - Picking a result from another theme goes through `toolbar.selectAsset`.
+    Vanilla's `SelectAsset` then switches its theme selection to that asset's
+    theme (`FilterThemesByAsset`), so browsing follows the last pick.
+  - `allAssets` is refreshed (`UpdateAll`) whenever the menu opens and after
+    a game load, rather than on every unlock like vanilla. Something unlocked
+    while the menu is open shows up the next time it opens.
 - **`is:new`** relies on `Asset.highlight` being the vanilla "new" badge.

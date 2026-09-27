@@ -1,4 +1,5 @@
-import { bindEvent, bindValue, trigger } from "cs2/api";
+import { bindEvent, bindMap, bindValue, trigger } from "cs2/api";
+import { toolbar } from "cs2/bindings";
 import { Entity } from "cs2/utils";
 import mod from "mod.json";
 
@@ -41,6 +42,13 @@ export interface AssetMeta {
     level: number;
 }
 export const assetMeta$ = bindValue<AssetMeta[]>(GROUP, "assetMeta", []);
+
+// "Search every theme and asset pack": search reads allAssets$ instead of toolbar.assets$.
+export const searchAllThemes$ = bindValue<boolean>(GROUP, "searchAllThemes", true);
+
+// toolbar.assets$ without the vanilla asset menu's theme and pack filters, for
+// search (RadialMenuUISystem.AllAssets.cs). Refreshed whenever the menu opens.
+export const allAssets$ = bindMap<Entity, toolbar.Asset[]>(GROUP, "allAssets");
 
 // Fired by C# when the "Accept search suggestion" key is pressed while open.
 export const acceptSuggestion$ = bindEvent<void>(GROUP, "acceptSuggestion");

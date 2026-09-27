@@ -58,6 +58,12 @@ namespace RadialMenu
         [SettingsUISection(KSection, KGeneralGroup)]
         public bool BulldozerInRadial { get; set; }
 
+        // On: search lists every theme and asset pack (RadialMenuUISystem
+        // "allAssets"). Off: only what the vanilla asset menu's theme and pack
+        // filters let through (toolbar.assets). Browsing always follows vanilla.
+        [SettingsUISection(KSection, KGeneralGroup)]
+        public bool SearchAllThemes { get; set; }
+
         // Scale factor for the whole wheel (1 = 100%), shown as a percentage like
         // the vanilla audio sliders.
         [SettingsUISlider(min = 50f, max = 200f, step = 5f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
@@ -156,6 +162,7 @@ namespace RadialMenu
         {
             HideVanillaToolbar = true;
             BulldozerInRadial = true;
+            SearchAllThemes = true;
             MenuScale = 1f;
             RingDistance = 1f;
             ItemSpacing = 1f;
@@ -188,6 +195,9 @@ namespace RadialMenu
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.BulldozerInRadial)), "Bulldozer in radial menu" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.BulldozerInRadial)), "Show the bulldozer in the radial menu. Turn off to leave it out of the radial menu and keep it in the bottom toolbar instead, even while the other tab buttons are hidden." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.SearchAllThemes)), "Search every theme and asset pack" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.SearchAllThemes)), "Search finds assets from every theme and asset pack, such as North American buildings in a European city. Turn off to only find what the vanilla asset menu's theme and pack filters show. Browsing the radial menu always follows those filters." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.OpenAtCursor)), "Open at mouse cursor" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.OpenAtCursor)), "Center the radial menu on the mouse cursor when it opens, instead of the middle of the screen. The menu stays where it opened while you use it, and is nudged away from the screen edges so it fits." },
@@ -296,16 +306,15 @@ namespace RadialMenu
                     "'theme: european' - buildings in a regional architectural style. Values are single words, " +
                     "so use 'theme: north' for North American.\n" +
                     "\n" +
-                    "Note: only themes enabled in the vanilla asset menu's theme filter can be found. " +
-                    "To change which themes are enabled, turn off \"Hide vanilla toolbar tabs\" on the Main tab " +
-                    "and use the theme buttons in the vanilla asset menu."
+                    "Every theme can be found while \"Search every theme and asset pack\" is on (Main tab). " +
+                    "With it off, only themes enabled in the vanilla asset menu's theme filter can be found."
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchPackText)),
                     "'pack:' followed by a word from an asset pack's name - assets from that pack. " +
                     "Type 'pack:' to see suggestions for the packs you can search.\n" +
                     "\n" +
-                    "Note: like themes, only packs enabled in the vanilla asset menu's pack filter can be found."
+                    "Like themes, every pack can be found while \"Search every theme and asset pack\" is on."
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchZoneText)),

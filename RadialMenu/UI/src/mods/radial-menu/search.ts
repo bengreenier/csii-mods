@@ -3,7 +3,7 @@ import { useMapValues, useValue } from "cs2/api";
 import { prefab, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
 import { Entity, entityKey } from "cs2/utils";
-import { AssetMeta, assetMeta$ } from "./bindings";
+import { allAssets$, AssetMeta, assetMeta$, searchAllThemes$ } from "./bindings";
 import { evaluate } from "./query/evaluate";
 import { FilterContext } from "./query/filters";
 import { parse, ParsedQuery } from "./query/parser";
@@ -95,7 +95,11 @@ export function useAssetSearch(
     }, [searching, scope, menus, categoriesPerMenu]);
 
     const categoryKeys = useStableKeys(resolvedScope.map((s) => s.category.entity));
-    const assetsPerCategory = useMapValues(toolbar.assets$, categoryKeys);
+    // toolbar.assets$ only lists the themes/packs selected in the vanilla asset
+    // menu's filters; allAssets$ lists all of them ("Search every theme...").
+    // useMapValues re-subscribes when the binding changes.
+    const searchAllThemes = useValue(searchAllThemes$);
+    const assetsPerCategory = useMapValues(searchAllThemes ? allAssets$ : toolbar.assets$, categoryKeys);
 
     // Rebuilt only when game data changes, never per keystroke.
     const index = useMemo(

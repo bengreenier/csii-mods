@@ -40,6 +40,8 @@ namespace RadialMenu
                 () => Mod.Settings?.HideVanillaToolbar ?? false));
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "bulldozerInRadial",
                 () => Mod.Settings?.BulldozerInRadial ?? true));
+            AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "searchAllThemes",
+                () => Mod.Settings?.SearchAllThemes ?? true));
             AddUpdateBinding(new GetterValueBinding<float>(kGroup, "menuScale", GetMenuScale));
             AddUpdateBinding(new GetterValueBinding<float>(kGroup, "ringDistance",
                 () => InRangeOrDefault(Mod.Settings?.RingDistance, 0f, 4f)));
@@ -47,6 +49,7 @@ namespace RadialMenu
                 () => InRangeOrDefault(Mod.Settings?.ItemSpacing, 0f, 4f)));
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "openAtCursor", () => Mod.Settings?.OpenAtCursor ?? false));
             CreateAssetMetaBinding();
+            CreateAllAssetsBinding();
         }
 
         protected override void OnGamePreload(Colossal.Serialization.Entities.Purpose purpose, GameMode mode)
@@ -98,7 +101,11 @@ namespace RadialMenu
             if (_isOpen.value == open) return;
 
             _isOpen.Update(open);
-            if (open) SetIsolateInput(true);
+            if (open)
+            {
+                SetIsolateInput(true);
+                RefreshAllAssets();
+            }
             _focusClearFrames = 0;
         }
 
