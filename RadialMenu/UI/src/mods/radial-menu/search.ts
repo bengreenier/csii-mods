@@ -1,14 +1,23 @@
-import { useMemo } from "react";
-import { useMapValues } from "cs2/api";
-import { toolbar } from "cs2/bindings";
+import { useEffect, useMemo, useState } from "react";
+import { useMapValues, useValue } from "cs2/api";
+import { prefab, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
-import { entityKey } from "cs2/utils";
+import { Entity, entityKey } from "cs2/utils";
+import { evaluate } from "./query/evaluate";
+import { FilterContext } from "./query/filters";
+import { parse, ParsedQuery } from "./query/parser";
+import { AssetRecord, buildRecord, dlcSlug as iconSlug, fxTerms } from "./query/record";
 
 // Enough to fill three rings (14 + 20 + 27 slots) without leaving the screen.
 export const MAX_SEARCH_RESULTS = 60;
 
 // ToolbarItemType.menu, see radial-menu.tsx.
 const TOOLBAR_ITEM_TYPE_MENU = 1;
+
+// fx: details are loaded in fixed subscription slots (hooks can't vary in
+// number); 4 x 100 matches MAX_DETAIL_CANDIDATES in query/evaluate.ts.
+const DETAIL_SLOTS = 4;
+const DETAIL_SLOT_SIZE = 100;
 
 const EMPTY: never[] = [];
 
@@ -22,32 +31,34 @@ export interface SearchResult extends SearchScope {
 }
 
 export interface SearchResults {
+    parsed: ParsedQuery;
+    // Whether the query constrains anything; if not, show the normal level.
+    active: boolean;
     results: SearchResult[];
     // Matches before capping to MAX_SEARCH_RESULTS.
     total: number;
+    // Candidates still waiting on fx: details.
+    pending: number;
 }
+
+// Effect terms per prefab, kept for the session: effects are static prefab
+// data, so each prefab's details only ever need loading once.
+const FX_CACHE = new Map<string, string[]>();
 
 // Asset titles use the key "Assets.NAME[<prefab name>]" (see Game.dll);
 // translating directly avoids a prefabDetails subscription per asset.
-function assetTitle(loc: l10n.Localization, asset: toolbar.Asset) {
-    return loc.translate(`Assets.NAME[${asset.name}]`, asset.name) ?? asset.name;
-}
+const title = (loc: l10n.Localization, name: string) => loc.translate(`Assets.NAME[${name}]`, name) ?? name;
 
-// 0 = title starts with the query, 1 = a word in it does, 2 = contains it.
-function matchRank(title: string, name: string, words: string[]): number | null {
-    const t = title.toLowerCase();
-    const n = name.toLowerCase();
-    if (!words.every((w) => t.includes(w) || n.includes(w))) return null;
-    const first = words[0];
-    if (t.startsWith(first)) return 0;
-    if (t.includes(` ${first}`)) return 1;
-    return 2;
+interface SearchIndex {
+    records: AssetRecord[];
+    byKey: Map<string, SearchResult>;
+    ctx: FilterContext;
 }
 
 /**
- * Searches assets by localized title (or prefab name) within `scope`:
- * every unlocked menu at the root, else the given categories.
- * Subscriptions are only made while `query` is non-empty.
+ * Searches assets within `scope` (every unlocked menu at the root, else the
+ * given categories) using the query language in docs/search-schema.md.
+ * Nothing is subscribed while `query` is empty.
  */
 export function useAssetSearch(
     query: string,
@@ -55,8 +66,12 @@ export function useAssetSearch(
     groups: toolbar.ToolbarGroup[],
     scope: SearchScope[] | "all"
 ): SearchResults {
-    const words = useMemo(() => query.toLowerCase().split(/\s+/).filter(Boolean), [query]);
-    const searching = words.length > 0;
+    const searching = query.trim().length > 0;
+    // toolbar.themes$ may only cover the vanilla panel's current category, so
+    // merge in the global prefab theme list.
+    const toolbarThemes = useValue(toolbar.themes$);
+    const prefabThemes = useValue(prefab.themes$);
+    const themes = useMemo(() => [...prefabThemes, ...toolbarThemes], [prefabThemes, toolbarThemes]);
 
     // Root search needs every menu's categories first.
     const menus = useMemo(
@@ -78,29 +93,131 @@ export function useAssetSearch(
     const categoryKeys = useStableKeys(resolvedScope.map((s) => s.category.entity));
     const assetsPerCategory = useMapValues(toolbar.assets$, categoryKeys);
 
-    return useMemo(() => {
-        if (!searching) return { results: EMPTY, total: 0 };
+    // Rebuilt only when game data changes, never per keystroke.
+    const index = useMemo(
+        () => buildIndex(resolvedScope, assetsPerCategory, themes, loc),
+        [resolvedScope, assetsPerCategory, themes, loc]
+    );
 
-        const seen = new Set<string>();
-        const matches: (SearchResult & { rank: number; order: number })[] = [];
-        resolvedScope.forEach((s, i) => {
-            for (const asset of assetsPerCategory[i] ?? EMPTY) {
-                const key = entityKey(asset.entity);
-                if (seen.has(key)) continue;
-                const rank = matchRank(assetTitle(loc, asset), asset.name, words);
-                if (rank === null) continue;
-                seen.add(key);
-                matches.push({ ...s, asset, rank, order: matches.length });
+    const parsed = useMemo(() => parse(query, index.ctx), [query, index.ctx]);
+
+    // Lazy fx: details. `loadKeys` comes from the previous evaluation; values
+    // are folded into FX_CACHE, which bumps `ingested` and re-evaluates.
+    const [loadKeys, setLoadKeys] = useState<string[]>(EMPTY);
+    const slotValues: (prefab.PrefabDetails | null)[][] = [];
+    for (let slot = 0; slot < DETAIL_SLOTS; slot++) {
+        // Fixed number of hook calls per render, so this loop is hook-safe.
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        slotValues.push(useDetailSlot(index, loadKeys, slot));
+    }
+    const ingested = useMemo(() => {
+        for (const values of slotValues) {
+            for (const details of values) {
+                // Keyed by the details' own entity: useMapValues can briefly
+                // return values for a previous key list.
+                if (details?.entity) FX_CACHE.set(entityKey(details.entity), fxTerms(details.effects));
             }
-        });
-        matches.sort((a, b) => a.rank - b.rank || a.order - b.order);
-        return { results: matches.slice(0, MAX_SEARCH_RESULTS), total: matches.length };
-    }, [searching, words, resolvedScope, assetsPerCategory, loc]);
+        }
+        return {};
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, slotValues);
+
+    const evaluation = useMemo(
+        () => (parsed.active ? evaluate(parsed, index.records, (k) => FX_CACHE.get(k)) : null),
+        // `ingested` changes whenever new details land in FX_CACHE.
+        [parsed, index.records, ingested]
+    );
+
+    const needDetails = evaluation?.needDetails ?? EMPTY;
+    const needSignature = needDetails.join(",");
+    useEffect(() => {
+        setLoadKeys((prev) => (prev.join(",") === needSignature ? prev : needDetails));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [needSignature]);
+
+    return useMemo(() => {
+        if (!evaluation) return { parsed, active: false, results: EMPTY, total: 0, pending: 0 };
+        const results = evaluation.matches.slice(0, MAX_SEARCH_RESULTS).map((r) => index.byKey.get(r.key)!);
+        return { parsed, active: true, results, total: evaluation.matches.length, pending: evaluation.pending };
+    }, [parsed, evaluation, index]);
+}
+
+function buildIndex(
+    scope: SearchScope[],
+    assetsPerCategory: (toolbar.Asset[] | undefined)[],
+    themes: { name: string; icon: string }[],
+    loc: l10n.Localization
+): SearchIndex {
+    // Name + both titles the game may use for it (the theme filter tooltip
+    // uses ToolOptions.TOOLTIP_TITLE[<name>]).
+    const themeText = new Map(
+        themes.map((t) => [
+            t.icon,
+            [t.name, loc.translate(`ToolOptions.TOOLTIP_TITLE[${t.name}]`), title(loc, t.name)].filter(Boolean).join(" "),
+        ])
+    );
+    const records: AssetRecord[] = [];
+    const byKey = new Map<string, SearchResult>();
+    const dlcs = new Set<string>();
+
+    scope.forEach((s, i) => {
+        const menuTitle = title(loc, s.menu.name);
+        const categoryTitle = title(loc, s.category.name);
+        for (const asset of assetsPerCategory[i] ?? EMPTY) {
+            const key = entityKey(asset.entity);
+            if (byKey.has(key)) continue;
+            byKey.set(key, { ...s, asset });
+            const record = buildRecord(
+                {
+                    key,
+                    name: asset.name,
+                    title: title(loc, asset.name),
+                    menuName: s.menu.name,
+                    menuTitle,
+                    categoryName: s.category.name,
+                    categoryTitle,
+                    // Unmapped theme icons fall back to the icon's file name,
+                    // so theme: still has something to match.
+                    themeText: asset.theme ? themeText.get(asset.theme) ?? iconSlug(asset.theme) : null,
+                    dlcIcon: asset.dlc,
+                    unique: asset.unique,
+                    placed: asset.placed,
+                    highlight: asset.highlight,
+                    locked: asset.locked,
+                },
+                records.length
+            );
+            records.push(record);
+            if (record.dlcLc) dlcs.add(record.dlcLc);
+        }
+    });
+
+    // Suggest only themes assets in scope actually have (as dlc: does).
+    // Completions must be single words (a space would end the token).
+    const themeWords = new Set<string>();
+    for (const record of records) {
+        for (const w of record.themeLc.split(/[^a-z0-9]+/)) if (w.length >= 2) themeWords.add(w);
+    }
+
+    return { records, byKey, ctx: { themes: [...themeWords].sort(), dlcs: [...dlcs].sort() } };
+}
+
+// One fixed-size slice of the keys to load details for.
+function useDetailSlot(index: SearchIndex, loadKeys: string[], slot: number) {
+    const entities = useMemo(
+        () =>
+            loadKeys
+                .slice(slot * DETAIL_SLOT_SIZE, (slot + 1) * DETAIL_SLOT_SIZE)
+                .map((k) => index.byKey.get(k)?.asset.entity)
+                .filter((e): e is Entity => !!e),
+        [index, loadKeys, slot]
+    );
+    return useMapValues(prefab.prefabDetails$, useStableKeys(entities));
 }
 
 // useMapValues re-subscribes whenever the keys array identity changes, so
 // only hand it a new array when the entities themselves change.
-function useStableKeys<K extends { index: number; version: number }>(keys: K[]): K[] {
+function useStableKeys(keys: Entity[]): Entity[] {
     const signature = keys.map(entityKey).join(",");
     // eslint-disable-next-line react-hooks/exhaustive-deps
     return useMemo(() => (keys.length ? keys : EMPTY), [signature]);

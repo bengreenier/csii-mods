@@ -7,6 +7,7 @@ import { Entity, entityKey } from "cs2/utils";
 import classNames from "classnames";
 import { close, isOpen$ } from "./bindings";
 import { layoutWheel } from "./layout";
+import { DisplayToken, TokenStatus } from "./query/parser";
 import { SearchResult, SearchResults, SearchScope, useAssetSearch } from "./search";
 import styles from "./radial-menu.module.scss";
 
@@ -32,6 +33,7 @@ const BACK_DEBOUNCE_MS = 100;
 const KEY_ENTER = 13;
 const KEY_ESCAPE = 27;
 const KEY_TAB = 9;
+const KEY_RIGHT = 39;
 
 const EMPTY: never[] = [];
 
@@ -53,11 +55,13 @@ interface WheelEntry {
     onSelect: () => void;
 }
 
-// Shared by every level: the typed filter, and a slot the wheel fills with
-// "select the first match" for Enter.
+// Shared by every level: the typed query, plus slots the wheel fills for the
+// key handler: "select the first match" (Enter) and the hint's completed
+// query (Right Arrow).
 interface SearchProps {
     query: string;
     submitRef: MutableRefObject<(() => void) | null>;
+    completionRef: MutableRefObject<string | null>;
 }
 
 // Mirrors what the vanilla toolbar button does on select
@@ -113,23 +117,60 @@ const PrefabPreview = ({ entity, fallbackIcon }: { entity: Entity; fallbackIcon:
     return <img className={styles.hubPreview} src={src} />;
 };
 
-function matchSummary(shown: number, total: number) {
-    if (total === 0) return "No matches";
-    if (total > shown) return `${shown} of ${total} matches`;
-    return total === 1 ? "1 match" : `${total} matches`;
+function matchSummary({ active, results, total, pending }: SearchResults) {
+    if (!active) return "Keep typing…";
+    const checking = pending > 0 ? ` (checking ${pending}…)` : "";
+    if (total === 0) return pending > 0 ? `Checking ${pending}…` : "No matches";
+    if (total > results.length) return `${results.length} of ${total} matches${checking}`;
+    return (total === 1 ? "1 match" : `${total} matches`) + checking;
 }
+
+// The hub fits roughly this many characters of query per line.
+const QUERY_DISPLAY_CHARS = 18;
+
+const TOKEN_CLASS: Record<TokenStatus, string | undefined> = {
+    text: undefined,
+    filter: styles.tokenFilter,
+    incomplete: styles.tokenIncomplete,
+    invalid: styles.tokenInvalid,
+    unknown: styles.tokenInvalid,
+    ignored: styles.tokenIncomplete,
+};
+
+// The typed query, coloured per token. Long queries show their tail (where
+// the user is typing) behind an ellipsis.
+const QueryDisplay = ({ tokens }: { tokens: DisplayToken[] }) => {
+    const shown: DisplayToken[] = [];
+    let used = 0;
+    for (let i = tokens.length - 1; i >= 0; i--) {
+        used += tokens[i].raw.length + 1;
+        if (used > QUERY_DISPLAY_CHARS && shown.length > 0) break;
+        shown.unshift(tokens[i]);
+    }
+    return (
+        <div className={styles.hubQuery}>
+            {shown.length < tokens.length && "… "}
+            {shown.map((t, i) => (
+                <span key={i} className={TOKEN_CLASS[t.status]}>
+                    {i > 0 && " "}
+                    {t.raw}
+                </span>
+            ))}
+        </div>
+    );
+};
 
 interface WheelProps extends SearchProps {
     entries: WheelEntry[];
     grouped?: boolean;
     // What the hub shows when nothing is hovered.
     current?: { entity: Entity; name: string };
-    // Present while searching; `entries` are then the results.
+    // Present while a query is typed; `entries` are the results if it's active.
     search?: SearchResults;
     onBack?: () => void;
 }
 
-const Wheel = ({ entries, grouped, current, search, query, submitRef, onBack }: WheelProps) => {
+const Wheel = ({ entries, grouped, current, search, query, submitRef, completionRef, onBack }: WheelProps) => {
     const [hovered, setHovered] = useState<WheelEntry | null>(null);
     const slots = useMemo(
         () => layoutWheel(entries, grouped ? (e) => e.group ?? 0 : undefined),
@@ -139,12 +180,15 @@ const Wheel = ({ entries, grouped, current, search, query, submitRef, onBack }: 
     // Entries are rebuilt as results change; drop a hover that no longer exists.
     const hoveredEntry = hovered && entries.includes(hovered) ? hovered : null;
 
+    const showingQuery = !!query && !!search;
+    const completion = showingQuery ? search.parsed.hint?.completion ?? null : null;
     useEffect(() => {
-        submitRef.current = search ? () => entries.find((e) => !e.disabled)?.onSelect() : null;
-    }, [search, entries, submitRef]);
+        submitRef.current = search?.active ? () => entries.find((e) => !e.disabled)?.onSelect() : null;
+        completionRef.current = completion;
+    }, [search, entries, completion, submitRef, completionRef]);
 
     let hubContent;
-    if (hoveredEntry || !search) {
+    if (hoveredEntry || !showingQuery) {
         const label = hoveredEntry ?? current;
         hubContent = (
             <>
@@ -157,13 +201,16 @@ const Wheel = ({ entries, grouped, current, search, query, submitRef, onBack }: 
                     </div>
                 )}
                 {onBack && !hoveredEntry && <div className={styles.hubHint}>Back</div>}
+                {!hoveredEntry && <div className={styles.hubTypeHint}>Type to search</div>}
             </>
         );
     } else {
+        const hint = search.parsed.hint;
         hubContent = (
             <>
-                <div className={styles.hubQuery}>{query}</div>
-                <div className={styles.hubHint}>{matchSummary(entries.length, search.total)}</div>
+                <QueryDisplay tokens={search.parsed.tokens} />
+                <div className={styles.hubHint}>{matchSummary(search)}</div>
+                {hint && <div className={styles.hubTypeHint}>{hint.text}</div>}
             </>
         );
     }
@@ -221,8 +268,8 @@ const RootLevel = ({ onOpenMenu, ...searchProps }: SearchProps & { onOpenMenu: (
     );
     const resultEntries = useMemo(() => searchResultEntries(search.results), [search.results]);
 
-    if (searchProps.query) return <Wheel entries={resultEntries} search={search} {...searchProps} />;
-    return <Wheel entries={entries} grouped {...searchProps} />;
+    if (search.active) return <Wheel entries={resultEntries} search={search} {...searchProps} />;
+    return <Wheel entries={entries} grouped search={search} {...searchProps} />;
 };
 
 interface MenuLevelProps extends SearchProps {
@@ -234,7 +281,8 @@ interface MenuLevelProps extends SearchProps {
 const MenuLevel = ({ menu, onOpenCategory, onBack, ...searchProps }: MenuLevelProps) => {
     const categories = useMapValue(toolbar.assetCategories$, menu.entity) ?? EMPTY;
     const scope = useMemo(() => categories.map<SearchScope>((category) => ({ menu, category })), [categories, menu]);
-    const search = useAssetSearch(searchProps.query, useLocalization(), EMPTY, scope);
+    // A single-category menu renders CategoryLevel, which searches instead.
+    const search = useAssetSearch(categories.length === 1 ? "" : searchProps.query, useLocalization(), EMPTY, scope);
     const entries = useMemo(
         () =>
             categories.map<WheelEntry>((category) => ({
@@ -254,10 +302,15 @@ const MenuLevel = ({ menu, onOpenCategory, onBack, ...searchProps }: MenuLevelPr
     if (categories.length === 1) {
         return <CategoryLevel menu={menu} category={categories[0]} current={menu} onBack={onBack} {...searchProps} />;
     }
-    if (searchProps.query) {
-        return <Wheel entries={resultEntries} search={search} current={menu} onBack={onBack} {...searchProps} />;
-    }
-    return <Wheel entries={entries} current={menu} onBack={onBack} {...searchProps} />;
+    return (
+        <Wheel
+            entries={search.active ? resultEntries : entries}
+            search={search}
+            current={menu}
+            onBack={onBack}
+            {...searchProps}
+        />
+    );
 };
 
 interface CategoryLevelProps extends SearchProps {
@@ -283,10 +336,15 @@ const CategoryLevel = ({ menu, category, current, onBack, ...searchProps }: Cate
     );
     const resultEntries = useMemo(() => searchResultEntries(search.results), [search.results]);
 
-    if (searchProps.query) {
-        return <Wheel entries={resultEntries} search={search} current={current} onBack={onBack} {...searchProps} />;
-    }
-    return <Wheel entries={entries} current={current} onBack={onBack} {...searchProps} />;
+    return (
+        <Wheel
+            entries={search.active ? resultEntries : entries}
+            search={search}
+            current={current}
+            onBack={onBack}
+            {...searchProps}
+        />
+    );
 };
 
 export const RadialMenu = () => {
@@ -299,6 +357,7 @@ const OpenRadialMenu = () => {
     const [path, setPath] = useState<Path>({});
     const [query, setQuery] = useState("");
     const submitRef = useRef<(() => void) | null>(null);
+    const completionRef = useRef<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const openMenu = useCallback((menu: toolbar.ToolbarItem) => setPath({ menu }), []);
@@ -348,6 +407,13 @@ const OpenRadialMenu = () => {
         } else if (e.keyCode === KEY_ENTER) {
             e.preventDefault();
             submitRef.current?.();
+        } else if (e.keyCode === KEY_RIGHT) {
+            // Accept the hint's completion. Not Tab: that's the default toggle
+            // key, which the C# side reads directly.
+            if (completionRef.current !== null) {
+                e.preventDefault();
+                setQuery(completionRef.current);
+            }
         } else if (e.keyCode === KEY_TAB) {
             e.preventDefault(); // don't move focus out of the field
         }
@@ -360,7 +426,7 @@ const OpenRadialMenu = () => {
         if (e.button === 2) back();
     };
 
-    const searchProps: SearchProps = { query, submitRef };
+    const searchProps: SearchProps = { query, submitRef, completionRef };
     let level;
     if (path.menu && path.category) {
         level = (
