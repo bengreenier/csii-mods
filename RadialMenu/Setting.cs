@@ -119,6 +119,7 @@ namespace RadialMenu
 
         // Picking an asset from another theme switches the vanilla asset menu's
         // theme filter to it; this puts it back to the city's default theme.
+        [SettingsUIDisableByCondition(typeof(Setting), nameof(IsNoCityLoaded))]
         [SettingsUISection(KSection, KUtilitiesGroup)]
         public bool ResetVanillaThemes
         {
