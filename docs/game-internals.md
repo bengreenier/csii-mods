@@ -431,7 +431,8 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
   asset packs selected in the vanilla asset menu's filters
   (`ToolbarUISystem.FilterByThemes` / `FilterByPacks`). Search reads
   `RadialMenu.allAssets` instead: a copy of `ToolbarUISystem.BindAssets` without
-  those filters, which uses the public `ToolbarUISystem.BindAsset`,
+  those filters (and so does wheel browsing with "Show every theme and asset
+  pack" on). It uses the public `ToolbarUISystem.BindAsset`,
   `UIObjectInfo.GetObjects` and `UniqueAssetTrackingSystem`. After a game
   update, compare `RadialMenuUISystem.AllAssets.cs` with `BindAssets`. See
   `search-schema.md`, Known limitations.

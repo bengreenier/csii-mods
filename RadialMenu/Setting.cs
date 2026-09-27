@@ -60,9 +60,13 @@ namespace RadialMenu
 
         // On: search lists every theme and asset pack (RadialMenuUISystem
         // "allAssets"). Off: only what the vanilla asset menu's theme and pack
-        // filters let through (toolbar.assets). Browsing always follows vanilla.
+        // filters let through (toolbar.assets).
         [SettingsUISection(KSection, KGeneralGroup)]
         public bool SearchAllThemes { get; set; }
+
+        // The same choice for browsing a category in the wheel (no search typed).
+        [SettingsUISection(KSection, KGeneralGroup)]
+        public bool BrowseAllThemes { get; set; }
 
         // Scale factor for the whole wheel (1 = 100%), shown as a percentage like
         // the vanilla audio sliders.
@@ -163,6 +167,7 @@ namespace RadialMenu
             HideVanillaToolbar = true;
             BulldozerInRadial = true;
             SearchAllThemes = true;
+            BrowseAllThemes = false;
             MenuScale = 1f;
             RingDistance = 1f;
             ItemSpacing = 1f;
@@ -197,7 +202,10 @@ namespace RadialMenu
                 { _setting.GetOptionDescLocaleID(nameof(Setting.BulldozerInRadial)), "Show the bulldozer in the radial menu. Turn off to leave it out of the radial menu and keep it in the bottom toolbar instead, even while the other tab buttons are hidden." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.SearchAllThemes)), "Search every theme and asset pack" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.SearchAllThemes)), "Search finds assets from every theme and asset pack, such as North American buildings in a European city. Turn off to only find what the vanilla asset menu's theme and pack filters show. Browsing the radial menu always follows those filters." },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.SearchAllThemes)), "Search finds assets from every theme and asset pack, such as North American buildings in a European city. Turn off to only find what the vanilla asset menu's theme and pack filters show. For browsing without searching, see 'Show every theme and asset pack'." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.BrowseAllThemes)), "Show every theme and asset pack" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.BrowseAllThemes)), "When browsing the radial menu without searching, show assets from every theme and asset pack, such as North American buildings in a European city. Turn off to only show what the vanilla asset menu's theme and pack filters show. Picking an asset from another theme switches the vanilla theme filter to it, as in the vanilla asset menu." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.OpenAtCursor)), "Open at mouse cursor" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.OpenAtCursor)), "Center the radial menu on the mouse cursor when it opens, instead of the middle of the screen. The menu stays where it opened while you use it, and is nudged away from the screen edges so it fits." },

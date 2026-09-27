@@ -294,8 +294,10 @@ uses plain ASCII only.
   - Changing vanilla's selection instead (`toolbar.setSelectedThemes`) was
     ruled out: it re-runs `ToolbarUISystem.Apply` with `updateTool`, which
     can pick and activate a different asset.
-  - Browsing the wheel still uses `toolbar.assets$`, so it follows vanilla's
-    filters.
+  - Browsing a category in the wheel uses `toolbar.assets$`, so it follows
+    vanilla's filters, unless "Show every theme and asset pack" is on (off by
+    default). Then it reads `allAssets` too (`CategoryLevel` in
+    `radial-menu.tsx`).
   - Picking a result from another theme goes through `toolbar.selectAsset`.
     Vanilla's `SelectAsset` then switches its theme selection to that asset's
     theme (`FilterThemesByAsset`), so browsing follows the last pick.

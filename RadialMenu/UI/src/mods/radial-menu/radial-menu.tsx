@@ -7,6 +7,8 @@ import { Entity, entityKey, useCssLength } from "cs2/utils";
 import classNames from "classnames";
 import {
     acceptSuggestion$,
+    allAssets$,
+    browseAllThemes$,
     close,
     isOpen$,
     isolateInput$,
@@ -486,7 +488,9 @@ interface CategoryLevelProps extends SearchProps {
 }
 
 const CategoryLevel = ({ menu, category, current, onBack, ...searchProps }: CategoryLevelProps) => {
-    const assets = useMapValue(toolbar.assets$, category.entity) ?? EMPTY;
+    // useMapValue re-subscribes when the binding changes.
+    const browseAllThemes = useValue(browseAllThemes$);
+    const assets = useMapValue(browseAllThemes ? allAssets$ : toolbar.assets$, category.entity) ?? EMPTY;
     const scope = useMemo<SearchScope[]>(() => [{ menu, category }], [menu, category]);
     const search = useAssetSearch(searchProps.query, useLocalization(), EMPTY, scope);
     const entries = useMemo(

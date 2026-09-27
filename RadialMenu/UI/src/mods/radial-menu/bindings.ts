@@ -45,6 +45,8 @@ export const assetMeta$ = bindValue<AssetMeta[]>(GROUP, "assetMeta", []);
 
 // "Search every theme and asset pack": search reads allAssets$ instead of toolbar.assets$.
 export const searchAllThemes$ = bindValue<boolean>(GROUP, "searchAllThemes", true);
+// "Show every theme and asset pack": the same for browsing a category.
+export const browseAllThemes$ = bindValue<boolean>(GROUP, "browseAllThemes", false);
 
 // toolbar.assets$ without the vanilla asset menu's theme and pack filters, for
 // search (RadialMenuUISystem.AllAssets.cs). Refreshed whenever the menu opens.
