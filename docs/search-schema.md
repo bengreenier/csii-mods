@@ -131,8 +131,11 @@ Results are sorted by, in order:
 3. **Toolbar order** (tab, then category, then vanilla asset order). This keeps
    results stable as you type.
 
-Filters are yes/no: they don't affect rank. At most **60** results are shown
-(three rings). The hub shows "60 of N matches" when there are more.
+Filters are yes/no: they don't affect rank. Results are shown **60** at a time
+(three rings). When there are more, the hub shows which page you're on
+("61-120 of 214 matches"). Scroll the mouse wheel anywhere over the menu, or
+press PageUp/PageDown, to flip pages. Changing the query starts again at the
+first page.
 
 ## Hub display and keys
 
@@ -141,8 +144,9 @@ When text is typed and nothing is hovered, the hub shows:
 1. **The query**, coloured per token: text is white, recognized filters blue,
    incomplete or ignored ones dimmed, invalid or unknown ones red and struck
    through. Long queries show their tail behind `...`.
-2. **Match count**: "12 matches", "60 of 214 matches", "No matches", or
-   "(checking N...)" while `fx:` details load.
+2. **Match count**: "12 matches", "1-60 of 214 matches", "No matches", or
+   "(checking N...)" while `fx:` details load. With more than one page, a
+   "Scroll or PgUp/PgDn for more" line follows the hint.
 3. **Hint** for the token being typed:
    - a key completion (`th` shows `> theme:`; accepting it inserts the spaced
      form `theme: `, so value suggestions follow right away);
@@ -154,7 +158,8 @@ Hovering a result shows its preview and title instead.
 | Key | Action |
 |---|---|
 | typing | edit the query |
-| **Accept key** (default **Enter**, rebindable) | accept the hint's completion if one is shown; otherwise pick the first placeable result |
+| **Accept key** (default **Enter**, rebindable) | accept the hint's completion if one is shown; otherwise pick the first placeable result on the current page |
+| mouse wheel / **PageUp** / **PageDown** | previous / next page of results |
 | **Escape** / right-click / click hub | clear the query; if already empty, step back a level |
 | toggle key (default Tab) | close the menu |
 

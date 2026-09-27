@@ -173,7 +173,7 @@ namespace RadialMenu
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.AcceptSuggestionBinding)), "Accept suggestion / pick first result" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.AcceptSuggestionBinding)), "While searching in the radial menu, accepts the suggestion shown in the middle of the wheel, " +
-                    "or picks the first result when there is no suggestion. " +
+                    "or picks the first result on the wheel when there is no suggestion. " +
                     "By design this key can't collide with other shortcuts: it's only read while you're typing in the radial menu, " +
                     "when the game's own keyboard shortcuts are paused, so it can safely share a key with them (like the arrow-key camera controls). " +
                     "Just avoid the radial menu's own toggle key and keys that type a character." },
@@ -206,6 +206,7 @@ namespace RadialMenu
                     "You don't need to click anything to search: open the radial menu and start typing. " +
                     "The wheel narrows to matching buildings, roads and props as you type, " +
                     "and Enter picks the first result, ready to place.\n" +
+                    "When there are more results than fit on the wheel, scroll the mouse wheel (or press Page Up / Page Down) to see the rest.\n" +
                     "\n" +
                     "Try it now: open the menu and type 'park'.\n" +
                     "Then try 'is: new' to see everything you have just unlocked.\n" +
@@ -295,6 +296,7 @@ namespace RadialMenu
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchKeysText)),
                     "Enter - accept the suggestion shown in the middle of the wheel, or, if there is none, " +
                     "pick the first result, ready to place. You can change this key on the Main tab.\n" +
+                    "Mouse wheel, Page Up or Page Down - show the next or previous page of results, when there are more than fit on the wheel\n" +
                     "Escape, right-click or clicking the middle - clear what you typed; press again to go back a level\n" +
                     "Your toggle key (Tab by default) - close the menu"
                 },

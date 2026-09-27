@@ -8,8 +8,9 @@ import { FilterContext } from "./query/filters";
 import { parse, ParsedQuery } from "./query/parser";
 import { AssetRecord, buildRecord, dlcSlug as iconSlug, fxTerms } from "./query/record";
 
-// Enough to fill three rings (14 + 20 + 27 slots) without leaving the screen.
-export const MAX_SEARCH_RESULTS = 60;
+// Results shown per page: enough to fill three rings (14 + 20 + 27 slots)
+// without leaving the screen.
+export const SEARCH_PAGE_SIZE = 60;
 
 // ToolbarItemType.menu, see radial-menu.tsx.
 const TOOLBAR_ITEM_TYPE_MENU = 1;
@@ -34,9 +35,8 @@ export interface SearchResults {
     parsed: ParsedQuery;
     // Whether the query constrains anything; if not, show the normal level.
     active: boolean;
+    // Every match, ranked; the wheel shows one page at a time.
     results: SearchResult[];
-    // Matches before capping to MAX_SEARCH_RESULTS.
-    total: number;
     // Candidates still waiting on fx: details.
     pending: number;
 }
@@ -136,9 +136,9 @@ export function useAssetSearch(
     }, [needSignature]);
 
     return useMemo(() => {
-        if (!evaluation) return { parsed, active: false, results: EMPTY, total: 0, pending: 0 };
-        const results = evaluation.matches.slice(0, MAX_SEARCH_RESULTS).map((r) => index.byKey.get(r.key)!);
-        return { parsed, active: true, results, total: evaluation.matches.length, pending: evaluation.pending };
+        if (!evaluation) return { parsed, active: false, results: EMPTY, pending: 0 };
+        const results = evaluation.matches.map((r) => index.byKey.get(r.key)!);
+        return { parsed, active: true, results, pending: evaluation.pending };
     }, [parsed, evaluation, index]);
 }
 

@@ -311,6 +311,10 @@ If a game update breaks this:
   - If a game update stops delivering these events, the menu opens centred
     instead. The fallback would be reading `Mouse.current.position` in C#
     (bottom-left origin, screen pixels) and converting to view coordinates.
+- **Mouse wheel:** React `onWheel` works, and `deltaY` is populated (vanilla
+  scroll views read it too). Wheel events over the menu's full-screen
+  backdrop don't zoom the camera (confirmed in game), so result paging needs
+  no input-stack handling. `onWheel` in `radial-menu.tsx`.
 - **Cursor:** it only re-evaluates on mouse move. The wheel forces
   `cursor: default` everywhere, so elements swapped under a still mouse don't
   leave a stale cursor.

@@ -1,4 +1,4 @@
-import { createContext, KeyboardEvent, MouseEvent, MutableRefObject, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createContext, KeyboardEvent, MouseEvent, MutableRefObject, WheelEvent, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useValue, useMapValue } from "cs2/api";
 import { map, prefab, selectedInfo, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
@@ -9,7 +9,7 @@ import { acceptSuggestion$, close, isOpen$, isolateInput$, markRadialSelection, 
 import { layoutWheel, WHEEL_FIT_RADIUS } from "./layout";
 import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
-import { SearchResult, SearchResults, SearchScope, useAssetSearch } from "./search";
+import { SEARCH_PAGE_SIZE, SearchResult, SearchResults, SearchScope, useAssetSearch } from "./search";
 import styles from "./radial-menu.module.scss";
 
 // ToolbarItemType.menu. Compared numerically because the ambient enum from
@@ -75,9 +75,15 @@ const useModalInput: (active: boolean, backRef: MutableRefObject<(() => void) | 
 
 const BACK_DEBOUNCE_MS = 100;
 
+// A mouse wheel notch is one event, but trackpads send a burst; flip at most
+// one page per this interval.
+const PAGE_WHEEL_THROTTLE_MS = 150;
+
 const KEY_ENTER = 13;
 const KEY_ESCAPE = 27;
 const KEY_TAB = 9;
+const KEY_PAGE_UP = 33;
+const KEY_PAGE_DOWN = 34;
 
 const EMPTY: never[] = [];
 
@@ -128,6 +134,9 @@ interface SearchProps {
     query: string;
     submitRef: MutableRefObject<(() => void) | null>;
     completionRef: MutableRefObject<string | null>;
+    // Flips the results page by `step` (mouse wheel, PageUp/PageDown); null
+    // while there's only one page.
+    pageRef: MutableRefObject<((step: number) => void) | null>;
     // Example query for the idle hub hint; picked once per menu open.
     example: string;
 }
@@ -204,11 +213,16 @@ const PrefabPreview = ({ entity, fallbackIcon }: { entity: Entity; fallbackIcon:
     return <img className={styles.hubPreview} src={src} />;
 };
 
-function matchSummary({ active, results, total, pending }: SearchResults) {
+function matchSummary({ active, results, pending }: SearchResults, page: number) {
     if (!active) return "Keep typing...";
+    const total = results.length;
     const checking = pending > 0 ? ` (checking ${pending}...)` : "";
     if (total === 0) return pending > 0 ? `Checking ${pending}...` : "No matches";
-    if (total > results.length) return `${results.length} of ${total} matches${checking}`;
+    if (total > SEARCH_PAGE_SIZE) {
+        const first = page * SEARCH_PAGE_SIZE + 1;
+        const last = Math.min(total, (page + 1) * SEARCH_PAGE_SIZE);
+        return `${first}-${last} of ${total} matches${checking}`;
+    }
     return (total === 1 ? "1 match" : `${total} matches`) + checking;
 }
 
@@ -257,24 +271,42 @@ interface WheelProps extends SearchProps {
     onBack?: () => void;
 }
 
-const Wheel = ({ entries, grouped, current, search, query, submitRef, completionRef, example, onBack }: WheelProps) => {
+const Wheel = ({ entries, grouped, current, search, query, submitRef, completionRef, pageRef, example, onBack }: WheelProps) => {
     const [hovered, setHovered] = useState<WheelEntry | null>(null);
     const scale = useValue(menuScale$);
     const anchor = useContext(WheelAnchorContext);
+
+    // Search results are shown a page at a time. The page belongs to the query
+    // it was picked for, so typing starts over at the first page; it's clamped
+    // in case the results shrink (e.g. as fx: details load).
+    const paged = !!search?.active;
+    const pageCount = paged ? Math.max(1, Math.ceil(entries.length / SEARCH_PAGE_SIZE)) : 1;
+    const [pageState, setPageState] = useState({ query, page: 0 });
+    const page = pageState.query === query ? Math.min(pageState.page, pageCount - 1) : 0;
+    const visible = useMemo(
+        () => (paged ? entries.slice(page * SEARCH_PAGE_SIZE, (page + 1) * SEARCH_PAGE_SIZE) : entries),
+        [paged, entries, page]
+    );
+
     const slots = useMemo(
-        () => layoutWheel(entries, grouped ? (e) => e.group ?? 0 : undefined),
-        [entries, grouped]
+        () => layoutWheel(visible, grouped ? (e) => e.group ?? 0 : undefined),
+        [visible, grouped]
     );
 
     // Entries are rebuilt as results change; drop a hover that no longer exists.
-    const hoveredEntry = hovered && entries.includes(hovered) ? hovered : null;
+    const hoveredEntry = hovered && visible.includes(hovered) ? hovered : null;
 
     const showingQuery = !!query && !!search;
     const completion = showingQuery ? search.parsed.hint?.completion ?? null : null;
     useEffect(() => {
-        submitRef.current = search?.active ? () => entries.find((e) => !e.disabled)?.onSelect() : null;
+        submitRef.current = search?.active ? () => visible.find((e) => !e.disabled)?.onSelect() : null;
         completionRef.current = completion;
-    }, [search, entries, completion, submitRef, completionRef]);
+        pageRef.current =
+            pageCount > 1
+                ? (step) =>
+                      setPageState({ query, page: Math.min(Math.max(page + step, 0), pageCount - 1) })
+                : null;
+    }, [search, visible, completion, query, page, pageCount, submitRef, completionRef, pageRef]);
 
     let hubContent;
     if (hoveredEntry || !showingQuery) {
@@ -305,8 +337,9 @@ const Wheel = ({ entries, grouped, current, search, query, submitRef, completion
         hubContent = (
             <>
                 <QueryDisplay tokens={search.parsed.tokens} />
-                <div className={styles.hubHint}>{matchSummary(search)}</div>
+                <div className={styles.hubHint}>{matchSummary(search, page)}</div>
                 {hint && <div className={styles.hubTypeHint}>{hint.text}</div>}
+                {pageCount > 1 && <div className={styles.hubFilterHints}>Scroll or PgUp/PgDn for more</div>}
             </>
         );
     }
@@ -466,6 +499,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     const [query, setQuery] = useState("");
     const submitRef = useRef<(() => void) | null>(null);
     const completionRef = useRef<string | null>(null);
+    const pageRef = useRef<((step: number) => void) | null>(null);
     const [example] = useState(() => FILTER_EXAMPLES[Math.floor(Math.random() * FILTER_EXAMPLES.length)]);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -547,7 +581,19 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
             e.preventDefault();
         } else if (e.keyCode === KEY_TAB) {
             e.preventDefault(); // don't move focus out of the field
+        } else if (e.keyCode === KEY_PAGE_UP || e.keyCode === KEY_PAGE_DOWN) {
+            e.preventDefault();
+            pageRef.current?.(e.keyCode === KEY_PAGE_DOWN ? 1 : -1);
         }
+    };
+
+    const lastPageFlipAt = useRef(0);
+    const onWheel = (e: WheelEvent) => {
+        if (!pageRef.current || e.deltaY === 0) return;
+        const now = Date.now();
+        if (now - lastPageFlipAt.current < PAGE_WHEEL_THROTTLE_MS) return;
+        lastPageFlipAt.current = now;
+        pageRef.current(e.deltaY > 0 ? 1 : -1);
     };
 
     // "Back" via the game's input system (see RadialMenu's useModalInput), for
@@ -564,7 +610,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         if (e.button === 2) back();
     };
 
-    const searchProps: SearchProps = { query, submitRef, completionRef, example };
+    const searchProps: SearchProps = { query, submitRef, completionRef, pageRef, example };
     let level;
     if (path.menu && path.category) {
         level = (
@@ -583,7 +629,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     }
 
     return (
-        <div className={styles.backdrop} onClick={() => close()} onMouseDown={onMouseDown}>
+        <div className={styles.backdrop} onClick={() => close()} onMouseDown={onMouseDown} onWheel={onWheel}>
             <input
                 ref={inputRef}
                 className={styles.searchInput}
