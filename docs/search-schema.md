@@ -187,8 +187,11 @@ Under the title, the hovered asset's filterable metadata shows as chips, one
 per filter value it matches, e.g. `is: favorite`, `theme: European`,
 `pack: ...`, `dlc: Office Evolution`, `zone: residential high`, `size: 2x3`,
 `level: 3`, `fx: crime accumulation`. The order is `is:` flags, then theme,
-pack, DLC, zone, size, level and effects. At most 7 are shown, and the rest
-are summed up as `+N`. `fx:` chips appear once the prefab's details have
+pack, DLC, zone, size, level and effects. The hub is a circle, so chips are
+limited to two rows, 160 wide: `hub-chips.tsx` measures where each one lands
+(before paint) and replaces whatever doesn't fit with `+N`. Values over 18
+characters are cut with `...`, and the chip area is also capped at two rows'
+height in CSS as a fallback. `fx:` chips appear once the prefab's details have
 loaded (the hub title subscribes to them anyway). `in:` isn't shown, since the
 level already tells where you are. The rules are in `query/chips.ts`, next to
 the filters they mirror.

@@ -58,8 +58,8 @@ $hub-size: 240rem;
 
 .hubPreview {
     // Leaves room under the title for the metadata chips.
-    width: 112rem;
-    height: 112rem;
+    width: 100rem;
+    height: 100rem;
     margin-bottom: 6rem;
 }
 
@@ -73,8 +73,12 @@ $hub-size: 240rem;
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
-    max-width: 196rem;
+    // Narrower than the hub: rows near the bottom of the circle are short.
+    max-width: 160rem;
     margin-top: 6rem;
+    // Safety net if measuring fails: never more than two rows' height.
+    max-height: 44rem;
+    overflow: hidden;
 }
 
 .hubChip {
