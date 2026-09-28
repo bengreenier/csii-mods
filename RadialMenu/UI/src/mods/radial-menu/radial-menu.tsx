@@ -37,7 +37,7 @@ import { layoutQuery, MAX_QUERY_SHRINK } from "./query-layout";
 
 // Most of the hub circle's height the content may use; less than all of it,
 // since the circle narrows toward the top and bottom.
-const HUB_CONTENT_MAX_HEIGHT = 0.8;
+const HUB_CONTENT_MAX_HEIGHT = 0.88;
 import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
 import { SearchResult, SearchResults, SearchScope, useAssetSearch } from "./search";

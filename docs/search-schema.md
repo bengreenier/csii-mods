@@ -178,7 +178,7 @@ When text is typed and nothing is hovered, the hub shows:
    Lines are wrapped with an estimated character width (`CHAR_WIDTH_EM`).
    Height is then checked for real: after each render, before paint, the
    wheel measures the hub's content against the circle (`HUB_CONTENT_MAX_HEIGHT`,
-   80% of its height) and, if it's too tall, steps to the next more compact
+   88% of its height) and, if it's too tall, steps to the next more compact
    layout (`shrink`, through `QUERY_FONT_STEPS`: 28/2 lines, 24/2, 20/3, 17/4,
    17/3, 17/2, 17/1). Each new query starts over at the most readable one.
 2. **Match count**: "12 matches", "1-61 of 214 matches", "No matches", or
