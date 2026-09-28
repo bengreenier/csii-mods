@@ -3,7 +3,8 @@
 import { useCallback, useMemo } from "react";
 import { useValue } from "cs2/api";
 import { entityKey } from "cs2/utils";
-import { addFavorite, assetMeta$, dlcSteamApps$, removeFavorite, setClipboard } from "./bindings";
+import { useAssetMetaByKey } from "./asset-data";
+import { addFavorite, dlcSteamApps$, removeFavorite, setClipboard } from "./bindings";
 import { ContextAction, ContextTarget } from "./context-menu";
 import { FAVORITE_COLOR, FAVORITE_ICON, UNFAVORITE_ICON, useFavoriteKeys } from "./favorites";
 import { dlcStoreUrl, modPageUrl } from "./store-links";
@@ -15,12 +16,8 @@ const MOD_ICON = "Media/Glyphs/ParadoxModsCloud.svg";
 
 export function useContextActions(): ContextActionProvider {
     const favoriteKeys = useFavoriteKeys();
-    // Paradox Mods IDs by entity key; assetMeta is static per game load.
-    const assetMeta = useValue(assetMeta$);
-    const modIds = useMemo(
-        () => new Map(assetMeta.filter((m) => m.modId).map((m) => [entityKey(m.entity), m.modId!])),
-        [assetMeta]
-    );
+    // For Paradox Mods IDs.
+    const metaByKey = useAssetMetaByKey();
     const dlcSteamApps = useValue(dlcSteamApps$);
     const steamAppIds = useMemo(
         () => new Map(dlcSteamApps.map((d) => [d.name.toLowerCase(), d.appId])),
@@ -49,7 +46,7 @@ export function useContextActions(): ContextActionProvider {
                                   onSelect: () => addFavorite(target.entity),
                               },
                     ];
-                    const modId = modIds.get(key);
+                    const modId = metaByKey.get(key)?.modId;
                     const dlcUrl = dlcStoreUrl(target.dlc, steamAppIds);
                     if (modId) {
                         actions.push({
@@ -70,6 +67,6 @@ export function useContextActions(): ContextActionProvider {
                 }
             }
         },
-        [favoriteKeys, modIds, steamAppIds]
+        [favoriteKeys, metaByKey, steamAppIds]
     );
 }

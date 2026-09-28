@@ -3,7 +3,8 @@ import { useMapValues, useValue } from "cs2/api";
 import { prefab, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
 import { Entity, entityKey } from "cs2/utils";
-import { allAssets$, AssetMeta, assetMeta$, searchAllThemes$ } from "./bindings";
+import { assetTitle as title, useAssetMetaByKey, useThemes } from "./asset-data";
+import { allAssets$, AssetMeta, searchAllThemes$ } from "./bindings";
 import { useFavoriteKeys } from "./favorites";
 import { evaluate } from "./query/evaluate";
 import { FilterContext } from "./query/filters";
@@ -19,7 +20,6 @@ const DETAIL_SLOTS = 4;
 const DETAIL_SLOT_SIZE = 100;
 
 const EMPTY: never[] = [];
-const EMPTY_META = new Map<string, AssetMeta>();
 
 export interface SearchScope {
     menu: toolbar.ToolbarItem;
@@ -44,10 +44,6 @@ export interface SearchResults {
 // data, so each prefab's details only ever need loading once.
 const FX_CACHE = new Map<string, string[]>();
 
-// Asset titles use the key "Assets.NAME[<prefab name>]" (see Game.dll);
-// translating directly avoids a prefabDetails subscription per asset.
-const title = (loc: l10n.Localization, name: string) => loc.translate(`Assets.NAME[${name}]`, name) ?? name;
-
 interface SearchIndex {
     records: AssetRecord[];
     byKey: Map<string, SearchResult>;
@@ -69,17 +65,8 @@ export function useAssetSearch(
     favoritesOnly = false
 ): SearchResults {
     const searching = query.trim().length > 0;
-    // toolbar.themes$ may only cover the vanilla panel's current category, so
-    // merge in the global prefab theme list.
-    const toolbarThemes = useValue(toolbar.themes$);
-    const prefabThemes = useValue(prefab.themes$);
-    const themes = useMemo(() => [...prefabThemes, ...toolbarThemes], [prefabThemes, toolbarThemes]);
-    // Static, sent once per game load; only turned into a lookup while searching.
-    const assetMeta = useValue(assetMeta$);
-    const metaByKey = useMemo(
-        () => (searching ? new Map(assetMeta.map((m) => [entityKey(m.entity), m])) : EMPTY_META),
-        [searching, assetMeta]
-    );
+    const themes = useThemes();
+    const metaByKey = useAssetMetaByKey();
 
     // Root search needs every menu's categories first.
     const menus = useMemo(
@@ -165,7 +152,7 @@ function buildIndex(
     scope: SearchScope[],
     assetsPerCategory: (toolbar.Asset[] | undefined)[],
     themes: { name: string; icon: string }[],
-    metaByKey: Map<string, AssetMeta>,
+    metaByKey: ReadonlyMap<string, AssetMeta>,
     favoriteKeys: ReadonlySet<string>,
     loc: l10n.Localization
 ): SearchIndex {

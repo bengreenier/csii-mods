@@ -25,6 +25,7 @@ import {
 } from "./bindings";
 import { isBulldozer, useBulldozerPlacement } from "./bulldozer";
 import { useContextActions } from "./context-actions";
+import { HubChips } from "./hub-chips";
 import { FAVORITE_COLOR, FAVORITE_ICON, FAVORITES_EMPTY_MESSAGE, FAVORITES_TITLE } from "./favorites";
 import { TintedIcon } from "./tinted-icon";
 import { ContextMenu, ContextTarget, OpenContextMenu } from "./context-menu";
@@ -168,6 +169,8 @@ interface WheelEntry extends HubLabel {
     showPreview?: boolean;
     // What a right-click offers actions for (context-actions.ts); none if unset.
     context?: ContextTarget;
+    // The asset behind a leaf entry: its metadata chips show in the hub.
+    asset?: toolbar.Asset;
     onSelect: () => void;
 }
 
@@ -238,6 +241,7 @@ function assetEntry(asset: toolbar.Asset, lockPlaced: boolean, onSelect: () => v
         // them). A placed unique one can: the tool then shows "already exists".
         disabled: asset.locked || (lockPlaced && asset.unique && asset.placed),
         showPreview: true,
+        asset,
         context: { kind: "asset", entity: asset.entity, dlc: asset.dlc },
         onSelect,
     };
@@ -395,6 +399,7 @@ const Wheel = ({
 }: WheelProps) => {
     const [hovered, setHovered] = useState<WheelEntry | null>(null);
     const hubImage = useValue(hubImage$);
+    const loc = useLocalization();
     // A right-click is a right-button press and release on the same item (as
     // vanilla's useSecondaryClick in game-ui/common/hooks/use-secondary-click.tsx).
     const secondaryPressed = useRef<string | null>(null);
@@ -462,7 +467,7 @@ const Wheel = ({
             <>
                 {hoveredEntry?.showPreview &&
                     (hubImage === HUB_IMAGE_BUTTON_ICON ? (
-                        // No prefab details needed: the button's own image.
+                        // The button's own image.
                         <img className={styles.hubPreview} src={hoveredEntry.icon} />
                     ) : (
                         <PrefabPreview entity={hoveredEntry.entity} fallbackIcon={hoveredEntry.icon} />
@@ -472,6 +477,7 @@ const Wheel = ({
                         <HubTitle label={label} />
                     </div>
                 )}
+                {hoveredEntry?.asset && <HubChips asset={hoveredEntry.asset} loc={loc} />}
                 {onBack && !hoveredEntry && <div className={styles.hubHint}>Back</div>}
                 {!hoveredEntry && entries.length === 0 && emptyMessage ? (
                     emptyMessage.map((line, i) => (

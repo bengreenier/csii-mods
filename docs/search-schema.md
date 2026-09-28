@@ -183,6 +183,16 @@ Hovering a result shows its picture and title instead. The picture follows the
 when it has one (`prefabDetails.preview`, e.g. signature buildings) and its
 thumbnail otherwise; "Button icon" always uses the button's thumbnail.
 
+Under the title, the hovered asset's filterable metadata shows as chips, one
+per filter value it matches, e.g. `is: favorite`, `theme: European`,
+`pack: ...`, `dlc: Office Evolution`, `zone: residential high`, `size: 2x3`,
+`level: 3`, `fx: crime accumulation`. The order is `is:` flags, then theme,
+pack, DLC, zone, size, level and effects. At most 7 are shown, and the rest
+are summed up as `+N`. `fx:` chips appear once the prefab's details have
+loaded (the hub title subscribes to them anyway). `in:` isn't shown, since the
+level already tells where you are. The rules are in `query/chips.ts`, next to
+the filters they mirror.
+
 | Key | Action |
 |---|---|
 | typing | edit the query |
@@ -334,6 +344,8 @@ steps back a level; Escape and clicking the hub do.
 | `radial-menu.tsx` | Hub display, keys (accept event / Escape) | no |
 | `context-menu.tsx` / `context-actions.ts` | Right-click menu on wheel items, and the actions each item offers | no |
 | `store-links.ts` | DLC store / Paradox Mods URLs for "Copy ... link" | yes |
+| `asset-data.ts` | Shared lookups: `useAssetMetaByKey` (cached per list), `useThemes`, `assetTitle` / `themeTitle` | no |
+| `query/chips.ts` / `hub-chips.tsx` | The hovered asset's metadata chips in the hub | chips.ts yes |
 | `favorites.ts` | Shared favorites bits: `useFavoriteKeys`, icons, texts (Favorites level, context actions, `is:favorite`) | no |
 
 ### Adding a filter

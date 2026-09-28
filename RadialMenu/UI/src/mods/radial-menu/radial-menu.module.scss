@@ -57,13 +57,34 @@ $hub-size: 240rem;
 }
 
 .hubPreview {
-    width: 140rem;
-    height: 140rem;
+    // Leaves room under the title for the metadata chips.
+    width: 112rem;
+    height: 112rem;
     margin-bottom: 6rem;
 }
 
 .hubTitleSmall {
     font-size: 16rem;
+}
+
+// The hovered asset's filterable metadata (hub-chips.tsx).
+.hubChips {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 196rem;
+    margin-top: 6rem;
+}
+
+.hubChip {
+    margin: 2rem;
+    padding: 1rem 6rem;
+    border-radius: 8rem;
+    background-color: rgba(255, 255, 255, 0.14);
+    font-size: 11rem;
+    white-space: nowrap;
+    opacity: 0.85;
 }
 
 .hubQuery {

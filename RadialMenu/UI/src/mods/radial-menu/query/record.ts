@@ -60,14 +60,18 @@ export interface AssetRecord {
 }
 
 // Asset.dlc for mod assets: "Media/Glyphs/ParadoxModsCloud.svg".
-const MOD_DLC_SLUG = "paradoxmodscloud";
+export const MOD_DLC_SLUG = "paradoxmodscloud";
 
-export function dlcSlug(icon: string | null): string {
+// An icon path's file name without extension: "Media/DLC/OfficeEvolution.svg"
+// -> "OfficeEvolution"; "" for none.
+export function iconName(icon: string | null): string {
     if (!icon) return "";
     const file = icon.slice(icon.lastIndexOf("/") + 1);
     const dot = file.lastIndexOf(".");
-    return (dot > 0 ? file.slice(0, dot) : file).toLowerCase();
+    return dot > 0 ? file.slice(0, dot) : file;
 }
+
+export const dlcSlug = (icon: string | null) => iconName(icon).toLowerCase();
 
 export function buildRecord(src: RecordSource, order: number): AssetRecord {
     const dlc = dlcSlug(src.dlcIcon);
@@ -105,22 +109,35 @@ export function hasWordPrefix(text: string, prefix: string): boolean {
     return false;
 }
 
-// Effect ("fx:") terms from a prefab's effects. Type names are split on
-// camelCase: "CrimeAccumulation" -> "crime", "accumulation", "crimeaccumulation".
-// Uses plain string literals: the typings' enums may not exist at runtime.
-export function fxTerms(effects: ReadonlyArray<any> | null | undefined): string[] {
-    const terms = new Set<string>();
-    const addType = (type: unknown) => {
-        if (typeof type !== "string" || !type) return;
-        terms.add(type.toLowerCase());
-        for (const part of type.split(/(?=[A-Z])/)) if (part) terms.add(part.toLowerCase());
+// A prefab's effect types, in order, without repeats: city/local modifier and
+// leisure provider type names (e.g. "CrimeAccumulation", "CityPark"), plus
+// "Wellbeing" / "Health" for happiness effects. Uses plain strings: the
+// typings' enums may not exist at runtime.
+export function effectTypes(effects: ReadonlyArray<any> | null | undefined): string[] {
+    const types = new Set<string>();
+    const add = (type: unknown) => {
+        if (typeof type === "string" && type) types.add(type);
     };
     for (const effect of effects ?? []) {
         if (!effect) continue;
-        for (const m of effect.modifiers ?? []) addType(m?.type);
-        for (const p of effect.providers ?? []) addType(p?.type);
-        if (effect.wellbeingEffect) terms.add("wellbeing");
-        if (effect.healthEffect) terms.add("health");
+        for (const m of effect.modifiers ?? []) add(m?.type);
+        for (const p of effect.providers ?? []) add(p?.type);
+        if (effect.wellbeingEffect) add("Wellbeing");
+        if (effect.healthEffect) add("Health");
+    }
+    return [...types];
+}
+
+// Words of a camelCase type name: "CrimeAccumulation" -> ["Crime", "Accumulation"].
+export const camelWords = (type: string) => type.split(/(?=[A-Z])/).filter(Boolean);
+
+// Effect ("fx:") terms: each type and its camelCase words, lowercased, so
+// "CrimeAccumulation" gives "crimeaccumulation", "crime" and "accumulation".
+export function fxTerms(effects: ReadonlyArray<any> | null | undefined): string[] {
+    const terms = new Set<string>();
+    for (const type of effectTypes(effects)) {
+        terms.add(type.toLowerCase());
+        for (const word of camelWords(type)) terms.add(word.toLowerCase());
     }
     return [...terms];
 }
