@@ -83,6 +83,21 @@ namespace RadialMenu
         [SettingsUISection(KSection, KLayoutGroup)]
         public bool OpenAtCursor { get; set; }
 
+        // The image in the middle of the wheel while hovering an asset. Sent to
+        // the UI as an int: keep the values in sync with HUB_IMAGE_* in
+        // radial-menu.tsx.
+        public enum HubImageMode
+        {
+            // The prefab's dedicated preview when it has one (e.g. signature
+            // buildings), otherwise its thumbnail; as the vanilla asset panel.
+            Preview = 0,
+            // Always the thumbnail shown on the item's button.
+            ButtonIcon = 1,
+        }
+
+        [SettingsUISection(KSection, KLayoutGroup)]
+        public HubImageMode HubImage { get; set; }
+
         // --- Assets ---
 
         // On: search lists every theme and asset pack (RadialMenuUISystem
@@ -241,6 +256,7 @@ namespace RadialMenu
             RingDistance = 1f;
             ItemSpacing = 1f;
             OpenAtCursor = false;
+            HubImage = HubImageMode.Preview;
             ShowToolInfoviews = true;
         }
     }
@@ -288,6 +304,11 @@ namespace RadialMenu
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.BrowseAllThemes)), "Show every theme and asset pack" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.BrowseAllThemes)), "When browsing the radial menu without searching, show assets from every theme and asset pack, such as North American buildings in a European city. Turn off to only show what the vanilla asset menu's theme and pack filters show. Picking an asset from another theme switches the vanilla theme filter to it, as in the vanilla asset menu." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.HubImage)), "Center image" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.HubImage)), "The picture shown in the middle of the wheel while you hover something to build. 'Preview' shows the larger preview image when there is one, as the vanilla asset panel does (for example, signature buildings), and the item's icon otherwise. 'Button icon' always shows the same image as the item's button." },
+                { _setting.GetEnumValueLocaleID(Setting.HubImageMode.Preview), "Preview" },
+                { _setting.GetEnumValueLocaleID(Setting.HubImageMode.ButtonIcon), "Button icon" },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.OpenAtCursor)), "Open at mouse cursor" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.OpenAtCursor)), "Center the radial menu on the mouse cursor when it opens, instead of the middle of the screen. The menu stays where it opened while you use it, and is nudged away from the screen edges so it fits." },

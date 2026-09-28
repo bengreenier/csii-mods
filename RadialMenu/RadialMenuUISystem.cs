@@ -52,6 +52,8 @@ namespace RadialMenu
             AddUpdateBinding(new GetterValueBinding<float>(kGroup, "itemSpacing",
                 () => InRangeOrDefault(Mod.Settings?.ItemSpacing, 0f, 4f)));
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "openAtCursor", () => Mod.Settings?.OpenAtCursor ?? false));
+            AddUpdateBinding(new GetterValueBinding<int>(kGroup, "hubImage",
+                () => (int)(Mod.Settings?.HubImage ?? Setting.HubImageMode.Preview)));
             CreateAssetMetaBinding();
             CreateAllAssetsBinding();
             // After CreateAllAssetsBinding: shares its ToolbarUISystem and

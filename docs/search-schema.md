@@ -178,7 +178,10 @@ When text is typed and nothing is hovered, the hub shows:
    - value suggestions (`is:` shows `ok / new / unique / placed`);
    - or `unknown filter "foo"`.
 
-Hovering a result shows its preview and title instead.
+Hovering a result shows its picture and title instead. The picture follows the
+"Center image" setting: "Preview" (default) uses the prefab's dedicated preview
+when it has one (`prefabDetails.preview`, e.g. signature buildings) and its
+thumbnail otherwise; "Button icon" always uses the button's thumbnail.
 
 | Key | Action |
 |---|---|

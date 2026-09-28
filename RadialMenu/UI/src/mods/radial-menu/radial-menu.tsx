@@ -13,6 +13,7 @@ import {
     Favorite,
     favorites$,
     isOpen$,
+    hubImage$,
     isolateInput$,
     lockPlacedUnique$,
     resetVanillaThemes$,
@@ -300,6 +301,9 @@ const PrefabTitle = ({ entity, fallback }: { entity: Entity; fallback: string })
     return <>{title ?? fallback}</>;
 };
 
+// Setting.HubImageMode values ("Center image").
+const HUB_IMAGE_BUTTON_ICON = 1;
+
 // Uses the prefab's dedicated preview when it has one (e.g. signature buildings),
 // otherwise its thumbnail, as the vanilla asset detail panel does.
 const PrefabPreview = ({ entity, fallbackIcon }: { entity: Entity; fallbackIcon: string }) => {
@@ -390,6 +394,7 @@ const Wheel = ({
     onBack,
 }: WheelProps) => {
     const [hovered, setHovered] = useState<WheelEntry | null>(null);
+    const hubImage = useValue(hubImage$);
     // A right-click is a right-button press and release on the same item (as
     // vanilla's useSecondaryClick in game-ui/common/hooks/use-secondary-click.tsx).
     const secondaryPressed = useRef<string | null>(null);
@@ -455,9 +460,13 @@ const Wheel = ({
         const label = hoveredEntry ?? current;
         hubContent = (
             <>
-                {hoveredEntry?.showPreview && (
-                    <PrefabPreview entity={hoveredEntry.entity} fallbackIcon={hoveredEntry.icon} />
-                )}
+                {hoveredEntry?.showPreview &&
+                    (hubImage === HUB_IMAGE_BUTTON_ICON ? (
+                        // No prefab details needed: the button's own image.
+                        <img className={styles.hubPreview} src={hoveredEntry.icon} />
+                    ) : (
+                        <PrefabPreview entity={hoveredEntry.entity} fallbackIcon={hoveredEntry.icon} />
+                    ))}
                 {label && (
                     <div className={classNames(styles.hubTitle, hoveredEntry?.showPreview && styles.hubTitleSmall)}>
                         <HubTitle label={label} />

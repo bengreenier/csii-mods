@@ -21,6 +21,10 @@ export const itemSpacing$ = bindValue<number>(GROUP, "itemSpacing", 1);
 // Center the menu on the mouse cursor when it opens ("Open at mouse cursor").
 export const openAtCursor$ = bindValue<boolean>(GROUP, "openAtCursor", false);
 
+// "Center image": which picture the hub shows for a hovered asset
+// (Setting.HubImageMode; see HUB_IMAGE_* in radial-menu.tsx).
+export const hubImage$ = bindValue<number>(GROUP, "hubImage", 0);
+
 export const hideVanillaToolbar$ = bindValue<boolean>(GROUP, "hideVanillaToolbar", false);
 
 // "Bulldozer in radial menu"; see useBulldozerPlacement in bulldozer.ts.
