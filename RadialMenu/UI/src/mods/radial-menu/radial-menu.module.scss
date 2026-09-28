@@ -81,7 +81,8 @@ $hub-size: 240rem;
     overflow: hidden;
 }
 
-.hubChip {
+// One metadata chip, in the hub (.hubChips) or a context menu (.contextChips).
+.chip {
     margin: 2rem;
     padding: 1rem 6rem;
     border-radius: 8rem;
@@ -196,6 +197,20 @@ $hub-size: 240rem;
     border-radius: 6rem;
     background-color: rgba(24, 33, 51, 0.97);
     color: white;
+}
+
+// The target's full metadata, above the actions.
+.contextDetails {
+    padding: 4rem 10rem 8rem 10rem;
+    margin-bottom: 4rem;
+    border-bottom: 2rem solid rgba(255, 255, 255, 0.15);
+}
+
+.contextChips {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-width: 300rem;
 }
 
 .contextAction {

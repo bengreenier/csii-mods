@@ -28,7 +28,8 @@ export function useContextActions(): ContextActionProvider {
         (target: ContextTarget): ContextAction[] => {
             switch (target.kind) {
                 case "asset": {
-                    const key = entityKey(target.entity);
+                    const { entity, dlc } = target.asset;
+                    const key = entityKey(entity);
                     const actions: ContextAction[] = [
                         favoriteKeys.has(key)
                             ? {
@@ -36,18 +37,18 @@ export function useContextActions(): ContextActionProvider {
                                   label: "Remove from favorites",
                                   icon: UNFAVORITE_ICON,
                                   iconColor: FAVORITE_COLOR,
-                                  onSelect: () => removeFavorite(target.entity),
+                                  onSelect: () => removeFavorite(entity),
                               }
                             : {
                                   id: "favorite",
                                   label: "Add to favorites",
                                   icon: FAVORITE_ICON,
                                   iconColor: FAVORITE_COLOR,
-                                  onSelect: () => addFavorite(target.entity),
+                                  onSelect: () => addFavorite(entity),
                               },
                     ];
                     const modId = metaByKey.get(key)?.modId;
-                    const dlcUrl = dlcStoreUrl(target.dlc, steamAppIds);
+                    const dlcUrl = dlcStoreUrl(dlc, steamAppIds);
                     if (modId) {
                         actions.push({
                             id: "copyLink",
@@ -55,11 +56,11 @@ export function useContextActions(): ContextActionProvider {
                             icon: MOD_ICON,
                             onSelect: () => setClipboard(modPageUrl(modId)),
                         });
-                    } else if (dlcUrl && target.dlc) {
+                    } else if (dlcUrl && dlc) {
                         actions.push({
                             id: "copyLink",
                             label: "Copy Steam store link",
-                            icon: target.dlc,
+                            icon: dlc,
                             onSelect: () => setClipboard(dlcUrl),
                         });
                     }

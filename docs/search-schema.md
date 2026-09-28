@@ -188,10 +188,12 @@ per filter value it matches, e.g. `is: favorite`, `theme: European`,
 `pack: ...`, `dlc: Office Evolution`, `zone: residential high`, `size: 2x3`,
 `level: 3`, `fx: crime accumulation`. The order is `is:` flags, then theme,
 pack, DLC, zone, size, level and effects. The hub is a circle, so chips are
-limited to two rows, 160 wide: `hub-chips.tsx` measures where each one lands
+limited to two rows, 160 wide: `HubChips` measures where each one lands
 (before paint) and replaces whatever doesn't fit with `+N`. Values over 18
 characters are cut with `...`, and the chip area is also capped at two rows'
-height in CSS as a fallback. `fx:` chips appear once the prefab's details have
+height in CSS as a fallback. The right-click menu shows every chip, untruncated,
+above its actions (`ChipList`); both come from `useAssetChips` in
+`asset-chips.tsx`. `fx:` chips appear once the prefab's details have
 loaded (the hub title subscribes to them anyway). `in:` isn't shown, since the
 level already tells where you are. The rules are in `query/chips.ts`, next to
 the filters they mirror.
@@ -265,7 +267,8 @@ search results, and the hub shows which items are on screen ("1-61 of 80").
 Right-clicking a wheel item opens a small menu of actions for it at the cursor
 (`context-menu.tsx`). Which actions an item offers is decided in one place,
 `useContextActions` in `context-actions.ts`, by the item's `context` target
-(only assets so far). An item with no actions opens nothing. Assets offer:
+(only assets so far). An item with no actions opens nothing. An asset's menu
+starts with all of its metadata chips (see Hub display), then offers:
 
 - "Add to favorites" or "Remove from favorites";
 - for a mod asset, "Copy Paradox Mods link"
@@ -348,7 +351,8 @@ steps back a level; Escape and clicking the hub do.
 | `context-menu.tsx` / `context-actions.ts` | Right-click menu on wheel items, and the actions each item offers | no |
 | `store-links.ts` | DLC store / Paradox Mods URLs for "Copy ... link" | yes |
 | `asset-data.ts` | Shared lookups: `useAssetMetaByKey` (cached per list), `useThemes`, `assetTitle` / `themeTitle` | no |
-| `query/chips.ts` / `hub-chips.tsx` | The hovered asset's metadata chips in the hub | chips.ts yes |
+| `query/chips.ts` / `asset-chips.tsx` | An asset's metadata chips: fitted in the hub, in full in the context menu | chips.ts yes |
+| `localization.ts` | `useLocalization` (the runtime name of the typings' `useCachedLocalization`) | no |
 | `favorites.ts` | Shared favorites bits: `useFavoriteKeys`, icons, texts (Favorites level, context actions, `is:favorite`) | no |
 
 ### Adding a filter

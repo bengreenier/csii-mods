@@ -2,8 +2,10 @@
 // OpenRadialMenu (radial-menu.tsx), which also closes it on every input that
 // changes what's under it; see docs/search-schema.md, "Context menu".
 import { useLayoutEffect, useRef, useState } from "react";
-import { Entity } from "cs2/utils";
+import { toolbar } from "cs2/bindings";
 import classNames from "classnames";
+import { ChipList } from "./asset-chips";
+import { Chip } from "./query/chips";
 import styles from "./radial-menu.module.scss";
 import { TintedIcon } from "./tinted-icon";
 
@@ -12,9 +14,7 @@ import { TintedIcon } from "./tinted-icon";
 // menu.
 export interface AssetContextTarget {
     kind: "asset";
-    entity: Entity;
-    // Asset.dlc: the DLC (or Paradox Mods) icon, if the asset needs one.
-    dlc: string | null;
+    asset: toolbar.Asset;
 }
 export type ContextTarget = AssetContextTarget;
 
@@ -44,13 +44,15 @@ interface ContextMenuProps {
     x: number;
     y: number;
     actions: ContextAction[];
+    // The target's metadata, shown in full above the actions (asset-chips.tsx).
+    chips?: Chip[];
     onClose: () => void;
 }
 
 // Opens at the cursor, towards the bottom right, and flips or shifts to stay
 // inside the view. Rendered outside the scaled wheel, so "Menu size" doesn't
 // change it.
-export const ContextMenu = ({ x, y, actions, onClose }: ContextMenuProps) => {
+export const ContextMenu = ({ x, y, actions, chips, onClose }: ContextMenuProps) => {
     const ref = useRef<HTMLDivElement>(null);
     const [pos, setPos] = useState({ x, y });
 
@@ -64,7 +66,8 @@ export const ContextMenu = ({ x, y, actions, onClose }: ContextMenuProps) => {
         const left = x > maxX ? Math.max(EDGE_MARGIN_PX, x - width) : x;
         const top = y > maxY ? Math.max(EDGE_MARGIN_PX, y - height) : y;
         setPos((p) => (p.x === left && p.y === top ? p : { x: left, y: top }));
-    }, [x, y, actions.length]);
+        // Chips change the size too, e.g. fx: once prefab details load.
+    }, [x, y, actions.length, chips]);
 
     return (
         <div
@@ -82,6 +85,11 @@ export const ContextMenu = ({ x, y, actions, onClose }: ContextMenuProps) => {
             }}
             onWheel={(e) => e.stopPropagation()}
         >
+            {chips && chips.length > 0 && (
+                <div className={styles.contextDetails}>
+                    <ChipList chips={chips} />
+                </div>
+            )}
             {actions.map((action) => (
                 <div
                     key={action.id}

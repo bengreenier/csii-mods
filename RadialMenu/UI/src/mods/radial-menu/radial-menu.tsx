@@ -25,7 +25,8 @@ import {
 } from "./bindings";
 import { isBulldozer, useBulldozerPlacement } from "./bulldozer";
 import { useContextActions } from "./context-actions";
-import { HubChips } from "./hub-chips";
+import { HubChips, useAssetChips } from "./asset-chips";
+import { useLocalization } from "./localization";
 import { FAVORITE_COLOR, FAVORITE_ICON, FAVORITES_EMPTY_MESSAGE, FAVORITES_TITLE } from "./favorites";
 import { TintedIcon } from "./tinted-icon";
 import { ContextMenu, ContextTarget, OpenContextMenu } from "./context-menu";
@@ -39,10 +40,6 @@ import styles from "./radial-menu.module.scss";
 // cs2/bindings is a type declaration and may not exist at runtime.
 const TOOLBAR_ITEM_TYPE_MENU = 1;
 
-// The typings declare useCachedLocalization, but the game's runtime cs2/l10n
-// module exports the same hook as useLocalization.
-const useLocalization: () => l10n.Localization =
-    (l10n as any).useLocalization ?? l10n.useCachedLocalization;
 
 // The game's UI input stack (not in the public typings). Each controller's
 // transformer edits the list of active UI actions; the list is synced to C#,
@@ -242,7 +239,7 @@ function assetEntry(asset: toolbar.Asset, lockPlaced: boolean, onSelect: () => v
         disabled: asset.locked || (lockPlaced && asset.unique && asset.placed),
         showPreview: true,
         asset,
-        context: { kind: "asset", entity: asset.entity, dlc: asset.dlc },
+        context: { kind: "asset", asset },
         onSelect,
     };
 }
@@ -399,7 +396,6 @@ const Wheel = ({
 }: WheelProps) => {
     const [hovered, setHovered] = useState<WheelEntry | null>(null);
     const hubImage = useValue(hubImage$);
-    const loc = useLocalization();
     // A right-click is a right-button press and release on the same item (as
     // vanilla's useSecondaryClick in game-ui/common/hooks/use-secondary-click.tsx).
     const secondaryPressed = useRef<string | null>(null);
@@ -477,7 +473,7 @@ const Wheel = ({
                         <HubTitle label={label} />
                     </div>
                 )}
-                {hoveredEntry?.asset && <HubChips asset={hoveredEntry.asset} loc={loc} />}
+                {hoveredEntry?.asset && <HubChips asset={hoveredEntry.asset} />}
                 {onBack && !hoveredEntry && <div className={styles.hubHint}>Back</div>}
                 {!hoveredEntry && entries.length === 0 && emptyMessage ? (
                     emptyMessage.map((line, i) => (
@@ -783,6 +779,8 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     // whether the asset is a favorite).
     const openActions = context ? contextActions(context.target) : EMPTY;
     const hasOpenActions = openActions.length > 0;
+    // Every chip for the right-clicked asset (the hub only fits some).
+    const contextChips = useAssetChips(context?.target.kind === "asset" ? context.target.asset : null);
     useEffect(() => {
         if (context && !hasOpenActions) setContext(null);
     }, [context, hasOpenActions]);
@@ -972,6 +970,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
                     x={context.x}
                     y={context.y}
                     actions={openActions}
+                    chips={contextChips}
                     onClose={closeContext}
                 />
             )}

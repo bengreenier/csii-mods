@@ -1,14 +1,15 @@
-// The hovered asset's filterable metadata as chips under its title in the hub
-// (query/chips.ts decides which). Prefab details (for fx:) are the ones the hub
-// title already subscribes to while hovering.
+// An asset's filterable metadata as chips (query/chips.ts decides which):
+// fitted into the hub under a hovered asset's title (HubChips), and in full in
+// its right-click menu (ChipList). Prefab details (for fx:) are the ones the
+// hub title already subscribes to while hovering.
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useMapValue } from "cs2/api";
 import { prefab, toolbar } from "cs2/bindings";
-import * as l10n from "cs2/l10n";
 import { entityKey } from "cs2/utils";
 import { assetTitle, themeTitle, useAssetMetaByKey, useThemes } from "./asset-data";
 import { useFavoriteKeys } from "./favorites";
-import { assetChips, spaced } from "./query/chips";
+import { useLocalization } from "./localization";
+import { assetChips, Chip, spaced } from "./query/chips";
 import { dlcSlug, effectTypes, iconName, MOD_DLC_SLUG } from "./query/record";
 import styles from "./radial-menu.module.scss";
 
@@ -19,15 +20,19 @@ const MAX_ROWS = 2;
 // ellipsis character).
 const MAX_VALUE_CHARS = 18;
 
-const truncate = (text: string) => (text.length > MAX_VALUE_CHARS ? `${text.slice(0, MAX_VALUE_CHARS - 3)}...` : text);
 
-export const HubChips = ({ asset, loc }: { asset: toolbar.Asset; loc: l10n.Localization }) => {
+const NO_CHIPS: Chip[] = [];
+
+/** The chips for `asset`, in display order; none for null. */
+export function useAssetChips(asset: toolbar.Asset | null): Chip[] {
+    const loc = useLocalization();
     const themes = useThemes();
     const metaByKey = useAssetMetaByKey();
     const favoriteKeys = useFavoriteKeys();
-    const details = useMapValue(prefab.prefabDetails$, asset.entity);
+    const details = useMapValue(prefab.prefabDetails$, asset?.entity);
 
     const chips = useMemo(() => {
+        if (!asset) return NO_CHIPS;
         const key = entityKey(asset.entity);
         const meta = metaByKey.get(key);
         const theme = asset.theme ? themes.find((t) => t.icon === asset.theme) : undefined;
@@ -49,6 +54,30 @@ export const HubChips = ({ asset, loc }: { asset: toolbar.Asset; loc: l10n.Local
             effects: effectTypes(details?.effects),
         });
     }, [asset, loc, themes, metaByKey, favoriteKeys, details]);
+    return chips;
+}
+
+const chipText = (chip: Chip, maxChars = Infinity) =>
+    `${chip.key}: ${chip.value.length > maxChars ? `${chip.value.slice(0, maxChars - 3)}...` : chip.value}`;
+
+/** Every chip in `chips`, wrapping as needed (the context menu has room). */
+export const ChipList = ({ chips }: { chips: Chip[] }) => {
+    if (chips.length === 0) return null;
+    return (
+        <div className={styles.contextChips}>
+            {chips.map((chip, i) => (
+                // One string per element: Gameface splits adjacent text nodes.
+                <div key={i} className={styles.chip}>
+                    {chipText(chip)}
+                </div>
+            ))}
+        </div>
+    );
+};
+
+/** As many chips as fit the hub (see MAX_ROWS), then "+N". */
+export const HubChips = ({ asset }: { asset: toolbar.Asset }) => {
+    const chips = useAssetChips(asset);
 
     // How many chips fit in MAX_ROWS rows. Starts at "all" for each new chip
     // list; the layout effect then measures and trims before the frame is
@@ -84,9 +113,11 @@ export const HubChips = ({ asset, loc }: { asset: toolbar.Asset; loc: l10n.Local
         <div ref={ref} className={styles.hubChips}>
             {shown.map((chip, i) => (
                 // One string per element: Gameface splits adjacent text nodes.
-                <div key={i} className={styles.hubChip}>{`${chip.key}: ${truncate(chip.value)}`}</div>
+                <div key={i} className={styles.chip}>
+                    {chipText(chip, MAX_VALUE_CHARS)}
+                </div>
             ))}
-            {more > 0 && <div className={styles.hubChip}>{`+${more}`}</div>}
+            {more > 0 && <div className={styles.chip}>{`+${more}`}</div>}
         </div>
     );
 };
