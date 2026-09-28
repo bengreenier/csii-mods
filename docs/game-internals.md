@@ -536,8 +536,13 @@ compile-time reference, since it's optional.
     load;
   - search records are built per subcategory and cached (`search.ts`,
     `findItPart`), keyed on the subcategory's asset array and a shared
-    record factory (themes, assetMeta, favorites, language; all
-    module-cached, so every component shares them);
+    record factory (themes, assetMeta, favorites and the locale id
+    `app.activeLocale`; all module-cached, so every component shares them).
+    Not the `loc` object: vanilla's `useLocalization()` returns a **new
+    wrapper per component** (its own `useMemo`), so keying on it made each
+    component invalidate the others' cache and rebuild all ~19k records;
+  - wheel entries for results are cached per result object, so a broad
+    query doesn't rebuild thousands of them per keystroke;
   - the root prewarms those parts in the background, one subcategory per
     tick, when the catalogue arrives or favorites/assetMeta change, so even
     the first search doesn't stall;

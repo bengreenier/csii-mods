@@ -124,6 +124,10 @@ export interface DlcSteamApp {
 }
 export const dlcSteamApps$ = bindValue<DlcSteamApp[]>(GROUP, "dlcSteamApps", []);
 
+// The game's language (vanilla app.activeLocale). useLocalization() returns a
+// different wrapper per component, so caches key on this instead.
+export const activeLocale$ = bindValue<string>("app", "activeLocale", "en-US");
+
 // Vanilla's clipboard trigger (AppBindings: GUIUtility.systemCopyBuffer).
 export const setClipboard = (text: string) => trigger("app", "setClipboard", text);
 

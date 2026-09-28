@@ -4,7 +4,7 @@ import { prefab, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
 import { Entity, entityKey } from "cs2/utils";
 import { assetTitle as title, useAssetMetaByKey, useThemes } from "./asset-data";
-import { allAssets$, AssetMeta, findItActive$, findItCategories$, searchAllThemes$ } from "./bindings";
+import { activeLocale$, allAssets$, AssetMeta, findItActive$, findItCategories$, searchAllThemes$ } from "./bindings";
 import { useFavoriteKeys } from "./favorites";
 import { FindItCatalogue, FindItCatalogueContext } from "./find-it-catalogue";
 import { evaluate } from "./query/evaluate";
@@ -59,7 +59,9 @@ const FX_CACHE = new Map<string, string[]>();
 // search. Its records are built once per subcategory and cached, keyed on the
 // subcategory's asset array (stable until C# resends it) and on the record
 // factory (rebuilt when themes, assetMeta, favorites or the language change;
-// all of those are shared, module-cached values).
+// all of those are shared, module-cached values). Not keyed on the `loc`
+// object: vanilla's useLocalization() makes a new wrapper per component, which
+// made every component invalidate the others' cache; the locale id is shared.
 
 let factoryInputs: unknown[] = [];
 let sharedFactory: RecordFactory | null = null;
@@ -68,9 +70,10 @@ function getFactory(
     themes: { name: string; icon: string }[],
     metaByKey: ReadonlyMap<string, AssetMeta>,
     favoriteKeys: ReadonlySet<string>,
+    locale: string,
     loc: l10n.Localization
 ): RecordFactory {
-    const inputs = [themes, metaByKey, favoriteKeys, loc];
+    const inputs = [themes, metaByKey, favoriteKeys, locale];
     if (!sharedFactory || inputs.some((v, i) => v !== factoryInputs[i])) {
         factoryInputs = inputs;
         sharedFactory = createRecordFactory(themes, metaByKey, favoriteKeys, loc);
@@ -93,7 +96,7 @@ function findItPart(subId: number, assets: toolbar.Asset[], factory: RecordFacto
 }
 
 function useFactory(loc: l10n.Localization): RecordFactory {
-    return getFactory(useThemes(), useAssetMetaByKey(), useFavoriteKeys(), loc);
+    return getFactory(useThemes(), useAssetMetaByKey(), useFavoriteKeys(), useValue(activeLocale$), loc);
 }
 
 /**

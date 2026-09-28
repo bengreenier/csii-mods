@@ -306,10 +306,20 @@ const favoriteEntries = (favorites: Favorite[]) => assetElsewhereEntries(favorit
 // Favorites level, whose results are all favorites.
 function useResultEntries(results: SearchResult[], neverLockPlaced = false): WheelEntry[] {
     const lockPlaced = useValue(lockPlacedUnique$) && !neverLockPlaced;
-    return useMemo(
-        () => assetElsewhereEntries(results, lockPlaced),
-        [results, lockPlaced]
-    );
+    return useMemo(() => results.map((r) => resultEntry(r, lockPlaced)), [results, lockPlaced]);
+}
+
+// Wheel entries per search result, reused across keystrokes: results are the
+// search index's own objects (stable until its data changes), and a broad
+// query can match thousands of them, too many to rebuild per keystroke.
+const resultEntryCache = new WeakMap<SearchResult, { lockPlaced: boolean; entry: WheelEntry }>();
+
+function resultEntry(result: SearchResult, lockPlaced: boolean): WheelEntry {
+    const cached = resultEntryCache.get(result);
+    if (cached && cached.lockPlaced === lockPlaced) return cached.entry;
+    const entry = assetElsewhereEntries([result], lockPlaced)[0];
+    resultEntryCache.set(result, { lockPlaced, entry });
+    return entry;
 }
 
 // The top ring's entry for the Favorites level.
