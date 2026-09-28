@@ -219,12 +219,13 @@ What to check:
 ## Keyboard focus and hasInputFieldFocus
 
 - A focused DOM `<input>` sets `Game.Input.InputManager.hasInputFieldFocus`,
-  which blocks keyboard input actions, **including the mod's own toggle
-  action**.
+  which blocks keyboard input actions, **including the mod's own actions**.
 - `RadialMenuUISystem` therefore reads bound keys directly while the menu is
   open: `InputSystem.FindControl(binding.path)` on `ProxyAction.bindings`,
   including modifiers.
-  - The toggle action is read this way while typing.
+  - "Open radial menu" (action `ToggleRadialMenu`, name kept so bindings
+    carry over) only opens, so it's only needed while the menu is closed,
+    when the field isn't focused: it's read as a normal action.
   - The "Accept suggestion / pick first result" action is **only** read this
     way. It stays disabled (its binding is just data) and has its own usage,
     `RadialMenuSearch`, so it never conflicts with game shortcuts. It fires the

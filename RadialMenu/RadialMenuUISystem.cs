@@ -91,16 +91,18 @@ namespace RadialMenu
 
             if (Mod.ToggleAction == null) return;
 
-            // While the menu's search field has focus the game blocks keyboard
-            // actions (ours included), so read the bound keys directly to still
-            // allow closing. Only while open, so typing in other fields can't open it.
-            var typingInMenu = _isOpen.value && InputManager.instance.hasInputFieldFocus;
-            // The accept-suggestion key is only ever read directly (see Mod.AcceptSuggestionAction).
+            // The accept-suggestion key is only ever read directly (see
+            // Mod.AcceptSuggestionAction): while the menu's search field has
+            // focus the game blocks keyboard actions, ours included.
             if (_isOpen.value && Mod.AcceptSuggestionAction != null && WasBindingPressedThisFrame(Mod.AcceptSuggestionAction))
                 _acceptSuggestion.Trigger();
 
-            if (Mod.ToggleAction.WasPerformedThisFrame() || (typingInMenu && WasBindingPressedThisFrame(Mod.ToggleAction)))
-                SetOpen(!_isOpen.value);
+            // "Open radial menu" only opens (the action keeps its old name,
+            // ToggleRadialMenu, so existing bindings carry over). The menu
+            // closes by picking something, Escape (from the top ring) or a
+            // click outside the wheel; all handled in the UI.
+            if (!_isOpen.value && Mod.ToggleAction.WasPerformedThisFrame())
+                SetOpen(true);
         }
 
         private static bool WasBindingPressedThisFrame(ProxyAction action)

@@ -255,15 +255,18 @@ the filters they mirror.
 | typing | edit the query |
 | **Accept key** (default **Enter**, rebindable) | accept the hint's completion if one is shown; otherwise pick the first placeable result on the current page |
 | mouse wheel / **PageUp** / **PageDown** | previous / next page of results |
-| **Escape** / click hub | clear the query; if already empty, step back a level |
-| toggle key (default Tab) | close the menu |
+| **Escape** / click hub | clear the query; if already empty, step back a level; at the top ring, close the menu |
+| click outside the wheel | close the menu |
+
+The menu also closes when you pick something. Its key binding, "Open radial
+menu" (default Tab), only opens it.
 
 The accept key is a mod key binding ("Accept suggestion / pick first result",
 Options > Radial Menu > Key bindings). It uses its own input usage and is only
 read on the C# side while the menu is open, when the game's keyboard shortcuts
 are paused by the focused search field. So it can't collide with other game
-shortcuts, and can share a key with them. It should not be the menu's toggle
-key, or a key that types a character. C# sends an `acceptSuggestion` event to
+shortcuts, and can share a key with them. It shouldn't be a key that types a
+character. C# sends an `acceptSuggestion` event to
 the UI, which accepts or picks.
 Hub text is plain ASCII (`>`, `/`, `...`): the game's UI font lacks glyphs
 such as `·`, `→` and `…`.

@@ -376,18 +376,18 @@ namespace RadialMenu
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ItemSpacing)), "Item spacing" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ItemSpacing)), "How much space is left between neighbouring buttons, and between rings when there are several. At 0% buttons touch. Wider spacing fits fewer search results on each page. Changes apply immediately." },
 
-                { _setting.GetOptionLabelLocaleID(nameof(Setting.ToggleKeyboardBinding)), "Toggle radial menu" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.ToggleKeyboardBinding)), "Keyboard key that opens or closes the radial menu" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.ToggleKeyboardBinding)), "Open radial menu" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.ToggleKeyboardBinding)), "Keyboard key that opens the radial menu. It closes by itself when you pick something; Escape goes back a level and closes it from the top ring, and clicking outside the wheel closes it too." },
 
-                { _setting.GetOptionLabelLocaleID(nameof(Setting.ToggleMouseBinding)), "Toggle radial menu (mouse)" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.ToggleMouseBinding)), "Mouse button that opens or closes the radial menu" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.ToggleMouseBinding)), "Open radial menu (mouse)" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.ToggleMouseBinding)), "Mouse button that opens the radial menu. It closes by itself when you pick something; Escape goes back a level and closes it from the top ring, and clicking outside the wheel closes it too." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.AcceptSuggestionBinding)), "Accept suggestion / pick first result" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.AcceptSuggestionBinding)), "While searching in the radial menu, accepts the suggestion shown in the middle of the wheel, " +
                     "or picks the first result on the wheel when there is no suggestion. " +
                     "By design this key can't collide with other shortcuts: it's only read while you're typing in the radial menu, " +
                     "when the game's own keyboard shortcuts are paused, so it can safely share a key with them (like the arrow-key camera controls). " +
-                    "Just avoid the radial menu's own toggle key and keys that type a character." },
+                    "Just avoid keys that type a character." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ResetBindings)), "Reset key bindings" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ResetBindings)), "Reset all key bindings of the mod" },
@@ -537,7 +537,7 @@ namespace RadialMenu
                     "Mouse wheel, Page Up or Page Down - show the next or previous page of results, when there are more than fit on the wheel\n" +
                     "Escape or clicking the middle - clear what you typed; press again to go back a level\n" +
                     "Right-click an item - more actions, like adding it to your favorites or copying its DLC or mod link\n" +
-                    "Your toggle key (Tab by default) - close the menu"
+                    "Escape from the top ring, or a click outside the wheel - close the menu (picking something closes it too)"
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchFavoritesText)),
@@ -557,7 +557,7 @@ namespace RadialMenu
                     "Anything from Find It can be added to your favorites too."
                 },
 
-                { _setting.GetBindingKeyLocaleID(Mod.KToggleActionName), "Toggle radial menu" },
+                { _setting.GetBindingKeyLocaleID(Mod.KToggleActionName), "Open radial menu" },
                 { _setting.GetBindingKeyLocaleID(Mod.KAcceptSuggestionActionName), "Accept suggestion / pick first result" },
 
                 { _setting.GetBindingMapLocaleID(), "Radial Menu" },
