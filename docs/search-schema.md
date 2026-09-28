@@ -203,15 +203,19 @@ exclude", and `Hint: try "<example>"`. The example is picked at random from
 
 A player-facing version of this reference is built into the mod's settings,
 under **Options > Radial Menu > Usage Guide**. It comes from `LocaleEn` in
-`Setting.cs`, with one read-only text block per section:
+`Setting.cs`, with one read-only text block per section, in this order
+(`SettingsUIGroupOrder`):
 - quick start;
+- keys and mouse;
 - searching by name;
+- favorites;
 - filters in general;
-- one section each for `is:`, `theme:`, `pack:`, `zone:`, `size:` / `width:` / `depth:`, `level:`,
-  `dlc:`, `in:` and `fx:`;
-- combining searches;
-- keys;
-- favorites.
+- one section each for `is:`, `in:`, `theme:`, `pack:`, `dlc:`,
+  `zone:` (with `size:` / `width:` / `depth:` / `level:`) and `fx:`;
+- combining searches.
+
+The Main tab groups the settings as Menu layout, Assets, Vanilla toolbar and
+tools, Key bindings, and Utilities.
 
 Everything shown in-game writes filters in the spaced `key: value` form, and
 uses plain ASCII only.

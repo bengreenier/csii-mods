@@ -12,15 +12,17 @@ using Unity.Entities;
 namespace RadialMenu
 {
     [FileLocation(nameof(RadialMenu))]
-    [SettingsUITabOrder(KSection, KFiltersSection)]
-    [SettingsUIGroupOrder(KGeneralGroup, KKeybindingGroup, KUtilitiesGroup,
-        KSearchQuickStartGroup, KSearchNamesGroup, KSearchFiltersGroup, KSearchIsGroup, KSearchThemeGroup,
-        KSearchPackGroup, KSearchZoneGroup, KSearchDlcGroup, KSearchInGroup, KSearchFxGroup, KSearchCombiningGroup,
-        KSearchKeysGroup, KSearchFavoritesGroup)]
-    [SettingsUIShowGroupName(KGeneralGroup, KKeybindingGroup, KUtilitiesGroup,
-        KSearchQuickStartGroup, KSearchNamesGroup, KSearchFiltersGroup, KSearchIsGroup, KSearchThemeGroup,
-        KSearchPackGroup, KSearchZoneGroup, KSearchDlcGroup, KSearchInGroup, KSearchFxGroup, KSearchCombiningGroup,
-        KSearchKeysGroup, KSearchFavoritesGroup)]
+    [SettingsUITabOrder(KSection, KGuideSection)]
+    // Main tab first (settings), then the Usage Guide, which reads top to bottom:
+    // basics, then each filter.
+    [SettingsUIGroupOrder(KLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
+        KSearchQuickStartGroup, KSearchKeysGroup, KSearchNamesGroup, KSearchFavoritesGroup,
+        KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
+        KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
+    [SettingsUIShowGroupName(KLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
+        KSearchQuickStartGroup, KSearchKeysGroup, KSearchNamesGroup, KSearchFavoritesGroup,
+        KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
+        KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
     [SettingsUIKeyboardAction(Mod.KToggleActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
     [SettingsUIMouseAction(Mod.KToggleActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
     // Own usage: only read while typing in the menu, so it shouldn't be reported
@@ -29,13 +31,18 @@ namespace RadialMenu
     public class Setting : ModSetting
     {
         public const string KSection = "Main";
-        public const string KGeneralGroup = "General";
+        // Main tab groups. Settings are saved by property name, so moving one
+        // between groups doesn't reset it.
+        public const string KLayoutGroup = "Layout";
+        public const string KAssetsGroup = "Assets";
+        public const string KVanillaGroup = "Vanilla";
         public const string KKeybindingGroup = "KeyBinding";
         public const string KUtilitiesGroup = "Utilities";
         public const string KSearchUsage = "RadialMenuSearch";
 
-        // Built-in reference for the search language (see docs/search-schema.md).
-        public const string KFiltersSection = "Filters";
+        // Usage Guide tab: built-in help, including the search language (see
+        // docs/search-schema.md).
+        public const string KGuideSection = "Guide";
         public const string KSearchQuickStartGroup = "SearchQuickStart";
         public const string KSearchNamesGroup = "SearchNames";
         public const string KSearchFiltersGroup = "SearchFilters";
@@ -55,50 +62,58 @@ namespace RadialMenu
             SetDefaults();
         }
 
-        [SettingsUISection(KSection, KGeneralGroup)]
-        public bool HideVanillaToolbar { get; set; }
-
-        // Off: the bulldozer is left out of the radial menu and stays in the
-        // vanilla toolbar, even while the other tab buttons are hidden.
-        [SettingsUISection(KSection, KGeneralGroup)]
-        public bool BulldozerInRadial { get; set; }
-
-        // On: search lists every theme and asset pack (RadialMenuUISystem
-        // "allAssets"). Off: only what the vanilla asset menu's theme and pack
-        // filters let through (toolbar.assets).
-        [SettingsUISection(KSection, KGeneralGroup)]
-        public bool SearchAllThemes { get; set; }
-
-        // The same choice for browsing a category in the wheel (no search typed).
-        [SettingsUISection(KSection, KGeneralGroup)]
-        public bool BrowseAllThemes { get; set; }
-
-        // On: unique buildings already placed are dimmed and can't be picked
-        // (vanilla's rule). Off: they stay pickable. Favorites never dim them.
-        [SettingsUISection(KSection, KGeneralGroup)]
-        public bool LockPlacedUnique { get; set; }
+        // --- Menu layout ---
 
         // Scale factor for the whole wheel (1 = 100%), shown as a percentage like
         // the vanilla audio sliders.
         [SettingsUISlider(min = 50f, max = 200f, step = 5f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
-        [SettingsUISection(KSection, KGeneralGroup)]
+        [SettingsUISection(KSection, KLayoutGroup)]
         public float MenuScale { get; set; }
 
         // Gap between the center and the first ring (1 = 100%; 0 = touching).
         [SettingsUISlider(min = 0f, max = 400f, step = 25f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
-        [SettingsUISection(KSection, KGeneralGroup)]
+        [SettingsUISection(KSection, KLayoutGroup)]
         public float RingDistance { get; set; }
 
         // Gap between neighbouring buttons and between rings (1 = 100%; 0 = touching).
         [SettingsUISlider(min = 0f, max = 400f, step = 25f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
-        [SettingsUISection(KSection, KGeneralGroup)]
+        [SettingsUISection(KSection, KLayoutGroup)]
         public float ItemSpacing { get; set; }
 
-        [SettingsUISection(KSection, KGeneralGroup)]
+        [SettingsUISection(KSection, KLayoutGroup)]
         public bool OpenAtCursor { get; set; }
 
-        [SettingsUISection(KSection, KGeneralGroup)]
+        // --- Assets ---
+
+        // On: search lists every theme and asset pack (RadialMenuUISystem
+        // "allAssets"). Off: only what the vanilla asset menu's theme and pack
+        // filters let through (toolbar.assets).
+        [SettingsUISection(KSection, KAssetsGroup)]
+        public bool SearchAllThemes { get; set; }
+
+        // The same choice for browsing a category in the wheel (no search typed).
+        [SettingsUISection(KSection, KAssetsGroup)]
+        public bool BrowseAllThemes { get; set; }
+
+        // On: unique buildings already placed are dimmed and can't be picked
+        // (vanilla's rule). Off: they stay pickable. Favorites never dim them.
+        [SettingsUISection(KSection, KAssetsGroup)]
+        public bool LockPlacedUnique { get; set; }
+
+        // --- Vanilla toolbar and tools ---
+
+        [SettingsUISection(KSection, KVanillaGroup)]
+        public bool HideVanillaToolbar { get; set; }
+
+        // Off: the bulldozer is left out of the radial menu and stays in the
+        // vanilla toolbar, even while the other tab buttons are hidden.
+        [SettingsUISection(KSection, KVanillaGroup)]
+        public bool BulldozerInRadial { get; set; }
+
+        [SettingsUISection(KSection, KVanillaGroup)]
         public bool ShowToolInfoviews { get; set; }
+
+        // --- Key bindings ---
 
         [SettingsUIKeyboardBinding(BindingKeyboard.Tab, Mod.KToggleActionName)]
         [SettingsUISection(KSection, KKeybindingGroup)]
@@ -121,6 +136,8 @@ namespace RadialMenu
                 ResetKeyBindings();
             }
         }
+
+        // --- Utilities ---
 
         // Picking an asset from another theme switches the vanilla asset menu's
         // theme filter to it; this puts it back to the city's default theme.
@@ -157,58 +174,60 @@ namespace RadialMenu
 
         private static bool IsNoCityLoaded() => GameManager.instance.gameMode != GameMode.Game;
 
-        // Read-only help text for the Filters tab; the displayed text is each
+        // --- Usage Guide ---
+
+        // Read-only help text for the Usage Guide tab; the displayed text is each
         // property's label in LocaleEn.
         [SettingsUIMultilineText]
-        [SettingsUISection(KFiltersSection, KSearchQuickStartGroup)]
+        [SettingsUISection(KGuideSection, KSearchQuickStartGroup)]
         public string SearchQuickStartText => string.Empty;
 
         [SettingsUIMultilineText]
-        [SettingsUISection(KFiltersSection, KSearchNamesGroup)]
+        [SettingsUISection(KGuideSection, KSearchNamesGroup)]
         public string SearchNamesText => string.Empty;
 
         [SettingsUIMultilineText]
-        [SettingsUISection(KFiltersSection, KSearchFiltersGroup)]
+        [SettingsUISection(KGuideSection, KSearchFiltersGroup)]
         public string SearchFiltersText => string.Empty;
 
         [SettingsUIMultilineText]
-        [SettingsUISection(KFiltersSection, KSearchIsGroup)]
+        [SettingsUISection(KGuideSection, KSearchIsGroup)]
         public string SearchIsText => string.Empty;
 
         [SettingsUIMultilineText]
-        [SettingsUISection(KFiltersSection, KSearchThemeGroup)]
+        [SettingsUISection(KGuideSection, KSearchThemeGroup)]
         public string SearchThemeText => string.Empty;
 
         [SettingsUIMultilineText]
-        [SettingsUISection(KFiltersSection, KSearchPackGroup)]
+        [SettingsUISection(KGuideSection, KSearchPackGroup)]
         public string SearchPackText => string.Empty;
 
         [SettingsUIMultilineText]
-        [SettingsUISection(KFiltersSection, KSearchZoneGroup)]
+        [SettingsUISection(KGuideSection, KSearchZoneGroup)]
         public string SearchZoneText => string.Empty;
 
         [SettingsUIMultilineText]
-        [SettingsUISection(KFiltersSection, KSearchDlcGroup)]
+        [SettingsUISection(KGuideSection, KSearchDlcGroup)]
         public string SearchDlcText => string.Empty;
 
         [SettingsUIMultilineText]
-        [SettingsUISection(KFiltersSection, KSearchInGroup)]
+        [SettingsUISection(KGuideSection, KSearchInGroup)]
         public string SearchInText => string.Empty;
 
         [SettingsUIMultilineText]
-        [SettingsUISection(KFiltersSection, KSearchFxGroup)]
+        [SettingsUISection(KGuideSection, KSearchFxGroup)]
         public string SearchFxText => string.Empty;
 
         [SettingsUIMultilineText]
-        [SettingsUISection(KFiltersSection, KSearchCombiningGroup)]
+        [SettingsUISection(KGuideSection, KSearchCombiningGroup)]
         public string SearchCombiningText => string.Empty;
 
         [SettingsUIMultilineText]
-        [SettingsUISection(KFiltersSection, KSearchKeysGroup)]
+        [SettingsUISection(KGuideSection, KSearchKeysGroup)]
         public string SearchKeysText => string.Empty;
 
         [SettingsUIMultilineText]
-        [SettingsUISection(KFiltersSection, KSearchFavoritesGroup)]
+        [SettingsUISection(KGuideSection, KSearchFavoritesGroup)]
         public string SearchFavoritesText => string.Empty;
 
         public override void SetDefaults()
@@ -242,7 +261,9 @@ namespace RadialMenu
                 { _setting.GetSettingsLocaleID(), "Radial Menu" },
                 { _setting.GetOptionTabLocaleID(Setting.KSection), "Main" },
 
-                { _setting.GetOptionGroupLocaleID(Setting.KGeneralGroup), "General" },
+                { _setting.GetOptionGroupLocaleID(Setting.KLayoutGroup), "Menu layout" },
+                { _setting.GetOptionGroupLocaleID(Setting.KAssetsGroup), "Assets" },
+                { _setting.GetOptionGroupLocaleID(Setting.KVanillaGroup), "Vanilla toolbar and tools" },
                 { _setting.GetOptionGroupLocaleID(Setting.KKeybindingGroup), "Key bindings" },
                 { _setting.GetOptionGroupLocaleID(Setting.KUtilitiesGroup), "Utilities" },
 
@@ -299,7 +320,7 @@ namespace RadialMenu
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ResetBindings)), "Reset key bindings" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ResetBindings)), "Reset all key bindings of the mod" },
 
-                { _setting.GetOptionTabLocaleID(Setting.KFiltersSection), "Usage Guide" },
+                { _setting.GetOptionTabLocaleID(Setting.KGuideSection), "Usage Guide" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchQuickStartGroup), "Quick start" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchNamesGroup), "Searching by name" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFiltersGroup), "Filters" },
@@ -311,7 +332,7 @@ namespace RadialMenu
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchInGroup), "in: - which tab it lives in" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFxGroup), "fx: - what it does for your city" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchCombiningGroup), "Combining searches" },
-                { _setting.GetOptionGroupLocaleID(Setting.KSearchKeysGroup), "Keys while searching" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSearchKeysGroup), "Keys and mouse" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFavoritesGroup), "Favorites" },
 
                 // Help text for the Usage Guide tab. Plain ASCII only (the game
