@@ -40,6 +40,11 @@ a secondary path.
    - **Escape** maps to `[Back, Pause Menu]`. If something consumes "Back", the
      pause menu doesn't open.
 
+**Right mouse button:** bound to the UI "Secondary Action" and the tool
+actions "Cancel" and "Secondary Apply". The UI "Back" action is Escape and
+gamepad buttons only, so a right-click never arrives as "Back". (Found in the
+game's input asset; see `research.md`, game data files.)
+
 ## Text fields block the game's keyboard
 
 - A focused DOM `<input>` makes `Game.SceneFlow.UserInterface.OnTextInputTypeChanged`

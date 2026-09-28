@@ -51,6 +51,32 @@ search over every asset in the game fast on every keystroke.
   shown as "checking N...". Leave them out of results rather than letting them
   pop in and reorder.
 
+### Large catalogues (tens of thousands of items)
+
+What made a ~20k-item catalogue (another mod's prefab index) searchable
+without stalls:
+- **Subscribe once**, at an always-mounted component (not per search), and
+  share the data through React context. Subscribing per search makes C#
+  resend everything and the UI rebuild everything each time a search starts.
+- **Build records per chunk and cache them** in a module-level `WeakMap` keyed
+  on the chunk's array (bindings keep an array's identity until C# resends
+  it) plus the record-building inputs.
+- **Make shared inputs genuinely shared:** a per-component `useMemo` gives
+  each component its own copy, so module-level caches keyed on identity keep
+  invalidating each other. Cache shared derived values (merged lists, key sets)
+  at module level, keyed on the binding values they come from. Vanilla's
+  `useLocalization()` is per component too: key on the locale id.
+- **Prewarm in the background:** build one chunk per `setTimeout(…, 0)` tick
+  when data arrives, so even the first search is fast.
+- **Split the index into parts** (records plus the suggestions they
+  contribute), so a search only builds its small, changing part and merges.
+- **Avoid sorting per keystroke:** when the ranking has only a few levels and
+  ties go by input order, drop matches into per-level buckets and
+  concatenate. It's the same order as a stable sort, in one pass. Guard the
+  "input already in order" assumption and fall back to sorting.
+- **Cache per-result UI objects** (e.g. wheel entries) in a `WeakMap` keyed on
+  the result object, so broad queries don't rebuild thousands per keystroke.
+
 ## Rendering
 
 - Keep keys stable (`entityKey(entity)`) so React reuses DOM nodes.

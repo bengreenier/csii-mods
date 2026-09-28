@@ -105,6 +105,20 @@ UTF-16. Search `Game.dll` bytes for `"Assets.NAME[".encode("utf-16-le")`. That's
 how the `Assets.NAME[<prefab name>]` title key was found. Set
 `PYTHONIOENCODING=utf-8` when printing.
 
+## Game data files and other mods
+
+- **Default input bindings** live in the game's input asset inside
+  `Cities2_Data/resources.assets`, not in code. Read the file as latin1 in
+  Node and search for strings like `<Mouse>/rightButton`; the surrounding text
+  names the action and map.
+- **Other mods' shipped DLLs** are in
+  `%USERPROFILE%/AppData/LocalLow/Colossal Order/Cities Skylines II/.cache/Mods/pdx_mods/<id>_<version>/`.
+  Decompile those (`ilspycmd -t <Type> -r <Managed> <mod.dll>`) to see what
+  players actually run. `Modding.log` shows each mod's load order and version.
+- `ilspycmd -l c <dll>` lists a DLL's classes when you don't know which
+  assembly defines a type. `Colossal.Core.dll` holds the save serializers,
+  for example.
+
 ## Turn findings into docs
 
 When you rely on something internal, write down:

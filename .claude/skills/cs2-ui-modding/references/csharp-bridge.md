@@ -17,6 +17,34 @@
   call `Apply`, then `ToolSystem.ActivatePrefabTool`, which switches the tool
   immediately.
 
+**Raw bindings** (you write the JSON with `IJsonWriter`):
+- `RawValueBinding(group, name, writer => ...)`: `Update()` writes immediately,
+  but only while the UI is subscribed; subscribing writes once. Good for a
+  cached list you rebuild on demand.
+- `RawMapBinding<K>(group, name, (writer, key) => ...)`: like `toolbar.assets`.
+  Only subscribed keys are written; `UpdateAll()` rewrites them. `int` keys
+  work with the default key reader, and the UI's `bindMap` passes primitive
+  keys through unchanged (objects are JSON-stringified with sorted keys).
+- `RawEventBinding` for events with a payload: `EventBegin()` / write /
+  `EventEnd()`. It has no subscriber check of its own, so check `.active`.
+- `writer.Write(Entity)` needs a `Colossal.Mathematics` assembly reference in
+  the csproj (its overload set mentions `Bounds*`/`Bezier*` types).
+
+**Vanilla pieces worth reusing:**
+- `ToolbarUISystem.BindAsset(writer, entity, unique, placed)` is public. It
+  writes the `toolbar.Asset` shape for **any** prefab, toolbar or not, so the
+  UI can treat your lists like vanilla's.
+- `ToolSystem.ActivatePrefabTool(prefab)` places any prefab, including ones not
+  in the toolbar (`toolbar.selectAsset` can't). Vanilla's
+  `ToolbarUISystem.OnUpdate` then syncs the toolbar to the new active prefab by
+  itself.
+- `trigger("app", "setClipboard", text)` copies text (`GUIUtility.systemCopyBuffer`).
+- `bindValue("app", "activeLocale")` is the current language id.
+- Beware setters with side effects: `toolbar.setSelectedThemes` re-runs
+  `Apply(..., updateTool: true)`, which can pick and activate a different
+  asset. Clear the asset selection first, or don't touch vanilla's selection
+  at all (serve your own unfiltered list instead).
+
 ## `UISystemBase`
 
 - Register it with `updateSystem.UpdateAt<MyUISystem>(SystemUpdatePhase.UIUpdate)`.
@@ -59,6 +87,28 @@
     `GetOptionLabelLocaleID` and `GetOptionDescLocaleID`.
 - For live behaviour, have systems read `Mod.Settings` when they need it
   rather than caching values at startup.
+- **Order:** within a group, properties show in **declaration order**. A new
+  group must be added to **both** `SettingsUIGroupOrder` and
+  `SettingsUIShowGroupName`, or it's missing or out of place.
+- **Saved by property name:** regrouping or reordering never resets anything.
+  Renaming a property (or a key-binding action) does.
+- **Buttons:** a write-only `bool` property with `[SettingsUIButton]`; the
+  setter runs on click. For a destructive one add `[SettingsUIConfirmation]`
+  (vanilla pairs them the same way); its text is
+  `GetOptionWarningLocaleID(nameof(Prop))` in your locale source.
+- **Greying out:** `[SettingsUIDisableByCondition(typeof(Setting), nameof(Check))]`.
+  `Check` can be a private static method or property returning `bool`; it's
+  re-evaluated while the options screen is open. Guard the setter too.
+- **Dropdowns:** an `enum` property becomes one. Label each value with
+  `GetEnumValueLocaleID(MyEnum.Value)`; send it to the UI as an `int`.
+- **Display-only properties:** `[Exclude]` (`using Colossal.Json;`, as vanilla
+  uses) keeps a property out of the settings file. Use it when a checkbox
+  should show an *effective* state: e.g. a hidden, saved `UseXWanted` plus an
+  `[Exclude]`d `UseX { get => UseXWanted && XAvailable; set { if (XAvailable) UseXWanted = value; } }`,
+  so a greyed-out box doesn't look ticked and the saved choice survives.
+- **Give players a refresh button** for anything cached until the next load
+  (one "Refresh data" button beats one per cache), so nobody has to reload a
+  city.
 
 ## Update phases and hooking game behaviour
 
@@ -105,6 +155,9 @@ A time window ("changes within 0.5 s of our click") is brittle. Avoid it.
 
 ## Per-save data (`IDefaultSerializable`)
 
+- A `GameSystemBase` subclass must be `partial` (Unity's source generator
+  fails with `EA0007` otherwise).
+
 - **How it's saved:** every system in the world implementing
   `IDefaultSerializable` (plus `ISerializable`) is saved automatically, keyed
   by class name (`SystemSerializerLibrary`). Create the system in `OnLoad`.
@@ -120,6 +173,40 @@ A time window ("changes within 0.5 s of our click") is brittle. Avoid it.
   `Deserialize`.
 - **Don't push UI updates from `Deserialize`:** poll a revision counter
   instead.
+
+## Integrating with other mods
+
+- **Detect** with `GameManager.instance.modManager.ListModsEnabled()`: entries
+  start with the assembly name, e.g. `"FindIt, "`. Mods load one at a time
+  (alphabetically in practice), so a check during your `OnLoad` can miss a mod
+  that loads later. Only cache the answer at your first
+  `OnGameLoadingComplete` (the main menu), after every mod has loaded.
+- **Read their data without a compile-time reference:** find the assembly in
+  `AppDomain.CurrentDomain.GetAssemblies()`, get their public static state by
+  reflection, and compile `Expression` getters once for per-item properties.
+  Wrap everything so any mismatch turns your integration off with one warning,
+  and log their assembly version.
+- **Check their licence** before reusing any of their code. With no licence,
+  only interoperate at runtime.
+- Decompile their **shipped** DLL (`research.md`) rather than trusting their
+  repository's head.
+- Their "ready" flags may be set once and never reset, so after a second load
+  they can already be true before they've re-indexed. Pair them with your own
+  load-complete signal.
+
+## Useful game data
+
+- **Paradox Mods ID** of a mod asset: `prefab.asset.GetMeta().platformID`
+  (`PrefabBase` adds `ModPrerequisiteData` exactly when it's set). The page is
+  `https://mods.paradoxplaza.com/mods/<id>/Windows`.
+- **DLC Steam app IDs** (works on any launcher):
+  `Game.Dlc.SteamworksDlcsMapping.Lookup(dlcId, out appId)` for the oldest
+  DLCs, else `DlcHelper.GetDlcAttributes()[dlcId].GetSteamAppId(out appId)`
+  (`Colossal.PSI.Common` and `Colossal.PSI.Steamworks` references).
+  `Asset.dlc` is `Media/DLC/<PlatformManager.GetDlcName>.svg`.
+- **Store prefabs as `PrefabID`**, never entities. Resolve them with
+  `PrefabSystem.TryGetPrefab(PrefabID)`; `ToUrlSegment()` is a stable string
+  form.
 
 ## Build and deploy notes
 

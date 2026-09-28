@@ -55,6 +55,44 @@
     (`.backdrop, .backdrop * { cursor: default }`).
 - `transform: scale()` on hover works, and hit-testing respects transforms.
 
+## Images and icons
+
+- `Media/Glyphs/*.svg` (stars, hearts...) are **black**. As an `<img>` they stay
+  black. To colour them, use a `div` with `mask-image: url(...)`,
+  `mask-size: contain`, centred, no repeat, and a `background-color`. That's
+  vanilla's `TintedIcon` (`game-ui/common/image/tinted-icon.tsx`).
+- `<img onError>` works in Gameface. Vanilla's `missing-icon-handler.ts` swaps
+  in `Media/Placeholder.svg`. Use it for icons whose host may be missing.
+- `coui://<host>/` images only load if some mod registered that host
+  (`UIManager.defaultUISystem.AddHostLocation`). Otherwise `UI.log` shows
+  `ResourceHandler: Invalid host locations map` with the URL. Another mod's
+  icons may depend on a third mod.
+
+## Fitting content by measuring
+
+- `getBoundingClientRect()` works. To fit variable content (a query that wraps,
+  chips in a circle), render, measure in `useLayoutEffect`, and step to a more
+  compact variant with `setState`. It re-renders before paint, so only the
+  final layout is seen.
+- Compare against a container's own rect (a ratio), not pixels, so a
+  `transform: scale()` from a user setting doesn't matter.
+- A box with `max-width: 100%` doesn't grow when its `nowrap` children
+  overflow, so it can't detect width overflow. Estimate width instead
+  (characters x an average width), or measure the children.
+- To limit wrapped chips to N rows: compare each child's `top`, keep those in
+  the first N distinct rows, and replace the rest with "+N".
+
+## Right-click and the cursor
+
+- Right-click reaches the UI as DOM `mousedown`/`mouseup` with `button === 2`.
+  Vanilla's `useSecondaryClick` (`game-ui/common/hooks/use-secondary-click.tsx`)
+  pairs a press and release on the same element; the DOM `contextmenu` event
+  isn't used.
+- The cursor is whatever the UI view reports
+  (`GameManager.instance.userInterface.view.Listener.CursorChanged`, needs a
+  `cohtml.Net` reference). A stray text ("T") cursor over vanilla text fields
+  is vanilla behaviour; it stays until the mouse moves.
+
 ## Runtime exports vs typings
 
 The typings in `types/*.d.ts` are *mostly* right. Before relying on a symbol,

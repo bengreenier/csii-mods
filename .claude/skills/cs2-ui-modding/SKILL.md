@@ -39,6 +39,11 @@ before changing anything input-, settings- or tool-related.
    UI-only changes are safe while the game runs: `npm run build` in the UI
    folder writes straight into the mod folder. The game still needs a restart
    (or UI reload) to pick them up.
+   - To **compile-check C#** while the game runs, run only the compile step:
+     `dotnet msbuild <Mod>/<Mod>.csproj -t:Compile`. It writes to `obj/` and
+     never reaches `DeployWIP` (which hooks `AfterBuild`).
+   - Don't deploy a UI build that depends on **new** C# bindings until the new
+     DLL is deployed too.
 2. **Research before guessing.** When game behaviour is unclear, read the
    source (see `references/research.md`):
    - decompile C# with `ilspycmd`;
@@ -104,6 +109,12 @@ Check these when writing UI code; each is explained in the references.
 | Vanilla UI state you hide can still filter data (e.g. selected themes filter `toolbar.assets$`) | Know which hidden vanilla state feeds your data |
 | `useValue` on a binding C# never updated throws `was not called before getValueUnsafe` (e.g. `toolbar.bulldozeTool$` on PC) | Only read bindings vanilla itself reads in that context; wrap `extend`/`override` wrappers in their own error boundary with the vanilla component as fallback |
 | Remounting under a still cursor / DOM swaps | Stale hover and cursor; keep structure stable where it matters |
+| `useLocalization()` returns a **new wrapper per component** | Never key shared caches on the `loc` object; key on `app.activeLocale` (`bindValue("app", "activeLocale")`) |
+| Other mods may load **after** yours | Don't cache "is mod X enabled" during `OnLoad`; settle it at the first `OnGameLoadingComplete` (`csharp-bridge.md`) |
+| `Media/Glyphs/*.svg` icons are black | Draw them as a `mask-image` over a coloured background, like vanilla's `TintedIcon` (`ui-runtime.md`) |
+| `coui://<host>/` images from other mods may not exist | `<img onError>` to a fallback; `UI.log` says `Invalid host locations map` |
+| `performance.now()` reads 0 ms for everything | Don't time in the UI; reason about per-keystroke O(n) work (`performance.md`) |
+| A disabled settings checkbox still shows its saved value | Show an `[Exclude]`d "effective" property over a hidden saved one (`csharp-bridge.md`) |
 
 ## References (read when relevant)
 
@@ -111,28 +122,34 @@ Check these when writing UI code; each is explained in the references.
   - searching the UI bundle (module paths, `Q.add`, runtime exports);
   - decompiling `Game.dll` with ILSpy;
   - reflection and IL scanning when ILSpy isn't available;
+  - game data files (default input bindings) and other mods' shipped DLLs;
   - using the vanilla source as the spec.
 - `references/ui-runtime.md`: Gameface and runtime details:
   - layout and sizing, text, CSS, localization keys;
   - `getModule` / `extend` / `override`;
   - hiding vanilla UI without breaking it;
+  - images and icons (tinting glyphs, `onError` fallbacks, `coui://` hosts);
+  - fitting content by measuring; right-click and the cursor;
   - mouse position.
 - `references/input.md`: keyboard, focus and actions:
   - the UI input stack and `useInputController` / `InputActionConsumer`;
   - modal isolation and releasing it safely;
-  - text fields and `hasInputFieldFocus`;
+  - text fields and `hasInputFieldFocus`; what the right mouse button is bound to;
   - mod key bindings, reading keys directly, custom usages.
 - `references/csharp-bridge.md`: the C# side:
-  - bindings (Value/Getter/Trigger/Event);
+  - bindings (Value/Getter/Trigger/Event, and Raw ones), vanilla pieces worth reusing;
   - `UISystemBase` lifecycle;
-  - `ModSetting` patterns (sliders, key bindings, multi-line help, live settings);
+  - `ModSetting` patterns (sliders, buttons, confirmations, disable conditions,
+    dropdowns, display-only `[Exclude]` properties, order, key bindings, help text);
+  - per-save data; integrating with other mods; useful game data (mod IDs, DLC app IDs);
   - update phases, and hooking tool behaviour without flicker;
   - attributing actions to your UI.
 - `references/performance.md`: keeping it fast:
   - subscription discipline (`useMapValues` key identity);
   - indexing and caching;
   - lazy per-prefab data with caps;
-  - avoiding per-keystroke work.
+  - avoiding per-keystroke work; large catalogues (tens of thousands of items);
+  - measuring in game (`performance.now()` doesn't work).
 - `scripts/search-ui-bundle.js`: prints context around every match of a literal
   string in the game's `index.js`. It uses plain substring search, because regex
   over the 2 MB single-line bundle is very slow.
