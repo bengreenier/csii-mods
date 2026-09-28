@@ -175,6 +175,9 @@ interface WheelEntry extends HubLabel {
     // aren't prefabs (e.g. Favorites) set their own.
     key?: string;
     icon: string;
+    // Shown if `icon` fails to load (e.g. a Find It icon from a host that
+    // isn't installed: coui://uil needs an icon library mod).
+    fallbackIcon?: string;
     // Draws `icon` as a single-colour glyph in this colour (TintedIcon).
     iconColor?: string;
     disabled: boolean;
@@ -608,7 +611,17 @@ const Wheel = ({
                     {entry.iconColor ? (
                         <TintedIcon className={styles.icon} src={entry.icon} color={entry.iconColor} />
                     ) : (
-                        <img className={styles.icon} src={entry.icon} />
+                        <img
+                            className={styles.icon}
+                            src={entry.icon}
+                            // As vanilla's missing-icon-handler: swap in the
+                            // fallback once, if the icon can't be loaded.
+                            onError={(e) => {
+                                const fallback = entry.fallbackIcon;
+                                if (fallback && e.currentTarget.getAttribute("src") !== fallback)
+                                    e.currentTarget.src = fallback;
+                            }}
+                        />
                     )}
                 </button>
             ))}
@@ -766,6 +779,18 @@ const FindItLevel = ({ category, sub, onOpen, onBack, ...searchProps }: FindItLe
     const categories = useValue(findItCategories$);
     const catalogue = useContext(FindItCatalogueContext);
     const assets = (sub && catalogue.bySub.get(sub.id)) || EMPTY;
+    // Some of Find It's category icons need an icon library mod
+    // (coui://uil); if one doesn't load, show a thumbnail from inside instead.
+    const firstThumbnail = useCallback(
+        (subs: FindItSubCategory[]) => {
+            for (const s of subs) {
+                const icon = catalogue.bySub.get(s.id)?.[0]?.icon;
+                if (icon) return icon;
+            }
+            return FIND_IT_ICON;
+        },
+        [catalogue]
+    );
     const lockPlaced = useValue(lockPlacedUnique$);
 
     const searchSubs = useMemo(
@@ -784,6 +809,7 @@ const FindItLevel = ({ category, sub, onOpen, onBack, ...searchProps }: FindItLe
                 name: s.name,
                 title: findItTitle(loc, s.name),
                 icon: s.icon ?? category.icon ?? FIND_IT_ICON,
+                fallbackIcon: firstThumbnail([s]),
                 disabled: false,
                 onSelect: () => onOpen({ category, sub: s }),
             }));
@@ -794,11 +820,12 @@ const FindItLevel = ({ category, sub, onOpen, onBack, ...searchProps }: FindItLe
             name: c.name,
             title: findItTitle(loc, c.name),
             icon: c.icon ?? FIND_IT_ICON,
+            fallbackIcon: firstThumbnail(c.subCategories),
             disabled: false,
             onSelect: () =>
                 onOpen(c.subCategories.length === 1 ? { category: c, sub: c.subCategories[0] } : { category: c }),
         }));
-    }, [sub, category, categories, assets, lockPlaced, loc, onOpen]);
+    }, [sub, category, categories, assets, lockPlaced, loc, onOpen, firstThumbnail]);
 
     const deepest = sub ?? category;
     const current: HubLabel = deepest

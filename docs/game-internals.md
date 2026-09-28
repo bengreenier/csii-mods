@@ -500,8 +500,14 @@ compile-time reference, since it's optional.
     indexing) aren't picked up until the next load.
   - `PrefabIndex.Prefab` (`PrefabBase`), `.Category`, `.SubCategory` (enums,
     read as ints; names via `Enum.GetName`).
-  - The `CategoryIconAttribute.Icon` on the category enums, for icons. Some
-    are `coui://uil/...` or `coui://findit/...` images that Find It serves.
+  - The `CategoryIconAttribute.Icon` on the category enums, for icons.
+    `coui://findit/...` and `Media/...` ones always load. The
+    `coui://uil/...` ones only load with a separate icon library mod
+    installed (Find It registers only the `findit` host); without it,
+    `UI.log` shows `ResourceHandler: Invalid host locations map` for each.
+    Wheel entries fall back via `<img onError>` (as vanilla's
+    `missing-icon-handler.ts` does) to a thumbnail from inside the
+    category (`fallbackIcon`).
 - **Titles:** Find It's own locale keys, `Tooltip.LABEL[FindIt.<enum name>]`.
 - **Sending it:** `findItCategories` (the tree), and `findItAssets` (a map
   by subcategory, each asset written by vanilla `ToolbarUISystem.BindAsset`,
