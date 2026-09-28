@@ -76,6 +76,7 @@ Titles come from the localization key `Assets.NAME[<prefab name>]`.
 | | `favorite` | are in this city's favorites (see Favorites) | cheap |
 | `theme:` | a theme word, e.g. `european`, `north`, `american` | belong to that theme (word prefix over the theme's name and title) | cheap |
 | `pack:` | an asset pack word, e.g. a pack's name or title | belong to that asset pack (word prefix over the pack's name and title) | cheap (C#) |
+| `cat:` | a Find It category word, e.g. `props`, `decals`, `trees`, `fences`, `service` | are in a Find It category or subcategory with a word starting with the value (enum name split on `_` and camelCase, plus Find It's titles). Only while Find It's catalogue is in use (see Find It). | cheap (C#) |
 | `zone:` | `residential`, `commercial`, `industrial`, `office`, and densities `low`, `medium`, `high` | are zoned buildings (e.g. signature buildings) or zone types (the Zones tab) of that zone type or density. Plain industrial has no density. | cheap (C#) |
 | `size:` | `WxD` in cells, e.g. `2x3` | are buildings on a lot W cells wide (frontage) and D deep. Not rotated: `2x3` doesn't match a 3x2 lot. | cheap (C#) |
 | `width:` | cells, e.g. `4`, `2,3`, also written as units (`2u`, as players say "a 2u road"), or metres, e.g. `16m`, `12.5m` | are buildings with that lot frontage, or networks (roads, tracks, paths) that wide. A cell is 8 m, so each unit also finds the other kind: `width: 2u` matches 16 m roads, and `width: 16m` matches 2-cell buildings. Widths that aren't whole cells (e.g. 12 m) are only found in metres. Network chips and suggestions use `2u` for whole cells, metres otherwise. | cheap (C#) |
@@ -130,6 +131,10 @@ What a search covers depends on where you are in the menu:
 | Inside a tab | All assets across that tab's categories |
 | Inside a category | That category's assets |
 | Favorites | This city's favorites (those that search covers; see below) |
+| Find It level | What's in view: the whole catalogue, a category, or a subcategory |
+
+With Find It's catalogue in use, top-ring search also covers everything Find
+It lists (see Find It).
 
 Tabs that aren't unlocked are skipped at the top ring.
 
@@ -309,6 +314,33 @@ added. Favorites are stored in each save (`FavoritesSystem.cs`; see
 Any level with more items than fit in the first three rings is paged like
 search results, and the hub shows which items are on screen ("1-61 of 80").
 
+## Find It
+
+With the Find It mod enabled and **"Use Find It's catalogue"** on (Assets
+group, on by default, greyed out without Find It), the radial menu reaches
+everything Find It indexes: props, decals, trees, vehicles, growables and so
+on, not just the vanilla toolbar. How it reads Find It is in
+`game-internals.md`, "Find It".
+
+- **Browsing:** a **Find It** entry (Find It's own icon) sits next to
+  Favorites on the top ring. It opens Find It's categories, then
+  subcategories, then assets, with Find It's icons and titles
+  (`Tooltip.LABEL[FindIt.<name>]`). A category with one subcategory goes
+  straight to its assets.
+- **Picking:** Find It assets are placed directly (`activatePrefab`, i.e.
+  `ToolSystem.ActivatePrefabTool`, as Find It does). Vanilla's toolbar syncs
+  itself to the new active prefab, so toolbar assets picked here behave as
+  usual.
+- **Searching:** from the top ring, the whole catalogue after the toolbar
+  categories: duplicates keep their toolbar entry, and toolbar assets win
+  ties in ranking. Inside the Find It level, only what's in view.
+- **`cat:`** narrows to Find It categories, e.g. `cat: decals`,
+  `cat: props cat: residential`. Assets get a `cat:` chip.
+- **Favorites:** anything can be a favorite. Assets outside the vanilla
+  toolbar are placed directly from Favorites too, even with Find It off.
+- **Off:** turning the setting off (or disabling Find It) removes the entry,
+  the catalogue and `cat:` data at once; everything else is unchanged.
+
 ## Context menu
 
 Right-clicking a wheel item opens a small menu of actions for it at the cursor
@@ -388,6 +420,7 @@ steps back a level; Escape and clicking the hub do.
 
 | File | Role | Pure (no game imports) |
 |---|---|---|
+| `find-it.ts` / `FindItBridge.cs` / `RadialMenuUISystem.FindIt.cs` | Find It integration: reading its catalogue, bindings, titles and `cat:` text | no |
 | `query/aliases.ts` | One-way word aliases for text matching (`road` also matches `street`) | yes |
 | `query/lexer.ts` | `tokenize()`: tokens with negation/quote info; never throws | yes |
 | `query/filters.ts` | Filter registry (`is`, `theme`, `pack`, `zone`, `size`, `width`, `depth`, `level`, `dlc`, `in`, `fx`): compile, validate, suggest | yes |

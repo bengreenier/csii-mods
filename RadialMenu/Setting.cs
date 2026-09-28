@@ -16,11 +16,11 @@ namespace RadialMenu
     // Main tab first (settings), then the Usage Guide, which reads top to bottom:
     // basics, then each filter.
     [SettingsUIGroupOrder(KLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
-        KSearchQuickStartGroup, KSearchKeysGroup, KSearchNamesGroup, KSearchFavoritesGroup,
+        KSearchQuickStartGroup, KSearchKeysGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
         KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
         KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
     [SettingsUIShowGroupName(KLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
-        KSearchQuickStartGroup, KSearchKeysGroup, KSearchNamesGroup, KSearchFavoritesGroup,
+        KSearchQuickStartGroup, KSearchKeysGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
         KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
         KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
     [SettingsUIKeyboardAction(Mod.KToggleActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
@@ -56,6 +56,7 @@ namespace RadialMenu
         public const string KSearchCombiningGroup = "SearchCombining";
         public const string KSearchKeysGroup = "SearchKeys";
         public const string KSearchFavoritesGroup = "SearchFavorites";
+        public const string KSearchFindItGroup = "SearchFindIt";
 
         public Setting(IMod mod) : base(mod)
         {
@@ -253,6 +254,10 @@ namespace RadialMenu
         [SettingsUISection(KGuideSection, KSearchFavoritesGroup)]
         public string SearchFavoritesText => string.Empty;
 
+        [SettingsUIMultilineText]
+        [SettingsUISection(KGuideSection, KSearchFindItGroup)]
+        public string SearchFindItText => string.Empty;
+
         public override void SetDefaults()
         {
             HideVanillaToolbar = true;
@@ -367,6 +372,7 @@ namespace RadialMenu
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchCombiningGroup), "Combining searches" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchKeysGroup), "Keys and mouse" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFavoritesGroup), "Favorites" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSearchFindItGroup), "Find It" },
 
                 // Help text for the Usage Guide tab. Plain ASCII only (the game
                 // font lacks some symbols); filters are written "key: value".
@@ -505,6 +511,16 @@ namespace RadialMenu
                     "Your favorites are on the star button at the end of the top ring.\n" +
                     "Each city keeps its own favorites, saved with the city. Typing while in Favorites searches only your favorites. " +
                     "To remove one, right-click it and choose 'Remove from favorites'."
+                },
+                {
+                    _setting.GetOptionLabelLocaleID(nameof(Setting.SearchFindItText)),
+                    "With the Find It mod enabled and 'Use Find It's catalogue' on (Main tab, on by default), the radial menu " +
+                    "can reach everything Find It lists: props, decals, trees, vehicles and more, not just the vanilla toolbar.\n" +
+                    "The Find It button at the end of the top ring browses Find It's categories. " +
+                    "Searching from the top ring includes the whole catalogue, with toolbar items first.\n" +
+                    "'cat: decals' - things in a Find It category, e.g. 'cat: props', 'cat: trees' or 'cat: fences'. " +
+                    "Combine them to narrow down: 'cat: props cat: residential'.\n" +
+                    "Anything from Find It can be added to your favorites too."
                 },
 
                 { _setting.GetBindingKeyLocaleID(Mod.KToggleActionName), "Toggle radial menu" },

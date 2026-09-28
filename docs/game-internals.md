@@ -23,6 +23,7 @@ used, what breaks if it changes, and how to re-find it.
 - [The bulldozer ("Bulldozer in radial menu")](#the-bulldozer-bulldozer-in-radial-menu)
 - [Search filter data (assetMeta)](#search-filter-data-assetmeta)
 - [Per-save data (favorites)](#per-save-data-favorites)
+- [Find It](#find-it)
 - [Other runtime quirks](#other-runtime-quirks)
 - [Log messages](#log-messages)
 
@@ -467,6 +468,48 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
   the game's load) and whenever the menu opens. Triggers `addFavorite` /
   `removeFavorite` take the asset's prefab entity.
 
+## Find It
+
+"Use Find It's catalogue" reads the Find It mod's prefab index at runtime
+(`FindItBridge.cs`). Find It has no public API, and its repository
+(github.com/JadHajjar/FindIt-CSII) has **no licence**, so nothing is copied
+from it: we only read its public static state through reflection, with no
+compile-time reference, since it's optional.
+
+- **Detection:** `GameManager.instance.modManager.ListModsEnabled()` has an
+  entry starting with `"FindIt, "` (the way Find It detects RoadBuilder).
+  The setting is greyed out otherwise.
+- **Members read** (checked against the shipped v1.5.8 DLL, Paradox Mods
+  77240):
+  - `FindIt.Utilities.FindItUtil.CategorizedPrefabs`: `Dictionary<PrefabCategory,
+    Dictionary<PrefabSubCategory, IndexedPrefabList>>`; `[Any = -1][Any = -1]`
+    is everything. `IndexedPrefabList` is `IEnumerable<PrefabIndex>`.
+  - `FindItUtil.IsReady`: set once its full index is built (in its
+    `PrefabIndexingSystem.OnGameLoadingComplete`). We poll it after each
+    load and snapshot the index once.
+  - `PrefabIndex.Prefab` (`PrefabBase`), `.Category`, `.SubCategory` (enums,
+    read as ints; names via `Enum.GetName`).
+  - The `CategoryIconAttribute.Icon` on the category enums, for icons. Some
+    are `coui://uil/...` or `coui://findit/...` images that Find It serves.
+- **Titles:** Find It's own locale keys, `Tooltip.LABEL[FindIt.<enum name>]`.
+- **Sending it:** `findItCategories` (the tree), and `findItAssets` (a map
+  by subcategory, each asset written by vanilla `ToolbarUISystem.BindAsset`,
+  which works for any prefab), plus `findItActive`. `assetMeta` gains every
+  catalogue entity and its `findItCategory` (for `cat:`), and is rebuilt when
+  the snapshot arrives or the setting changes.
+- **Placing:** `activatePrefab` calls `ToolSystem.ActivatePrefabTool`, as
+  Find It's `TryActivatePrefabTool` does. Vanilla's
+  `ToolbarUISystem.OnUpdate` then calls `SelectAsset` for toolbar assets,
+  so its panel stays in sync.
+- **If a Find It update breaks this:** any missing member or exception
+  turns the integration off, logging
+  `Find It integration off: <what> (Find It <version>)`. Re-decompile
+  `FindItUtil`, `PrefabIndexBase`, `PrefabIndex` and compare.
+- **Cost:** the snapshot's size and read time are logged after each load
+  (`Find It <version>: read N catalogue entries (M subcategories) in T ms`).
+  Top-ring search subscribes every subcategory, so the first search after a
+  load sends the whole catalogue once.
+
 ## Other runtime quirks
 
 - **rem** is about 1px at 1080p. Size UI in hundreds of rem.
@@ -552,6 +595,8 @@ messages mostly exist to flag breakage after a game update.
 | `Removed Radial Menu data from this city` | The "Remove Radial Menu data from this city" button was confirmed; `Remove Radial Menu data skipped: no city loaded` if there was no city |
 | `Could not resolve DLC Steam app IDs; DLC assets get no store link` (warning) | The game's DLC data couldn't be read (after a game update?); DLC assets offer no "Copy Steam store link" |
 | `Could not read the Paradox Mods ID of <prefab>; ...` (warning, once) | An asset's mod metadata couldn't be read; that asset (and any other failing one) gets no "Copy Paradox Mods link" |
+| `Find It <version>: read N catalogue entries (M subcategories) in T ms` | Once per load with the Find It integration on |
+| `Find It integration off: <what> (Find It <version>)...` (warning) | Find It's internals didn't look as expected (after a Find It update?); the radial menu works without it |
 | `Reset vanilla theme filter` | The "Reset vanilla theme filter" button was used; followed by `... skipped: no city loaded` if there was no city |
 | `ToolSystem.m_LastToolInfoview/m_LastToolInfomodes not found; ...` (warning) | A game update renamed vanilla's private fields. The flicker-free tool info view path is off, and the fallback is used. See [Tool info views](#tool-info-views-show-info-views-for-radial-menu-selections). |
 | `Tool info view suppressed via fallback ...` | The fallback ran, once per session: the overlay may flash for a frame. Normally absent. |
