@@ -47,6 +47,15 @@ $hub-size: 240rem;
     text-align: center;
 }
 
+// Everything inside the hub, in one box so it can be measured (Wheel's
+// query fitting); laid out like the hub itself.
+.hubContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 100%;
+}
+
 .hubBack:hover {
     border-color: rgba(255, 255, 255, 0.6);
 }

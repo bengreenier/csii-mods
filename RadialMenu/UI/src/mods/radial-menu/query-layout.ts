@@ -32,13 +32,21 @@ export interface FontStep {
     maxLines: number;
 }
 
-// Largest first. Smaller text fits more lines in the same height.
+// Layouts from most readable to most compact. layoutQuery uses the first one
+// the query fits; `shrink` skips the first few when the hub measured the
+// result as too tall (see QueryDisplay), which ends in fewer, smaller lines.
 export const QUERY_FONT_STEPS: FontStep[] = [
     { size: 28, maxLines: 2 },
     { size: 24, maxLines: 2 },
     { size: 20, maxLines: 3 },
     { size: 17, maxLines: 4 },
+    { size: 17, maxLines: 3 },
+    { size: 17, maxLines: 2 },
+    { size: 17, maxLines: 1 },
 ];
+
+/** How many `shrink` steps layoutQuery can take (after that, it stays put). */
+export const MAX_QUERY_SHRINK = QUERY_FONT_STEPS.length - 1;
 
 // Usable width of the query area, in rem (the hub is a 240rem circle).
 export const QUERY_WIDTH = 176;
@@ -80,18 +88,21 @@ const cutFront = (text: string, perLine: number) =>
 
 export function layoutQuery<T>(
     words: LayoutWord<T>[],
-    steps: FontStep[] = QUERY_FONT_STEPS,
+    shrink = 0,
+    allSteps: FontStep[] = QUERY_FONT_STEPS,
     width: number = QUERY_WIDTH
 ): QueryLayout<T> {
+    const steps = allSteps.slice(Math.min(Math.max(0, shrink), allSteps.length - 1));
     // 1. Everything, at the largest size it fits.
     for (const step of steps) {
         const lines = wrap(words, charsPerLine(step.size, width), step.maxLines);
         if (lines) return { fontSize: step.size, lines, truncated: false };
     }
 
-    // 2. Smallest size: cut long words from the front, then drop leading words
-    // (behind a "..." marker) until the rest fits.
-    const smallest = steps[steps.length - 1];
+    // 2. Smallest size, with the most lines it allows: cut long words from the
+    // front, then drop leading words (behind a "..." marker) until the rest fits.
+    const minSize = Math.min(...steps.map((s) => s.size));
+    const smallest = steps.find((s) => s.size === minSize)!;
     const perLine = charsPerLine(smallest.size, width);
     const cut = words.map((w) => ({ ...w, text: cutFront(w.text, perLine) }));
     for (let start = 0; start < cut.length; start++) {

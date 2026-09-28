@@ -33,7 +33,11 @@ import { FAVORITE_COLOR, FAVORITE_ICON, FAVORITES_EMPTY_MESSAGE, FAVORITES_TITLE
 import { TintedIcon } from "./tinted-icon";
 import { ContextMenu, ContextTarget, OpenContextMenu } from "./context-menu";
 import { layoutWheel, searchPageSize, wheelFitRadius, wheelGeometry } from "./layout";
-import { layoutQuery } from "./query-layout";
+import { layoutQuery, MAX_QUERY_SHRINK } from "./query-layout";
+
+// Most of the hub circle's height the content may use; less than all of it,
+// since the circle narrows toward the top and bottom.
+const HUB_CONTENT_MAX_HEIGHT = 0.8;
 import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
 import { SearchResult, SearchResults, SearchScope, useAssetSearch } from "./search";
@@ -342,8 +346,11 @@ const TOKEN_CLASS: Record<TokenStatus, string | undefined> = {
 // The typed query, coloured per token and fitted to the hub by layoutQuery:
 // largest font and as many lines as fit first, then smaller, and only then cut
 // from the front (the end is where the user is typing).
-const QueryDisplay = ({ tokens }: { tokens: DisplayToken[] }) => {
-    const layout = useMemo(() => layoutQuery(tokens.map((t) => ({ text: t.raw, data: t.status }))), [tokens]);
+const QueryDisplay = ({ tokens, shrink }: { tokens: DisplayToken[]; shrink: number }) => {
+    const layout = useMemo(
+        () => layoutQuery(tokens.map((t) => ({ text: t.raw, data: t.status })), shrink),
+        [tokens, shrink]
+    );
     return (
         <div className={styles.hubQuery} style={{ fontSize: `${layout.fontSize}rem` }}>
             {layout.lines.map((line, l) => (
@@ -390,6 +397,12 @@ const Wheel = ({
     onBack,
 }: WheelProps) => {
     const [hovered, setHovered] = useState<WheelEntry | null>(null);
+    const hubRef = useRef<HTMLDivElement>(null);
+    const hubContentRef = useRef<HTMLDivElement>(null);
+    // How far QueryDisplay has been made more compact to fit (see the layout
+    // effect below); belongs to the query it was measured for.
+    const [shrinkState, setShrinkState] = useState({ query, shrink: 0 });
+    const shrink = shrinkState.query === query ? shrinkState.shrink : 0;
     const hubImage = useValue(hubImage$);
     // A right-click is a right-button press and release on the same item (as
     // vanilla's useSecondaryClick in game-ui/common/hooks/use-secondary-click.tsx).
@@ -497,13 +510,29 @@ const Wheel = ({
         const hint = search.parsed.hint;
         hubContent = (
             <>
-                <QueryDisplay tokens={search.parsed.tokens} />
+                <QueryDisplay tokens={search.parsed.tokens} shrink={shrink} />
                 <div className={styles.hubHint}>{matchSummary(search, page, pageSize)}</div>
                 {hint && <div className={styles.hubTypeHint}>{hint.text}</div>}
                 {pageCount > 1 && <div className={styles.hubFilterHints}>Scroll or PgUp/PgDn for more</div>}
             </>
         );
     }
+
+    // The query's layout is estimated (query-layout.ts); if the hub's content
+    // still comes out too big for the circle, step to a more compact layout and
+    // measure again. Runs before paint, so only the final layout is seen. The
+    // check compares against the hub's own box, so "Menu size" doesn't matter.
+    // Each new query starts over at the most readable layout.
+    useLayoutEffect(() => {
+        if (!showingQuery || hoveredEntry) return;
+        const hub = hubRef.current?.getBoundingClientRect();
+        const content = hubContentRef.current?.getBoundingClientRect();
+        if (!hub || !content) return;
+        // Height only: the content box is capped at the hub's width, so width
+        // is left to layoutQuery's line estimate.
+        const tooBig = content.height > hub.height * HUB_CONTENT_MAX_HEIGHT;
+        if (tooBig && shrink < MAX_QUERY_SHRINK) setShrinkState({ query, shrink: shrink + 1 });
+    });
 
     return (
         // The wheel is a zero-size anchor at screen center, so scaling it scales
@@ -516,6 +545,7 @@ const Wheel = ({
             }}
         >
             <div
+                ref={hubRef}
                 className={classNames(styles.hub, onBack && styles.hubBack)}
                 onClick={(e) => {
                     e.stopPropagation();
@@ -524,7 +554,9 @@ const Wheel = ({
                     else onBack?.();
                 }}
             >
-                {hubContent}
+                <div ref={hubContentRef} className={styles.hubContent}>
+                    {hubContent}
+                </div>
             </div>
             {slots.map(({ entry, x, y }) => (
                 <button
