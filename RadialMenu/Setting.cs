@@ -382,9 +382,9 @@ namespace RadialMenu
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.OpenMouseBinding)), "Open radial menu (mouse)" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.OpenMouseBinding)), "Mouse button that opens the radial menu. It closes by itself when you pick something; Escape goes back a level and closes it from the top ring, and clicking outside the wheel closes it too." },
 
-                { _setting.GetOptionLabelLocaleID(nameof(Setting.AcceptSuggestionBinding)), "Accept suggestion / pick first result" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.AcceptSuggestionBinding)), "Accept suggestion / pick the only match" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.AcceptSuggestionBinding)), "While searching in the radial menu, accepts the suggestion shown in the middle of the wheel, " +
-                    "or picks the first result on the wheel when there is no suggestion. " +
+                    "or, when there is no suggestion and exactly one result you can place is left, picks it. " +
                     "By design this key can't collide with other shortcuts: it's only read while you're typing in the radial menu, " +
                     "when the game's own keyboard shortcuts are paused, so it can safely share a key with them (like the arrow-key camera controls). " +
                     "Just avoid keys that type a character." },
@@ -420,7 +420,7 @@ namespace RadialMenu
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchQuickStartText)),
                     "You don't need to click anything to search: open the radial menu and start typing. " +
                     "The wheel narrows to matching buildings, roads and props as you type, " +
-                    "and Enter picks the first result, ready to place.\n" +
+                    "and once only one result is left, Enter picks it, ready to place.\n" +
                     "When there are more results than fit on the wheel, scroll the mouse wheel (or press Page Up / Page Down) to see the rest.\n" +
                     "\n" +
                     "Try it now: open the menu and type 'park'.\n" +
@@ -533,7 +533,7 @@ namespace RadialMenu
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchKeysText)),
                     "Enter - accept the suggestion shown in the middle of the wheel, or, if there is none, " +
-                    "pick the first result, ready to place. You can change this key on the Main tab.\n" +
+                    "pick the result if it's the only one left you can place. You can change this key on the Main tab.\n" +
                     "Mouse wheel, Page Up or Page Down - show the next or previous page of results, when there are more than fit on the wheel\n" +
                     "Escape or clicking the middle - clear what you typed; press again to go back a level\n" +
                     "Right-click an item - more actions, like adding it to your favorites or copying its DLC or mod link\n" +
@@ -558,7 +558,7 @@ namespace RadialMenu
                 },
 
                 { _setting.GetBindingKeyLocaleID(Mod.KOpenActionName), "Open radial menu" },
-                { _setting.GetBindingKeyLocaleID(Mod.KAcceptSuggestionActionName), "Accept suggestion / pick first result" },
+                { _setting.GetBindingKeyLocaleID(Mod.KAcceptSuggestionActionName), "Accept suggestion / pick the only match" },
 
                 { _setting.GetBindingMapLocaleID(), "Radial Menu" },
             };

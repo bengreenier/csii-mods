@@ -253,7 +253,7 @@ the filters they mirror.
 | Key | Action |
 |---|---|
 | typing | edit the query |
-| **Accept key** (default **Enter**, rebindable) | accept the hint's completion if one is shown; otherwise pick the first placeable result on the current page |
+| **Accept key** (default **Enter**, rebindable) | accept the hint's completion if one is shown; otherwise, if exactly one placeable result is left (across all pages), pick it; with more, do nothing |
 | mouse wheel / **PageUp** / **PageDown** | previous / next page of results |
 | **Escape** / click hub | clear the query; if already empty, step back a level; at the top ring, close the menu |
 | click outside the wheel | close the menu |
@@ -261,7 +261,10 @@ the filters they mirror.
 The menu also closes when you pick something. Its key binding, "Open radial
 menu" (default Tab), only opens it.
 
-The accept key is a mod key binding ("Accept suggestion / pick first result",
+Picking only a single remaining match means a double Enter (complete, then
+submit) can't place the top one of many results by surprise.
+
+The accept key is a mod key binding ("Accept suggestion / pick the only match",
 Options > Radial Menu > Key bindings). It uses its own input usage and is only
 read on the C# side while the menu is open, when the game's keyboard shortcuts
 are paused by the focused search field. So it can't collide with other game

@@ -491,14 +491,18 @@ const Wheel = ({
     const showingQuery = !!query && !!search;
     const completion = showingQuery ? search.parsed.hint?.completion ?? null : null;
     useEffect(() => {
-        submitRef.current = search?.active ? () => visible.find((e) => !e.disabled)?.onSelect() : null;
+        // Picks only when exactly one placeable result is left (all pages), so
+        // a double Enter (complete, then submit) can't place the top one of
+        // many by surprise.
+        const placeable = search?.active ? entries.filter((e) => !e.disabled) : EMPTY;
+        submitRef.current = placeable.length === 1 ? () => placeable[0].onSelect() : null;
         completionRef.current = completion;
         pageRef.current =
             pageCount > 1
                 ? (step) =>
                       setPageState({ query, page: Math.min(Math.max(page + step, 0), pageCount - 1) })
                 : null;
-    }, [search, visible, completion, query, page, pageCount, submitRef, completionRef, pageRef]);
+    }, [search, entries, completion, query, page, pageCount, submitRef, completionRef, pageRef]);
 
     let hubContent;
     if (hoveredEntry || !showingQuery) {
@@ -1054,10 +1058,10 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     const focusInput = useCallback(() => inputRef.current?.focus(), []);
     useEffect(focusInput, [focusInput]);
 
-    // The "Accept suggestion / pick first result" key (rebindable, Enter by
+    // The "Accept suggestion / pick the only match" key (rebindable, Enter by
     // default) is read on the C# side, since the focused field blocks game
     // actions. One key, one path: accept the hint's completion if there is one,
-    // otherwise pick the first result.
+    // otherwise pick the result if exactly one placeable one is left.
     useEffect(() => {
         const subscription = acceptSuggestion$.subscribe(() => {
             // Swallowed while a context menu is open: it must never pick the
