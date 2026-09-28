@@ -518,13 +518,20 @@ compile-time reference, since it's optional.
   `FindItUtil`, `PrefabIndexBase`, `PrefabIndex` and compare.
 - **Cost:** the snapshot's size and read time are logged after each load
   (`Find It <version>: read N catalogue entries (M subcategories) in T ms`).
-  Top-ring and Favorites search subscribe every subcategory while a query is
-  typed. Subscriptions end when the query is cleared or the menu closes, and
-  resubscribing makes C# write every subcategory again, so **each new search**
-  (not just the first) sends the whole catalogue and rebuilds the UI's search
-  index (one title lookup per asset). If that shows as a hitch on the first
-  keystroke, the fix is to keep the Find It subscriptions alive for the whole
-  time the menu is open, or cache the index across searches.
+  About 19k entries in testing, read in ~15 ms. Subscribing per search made
+  C# resend the whole catalogue and the UI rebuild ~19k search records at
+  the start of every search (a visible stall while typing). Instead:
+  - the always-mounted menu root subscribes every subcategory once, while
+    the integration is on (`find-it-catalogue.ts`), so C# sends it once per
+    load;
+  - search records are built per subcategory and cached (`search.ts`,
+    `findItPart`), keyed on the subcategory's asset array and a shared
+    record factory (themes, assetMeta, favorites, language; all
+    module-cached, so every component shares them);
+  - the root prewarms those parts in the background, one subcategory per
+    tick, when the catalogue arrives or favorites/assetMeta change, so even
+    the first search doesn't stall;
+  - a search then only builds the small toolbar part and merges.
 
 ## Other runtime quirks
 

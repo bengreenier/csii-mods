@@ -420,6 +420,8 @@ steps back a level; Escape and clicking the hub do.
 
 | File | Role | Pure (no game imports) |
 |---|---|---|
+| `search-index.ts` | Record factory, index parts (records + suggestions), combining parts | no |
+| `find-it-catalogue.ts` | Find It's catalogue, subscribed once at the menu root and shared via context | no |
 | `find-it.ts` / `FindItBridge.cs` / `RadialMenuUISystem.FindIt.cs` | Find It integration: reading its catalogue, bindings, titles and `cat:` text | no |
 | `query/aliases.ts` | One-way word aliases for text matching (`road` also matches `street`) | yes |
 | `query/lexer.ts` | `tokenize()`: tokens with negation/quote info; never throws | yes |

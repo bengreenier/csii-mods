@@ -1,16 +1,28 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useMapValues, useValue } from "cs2/api";
 import { prefab, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
 import { Entity, entityKey } from "cs2/utils";
 import { assetTitle as title, useAssetMetaByKey, useThemes } from "./asset-data";
-import { allAssets$, AssetMeta, findItActive$, findItAssets$, findItCategories$, searchAllThemes$ } from "./bindings";
+import { allAssets$, AssetMeta, findItActive$, findItCategories$, searchAllThemes$ } from "./bindings";
 import { useFavoriteKeys } from "./favorites";
-import { findItCategoryText } from "./find-it";
+import { FindItCatalogue, FindItCatalogueContext } from "./find-it-catalogue";
 import { evaluate } from "./query/evaluate";
-import { FilterContext } from "./query/filters";
 import { parse, ParsedQuery } from "./query/parser";
-import { AssetRecord, buildRecord, dlcSlug as iconSlug, fxTerms, netWidthLabel } from "./query/record";
+import { fxTerms } from "./query/record";
+import {
+    buildPart,
+    combineParts,
+    createRecordFactory,
+    IndexPart,
+    NO_LOCATION,
+    PartSource,
+    RecordFactory,
+    SearchIndex,
+    SearchResult,
+} from "./search-index";
+
+export type { SearchResult } from "./search-index";
 
 // ToolbarItemType.menu, see radial-menu.tsx.
 const TOOLBAR_ITEM_TYPE_MENU = 1;
@@ -27,15 +39,6 @@ export interface SearchScope {
     category: toolbar.AssetCategory;
 }
 
-// A match, with where it lives in the vanilla toolbar (picking it selects the
-// menu, category and asset, as a manual drill-down would). Assets only in Find
-// It's catalogue have no menu or category: they're placed directly.
-export interface SearchResult {
-    asset: toolbar.Asset;
-    menu?: Entity | null;
-    category?: Entity | null;
-}
-
 export interface SearchResults {
     parsed: ParsedQuery;
     // Whether the query constrains anything; if not, show the normal level.
@@ -50,11 +53,73 @@ export interface SearchResults {
 // data, so each prefab's details only ever need loading once.
 const FX_CACHE = new Map<string, string[]>();
 
-interface SearchIndex {
-    records: AssetRecord[];
-    byKey: Map<string, SearchResult>;
-    ctx: FilterContext;
+// ---- Shared record factory and Find It parts --------------------------------
+//
+// Find It's catalogue is ~20k assets, too many to turn into records per
+// search. Its records are built once per subcategory and cached, keyed on the
+// subcategory's asset array (stable until C# resends it) and on the record
+// factory (rebuilt when themes, assetMeta, favorites or the language change;
+// all of those are shared, module-cached values).
+
+let factoryInputs: unknown[] = [];
+let sharedFactory: RecordFactory | null = null;
+
+function getFactory(
+    themes: { name: string; icon: string }[],
+    metaByKey: ReadonlyMap<string, AssetMeta>,
+    favoriteKeys: ReadonlySet<string>,
+    loc: l10n.Localization
+): RecordFactory {
+    const inputs = [themes, metaByKey, favoriteKeys, loc];
+    if (!sharedFactory || inputs.some((v, i) => v !== factoryInputs[i])) {
+        factoryInputs = inputs;
+        sharedFactory = createRecordFactory(themes, metaByKey, favoriteKeys, loc);
+    }
+    return sharedFactory;
 }
+
+const findItParts = new WeakMap<toolbar.Asset[], { factory: RecordFactory; part: IndexPart }>();
+
+// After the toolbar (orderBase 0), and apart per subcategory, so toolbar
+// assets win ties and the order is stable.
+const findItOrderBase = (subId: number) => 1_000_000 + subId * 100_000;
+
+function findItPart(subId: number, assets: toolbar.Asset[], factory: RecordFactory): IndexPart {
+    const cached = findItParts.get(assets);
+    if (cached && cached.factory === factory) return cached.part;
+    const part = buildPart([{ assets, place: {}, location: NO_LOCATION }], factory, findItOrderBase(subId));
+    findItParts.set(assets, { factory, part });
+    return part;
+}
+
+function useFactory(loc: l10n.Localization): RecordFactory {
+    return getFactory(useThemes(), useAssetMetaByKey(), useFavoriteKeys(), loc);
+}
+
+/**
+ * Builds the Find It parts in the background, one subcategory per tick, as
+ * soon as the catalogue arrives, so even the first search doesn't stall.
+ * Call once, at the always-mounted root, below FindItCatalogueContext.
+ */
+export function usePrewarmFindItSearch(catalogue: FindItCatalogue, loc: l10n.Localization) {
+    const factory = useFactory(loc);
+    useEffect(() => {
+        const pending = [...catalogue.bySub.entries()];
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        const step = () => {
+            const next = pending.shift();
+            if (!next) return;
+            findItPart(next[0], next[1], factory);
+            timer = setTimeout(step, 0);
+        };
+        timer = setTimeout(step, 0);
+        return () => {
+            if (timer !== null) clearTimeout(timer);
+        };
+    }, [catalogue, factory]);
+}
+
+// ---- Search ----------------------------------------------------------------
 
 /**
  * Searches assets within `scope` (every unlocked menu at the root, else the
@@ -62,7 +127,7 @@ interface SearchIndex {
  * `favoritesOnly` narrows that to this city's favorites (the Favorites level),
  * using the same flag as is:favorite. `findIt` adds Find It subcategories
  * while its catalogue is in use: all of them by default at the root.
- * Nothing is subscribed while `query` is empty.
+ * Nothing toolbar-side is subscribed while `query` is empty.
  */
 export function useAssetSearch(
     query: string,
@@ -73,8 +138,7 @@ export function useAssetSearch(
     findIt: number[] | "all" = scope === "all" ? "all" : EMPTY
 ): SearchResults {
     const searching = query.trim().length > 0;
-    const themes = useThemes();
-    const metaByKey = useAssetMetaByKey();
+    const factory = useFactory(loc);
 
     // Root search needs every menu's categories first.
     const menus = useMemo(
@@ -100,8 +164,24 @@ export function useAssetSearch(
     const searchAllThemes = useValue(searchAllThemes$);
     const assetsPerCategory = useMapValues(searchAllThemes ? allAssets$ : toolbar.assets$, categoryKeys);
 
-    // Find It's catalogue, by subcategory (after the toolbar, so duplicates
-    // keep the toolbar's entry and toolbar assets win ties).
+    // The toolbar part: small, built per search.
+    const toolbarPart = useMemo(() => {
+        const sources: PartSource[] = resolvedScope.map((s, i) => ({
+            assets: assetsPerCategory[i],
+            place: { menu: s.menu.entity, category: s.category.entity },
+            location: {
+                menuName: s.menu.name,
+                menuTitle: title(loc, s.menu.name),
+                categoryName: s.category.name,
+                categoryTitle: title(loc, s.category.name),
+            },
+        }));
+        return buildPart(sources, factory, 0);
+    }, [resolvedScope, assetsPerCategory, factory, loc]);
+
+    // Find It's catalogue (subscribed at the root; see find-it-catalogue.ts),
+    // after the toolbar: duplicates keep the toolbar's entry.
+    const catalogue = useContext(FindItCatalogueContext);
     const findItActive = useValue(findItActive$);
     const findItCategories = useValue(findItCategories$);
     const findItSubs = useMemo(() => {
@@ -109,16 +189,19 @@ export function useAssetSearch(
         if (findIt !== "all") return findIt;
         return findItCategories.flatMap((c) => c.subCategories.map((s) => s.id));
     }, [searching, findItActive, findIt, findItCategories]);
-    const findItKeys = useStableNumbers(findItSubs);
-    const assetsPerFindItSub = useMapValues(findItAssets$, findItKeys);
+    const findItPartsInScope = useMemo(
+        () =>
+            findItSubs.flatMap((id) => {
+                const assets = catalogue.bySub.get(id);
+                return assets ? [findItPart(id, assets, factory)] : [];
+            }),
+        [findItSubs, catalogue, factory]
+    );
 
-    // For is:favorite and favoritesOnly.
-    const favoriteKeys = useFavoriteKeys(searching);
-
-    // Rebuilt only when game data changes, never per keystroke.
+    // Rebuilt only when game data or the scope changes, never per keystroke.
     const index = useMemo(
-        () => buildIndex(resolvedScope, assetsPerCategory, assetsPerFindItSub, themes, metaByKey, favoriteKeys, loc),
-        [resolvedScope, assetsPerCategory, assetsPerFindItSub, themes, metaByKey, favoriteKeys, loc]
+        () => combineParts([toolbarPart, ...findItPartsInScope]),
+        [toolbarPart, findItPartsInScope]
     );
 
     const parsed = useMemo(() => parse(query, index.ctx), [query, index.ctx]);
@@ -168,142 +251,6 @@ export function useAssetSearch(
     }, [parsed, evaluation, index]);
 }
 
-function buildIndex(
-    scope: SearchScope[],
-    assetsPerCategory: (toolbar.Asset[] | undefined)[],
-    assetsPerFindItSub: (toolbar.Asset[] | undefined)[],
-    themes: { name: string; icon: string }[],
-    metaByKey: ReadonlyMap<string, AssetMeta>,
-    favoriteKeys: ReadonlySet<string>,
-    loc: l10n.Localization
-): SearchIndex {
-    // Name + both titles the game may use for it (the theme filter tooltip
-    // uses ToolOptions.TOOLTIP_TITLE[<name>]).
-    const themeText = new Map(
-        themes.map((t) => [
-            t.icon,
-            [t.name, loc.translate(`ToolOptions.TOOLTIP_TITLE[${t.name}]`), title(loc, t.name)].filter(Boolean).join(" "),
-        ])
-    );
-    // Pack name + title (Assets.NAME[<name>], as in the vanilla pack filter).
-    const packText = new Map<string, string>();
-    const packTextOf = (name: string) => {
-        let text = packText.get(name);
-        if (text === undefined) packText.set(name, (text = `${name} ${title(loc, name)}`));
-        return text;
-    };
-    const records: AssetRecord[] = [];
-    const byKey = new Map<string, SearchResult>();
-    const dlcs = new Set<string>();
-    const sizes = new Map<string, { text: string; area: number }>();
-    const widths = new Set<number>();
-    const netWidths = new Set<number>();
-    const depths = new Set<number>();
-    const levels = new Set<number>();
-
-    // cat: text per Find It subcategory name, computed once each.
-    const catText = new Map<string, string>();
-    const catTextOf = (name: string) => {
-        let text = catText.get(name);
-        if (text === undefined) catText.set(name, (text = findItCategoryText(loc, name)));
-        return text;
-    };
-
-    // One record per asset; the first place an asset is seen wins.
-    const add = (
-        asset: toolbar.Asset,
-        place: { menu?: Entity; category?: Entity },
-        location: { menuName: string; menuTitle: string; categoryName: string; categoryTitle: string }
-    ) => {
-        const key = entityKey(asset.entity);
-        if (byKey.has(key)) return;
-        byKey.set(key, { asset, ...place });
-        const meta = metaByKey.get(key);
-        const record = buildRecord(
-            {
-                key,
-                name: asset.name,
-                title: title(loc, asset.name),
-                ...location,
-                // Unmapped theme icons fall back to the icon's file name,
-                // so theme: still has something to match.
-                themeText: asset.theme ? themeText.get(asset.theme) ?? iconSlug(asset.theme) : null,
-                packText: meta?.packs.map(packTextOf).join(" ") || null,
-                catText: meta?.findItCategory ? catTextOf(meta.findItCategory) : null,
-                lotWidth: meta?.lotWidth ?? 0,
-                lotDepth: meta?.lotDepth ?? 0,
-                netWidth: meta?.netWidth ?? 0,
-                zone: meta?.zone ?? null,
-                level: meta?.level ?? 0,
-                dlcIcon: asset.dlc,
-                unique: asset.unique,
-                placed: asset.placed,
-                highlight: asset.highlight,
-                favorite: favoriteKeys.has(key),
-                locked: asset.locked,
-            },
-            records.length
-        );
-        records.push(record);
-        if (record.dlcLc) dlcs.add(record.dlcLc);
-        if (record.lotWidth > 0) {
-            const text = `${record.lotWidth}x${record.lotDepth}`;
-            sizes.set(text, { text, area: record.lotWidth * record.lotDepth });
-            widths.add(record.lotWidth);
-            depths.add(record.lotDepth);
-        }
-        if (record.netWidth > 0) netWidths.add(record.netWidth);
-        if (record.level > 0) levels.add(record.level);
-    };
-
-    scope.forEach((s, i) => {
-        const location = {
-            menuName: s.menu.name,
-            menuTitle: title(loc, s.menu.name),
-            categoryName: s.category.name,
-            categoryTitle: title(loc, s.category.name),
-        };
-        const place = { menu: s.menu.entity, category: s.category.entity };
-        for (const asset of assetsPerCategory[i] ?? EMPTY) add(asset, place, location);
-    });
-    // Find It's catalogue: not in a vanilla toolbar category (in: doesn't
-    // match them; cat: does, from assetMeta).
-    const noLocation = { menuName: "", menuTitle: "", categoryName: "", categoryTitle: "" };
-    for (const assets of assetsPerFindItSub) {
-        for (const asset of assets ?? EMPTY) add(asset, {}, noLocation);
-    }
-
-    // Suggest only themes/packs assets in scope actually have (as dlc: does).
-    // Completions must be single words (a space would end the token).
-    const words = (text: (r: AssetRecord) => string) => {
-        const found = new Set<string>();
-        for (const record of records) {
-            for (const w of text(record).split(/[^a-z0-9]+/)) if (w.length >= 2) found.add(w);
-        }
-        return [...found].sort();
-    };
-
-    const numbers = (values: Set<number>) => [...values].sort((a, b) => a - b).map(String);
-
-    return {
-        records,
-        byKey,
-        ctx: {
-            themes: words((r) => r.themeLc),
-            dlcs: [...dlcs].sort(),
-            packs: words((r) => r.packLc),
-            cats: words((r) => r.catLc),
-            zones: words((r) => r.zoneLc),
-            sizes: [...sizes.values()].sort((a, b) => a.area - b.area || a.text.localeCompare(b.text)).map((s) => s.text),
-            // Lot widths in cells, then network widths ("2u", or "12m" when
-            // not whole cells).
-            widths: [...numbers(widths), ...new Set([...netWidths].sort((a, b) => a - b).map(netWidthLabel))],
-            depths: numbers(depths),
-            levels: numbers(levels),
-        },
-    };
-}
-
 // One fixed-size slice of the keys to load details for.
 function useDetailSlot(index: SearchIndex, loadKeys: string[], slot: number) {
     const entities = useMemo(
@@ -319,12 +266,6 @@ function useDetailSlot(index: SearchIndex, loadKeys: string[], slot: number) {
 
 // useMapValues re-subscribes whenever the keys array identity changes, so
 // only hand it a new array when the entities themselves change.
-function useStableNumbers(keys: number[]): number[] {
-    const signature = keys.join(",");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    return useMemo(() => (keys.length ? keys : EMPTY), [signature]);
-}
-
 function useStableKeys(keys: Entity[]): Entity[] {
     const signature = keys.map(entityKey).join(",");
     // eslint-disable-next-line react-hooks/exhaustive-deps

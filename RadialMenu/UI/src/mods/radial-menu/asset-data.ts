@@ -1,6 +1,5 @@
 // Shared lookups over game data used by search (search.ts), the right-click
 // menu (context-actions.ts), the metadata chips (asset-chips.tsx) and titles.
-import { useMemo } from "react";
 import { useMapValue, useValue } from "cs2/api";
 import { prefab, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
@@ -27,11 +26,20 @@ export function usePrefabTitle(entity: Entity | undefined, fallback: string): st
     return (details && loc.translate(details.titleId, fallback)) || fallback;
 }
 
+// Shared across components (like the assetMeta lookup below), so everyone
+// gets the same array: search caches records keyed on it.
+let themeSources: [unknown, unknown] = [null, null];
+let mergedThemes: { name: string; icon: string }[] = [];
+
 /** Every theme: toolbar.themes$ may only cover the vanilla panel's current category. */
 export function useThemes(): { name: string; icon: string }[] {
     const toolbarThemes = useValue(toolbar.themes$);
     const prefabThemes = useValue(prefab.themes$);
-    return useMemo(() => [...prefabThemes, ...toolbarThemes], [prefabThemes, toolbarThemes]);
+    if (themeSources[0] !== prefabThemes || themeSources[1] !== toolbarThemes) {
+        themeSources = [prefabThemes, toolbarThemes];
+        mergedThemes = [...prefabThemes, ...toolbarThemes];
+    }
+    return mergedThemes;
 }
 
 // assetMeta is static per game load and lists thousands of assets, so its

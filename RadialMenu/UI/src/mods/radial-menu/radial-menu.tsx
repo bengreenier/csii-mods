@@ -14,7 +14,6 @@ import {
     Favorite,
     FindItCategory,
     findItActive$,
-    findItAssets$,
     findItCategories$,
     FindItSubCategory,
     favorites$,
@@ -47,7 +46,8 @@ import { layoutQuery, MAX_QUERY_SHRINK } from "./query-layout";
 const HUB_CONTENT_MAX_HEIGHT = 0.9;
 import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
-import { SearchResult, SearchResults, SearchScope, useAssetSearch } from "./search";
+import { SearchResult, SearchResults, SearchScope, useAssetSearch, usePrewarmFindItSearch } from "./search";
+import { FindItCatalogueContext, useFindItCatalogueRoot } from "./find-it-catalogue";
 import styles from "./radial-menu.module.scss";
 
 // ToolbarItemType.menu. Compared numerically because the ambient enum from
@@ -764,7 +764,8 @@ interface FindItLevelProps extends SearchProps {
 const FindItLevel = ({ category, sub, onOpen, onBack, ...searchProps }: FindItLevelProps) => {
     const loc = useLocalization();
     const categories = useValue(findItCategories$);
-    const assets = useMapValue(findItAssets$, sub?.id) ?? EMPTY;
+    const catalogue = useContext(FindItCatalogueContext);
+    const assets = (sub && catalogue.bySub.get(sub.id)) || EMPTY;
     const lockPlaced = useValue(lockPlacedUnique$);
 
     const searchSubs = useMemo(
@@ -859,8 +860,15 @@ export const RadialMenu = () => {
     const backRef = useRef<(() => void) | null>(null);
     useModalInput(useValue(isolateInput$), backRef);
     useResetVanillaThemes();
+    // Find It's catalogue: subscribed and indexed here, once, not per search.
+    const findItCatalogue = useFindItCatalogueRoot();
+    usePrewarmFindItSearch(findItCatalogue, useLocalization());
     // Mounted only while open, so navigation and search reset on every open.
-    return isOpen ? <OpenRadialMenu backRef={backRef} /> : null;
+    return (
+        <FindItCatalogueContext.Provider value={findItCatalogue}>
+            {isOpen ? <OpenRadialMenu backRef={backRef} /> : null}
+        </FindItCatalogueContext.Provider>
+    );
 };
 
 // "Reset vanilla theme filter" (settings). Clears the asset selection first:
