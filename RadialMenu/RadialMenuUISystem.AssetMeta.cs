@@ -34,8 +34,12 @@ namespace RadialMenu
             // NetGeometryData.m_DefaultWidth in metres for networks (roads,
             // tracks, paths, ...); 0 otherwise.
             public float NetWidth;
+            // Find It's subcategory for the asset, e.g. "Props_Decals" (cat:),
+            // while the Find It integration is on; null otherwise.
+            public string FindItCategory;
 
-            public bool IsEmpty => Packs == null && LotWidth == 0 && Zone == null && Level == 0 && ModId == null && NetWidth == 0;
+            public bool IsEmpty => Packs == null && LotWidth == 0 && Zone == null && Level == 0 && ModId == null &&
+                                   NetWidth == 0 && FindItCategory == null;
         }
 
         private RawValueBinding _assetMeta;
@@ -59,6 +63,13 @@ namespace RadialMenu
             _assetMetaCache = null;
             _assetMeta.Update();
             RefreshAllAssets();
+        }
+
+        // Rebuilds and resends assetMeta (e.g. once Find It's catalogue is read).
+        private void RefreshAssetMeta()
+        {
+            _assetMetaCache = null;
+            _assetMeta.Update();
         }
 
         private void WriteAssetMeta(IJsonWriter writer)
@@ -89,6 +100,8 @@ namespace RadialMenu
                 else writer.WriteNull();
                 writer.PropertyName("netWidth");
                 writer.Write(meta.NetWidth);
+                writer.PropertyName("findItCategory");
+                WriteNullable(writer, meta.FindItCategory);
                 writer.TypeEnd();
             }
             writer.ArrayEnd();
@@ -97,7 +110,12 @@ namespace RadialMenu
         private List<AssetMeta> BuildAssetMeta()
         {
             var result = new List<AssetMeta>();
-            using var entities = _toolbarAssetQuery.ToEntityArray(Allocator.Temp);
+            using var toolbarEntities = _toolbarAssetQuery.ToEntityArray(Allocator.Temp);
+            // Toolbar assets, plus everything in Find It's catalogue while the
+            // integration is on (most of it isn't in the toolbar).
+            var entities = new HashSet<Entity>(toolbarEntities);
+            if (FindItActive && _findItEntries != null)
+                foreach (var entry in _findItEntries) entities.Add(entry.Entity);
             foreach (var entity in entities)
             {
                 var meta = new AssetMeta { Entity = entity, Packs = GetPacks(entity) };
@@ -118,6 +136,7 @@ namespace RadialMenu
                 meta.ModId = GetModId(entity);
                 if (EntityManager.TryGetComponent(entity, out NetGeometryData net) && net.m_DefaultWidth > 0)
                     meta.NetWidth = net.m_DefaultWidth;
+                meta.FindItCategory = FindItCategoryOf(entity);
                 if (!meta.IsEmpty) result.Add(meta);
             }
             return result;

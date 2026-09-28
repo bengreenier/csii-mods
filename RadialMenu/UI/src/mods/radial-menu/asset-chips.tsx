@@ -8,6 +8,7 @@ import { prefab, toolbar } from "cs2/bindings";
 import { entityKey } from "cs2/utils";
 import { assetTitle, themeTitle, useAssetMetaByKey, useThemes } from "./asset-data";
 import { useFavoriteKeys } from "./favorites";
+import { findItTitle } from "./find-it";
 import { useLocalization } from "./localization";
 import { assetChips, Chip, spaced } from "./query/chips";
 import { dlcSlug, effectTypes, iconName, MOD_DLC_SLUG } from "./query/record";
@@ -52,6 +53,9 @@ export function useAssetChips(asset: toolbar.Asset | null): Chip[] {
             lotWidth: meta?.lotWidth ?? 0,
             lotDepth: meta?.lotDepth ?? 0,
             netWidth: meta?.netWidth ?? 0,
+            findItCategory: meta?.findItCategory
+                ? { name: meta.findItCategory, title: findItTitle(loc, meta.findItCategory) }
+                : null,
             level: meta?.level ?? 0,
             effects: effectTypes(details?.effects),
         });

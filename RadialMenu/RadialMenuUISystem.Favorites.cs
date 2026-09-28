@@ -44,12 +44,15 @@ namespace RadialMenu
             var entries = new System.Collections.Generic.List<(Entity asset, Entity menu, Entity category)>();
             foreach (var asset in _favoritesSystem.GetResolvedFavorites())
             {
-                // Only assets that live in a toolbar category can be shown and
-                // selected like the rest of the menu.
-                if (!EntityManager.TryGetComponent(asset, out UIObjectData uiObject) ||
-                    !EntityManager.TryGetComponent(uiObject.m_Group, out UIAssetCategoryData category))
-                    continue;
-                entries.Add((asset, category.m_Menu, uiObject.m_Group));
+                // Toolbar assets come with their menu and category (picking one
+                // selects that chain). Others, e.g. props favorited from Find
+                // It's catalogue, get Entity.Null for both: the UI places them
+                // directly (activatePrefab), with or without Find It.
+                if (EntityManager.TryGetComponent(asset, out UIObjectData uiObject) &&
+                    EntityManager.TryGetComponent(uiObject.m_Group, out UIAssetCategoryData category))
+                    entries.Add((asset, category.m_Menu, uiObject.m_Group));
+                else
+                    entries.Add((asset, Entity.Null, Entity.Null));
             }
 
             writer.ArrayBegin(entries.Count);
@@ -61,9 +64,11 @@ namespace RadialMenu
                     _uniqueAssetTrackingSystem.IsUniqueAsset(asset),
                     _uniqueAssetTrackingSystem.IsPlacedUniqueAsset(asset));
                 writer.PropertyName("menu");
-                writer.Write(menu);
+                if (menu != Entity.Null) writer.Write(menu);
+                else writer.WriteNull();
                 writer.PropertyName("category");
-                writer.Write(category);
+                if (category != Entity.Null) writer.Write(category);
+                else writer.WriteNull();
                 writer.TypeEnd();
             }
             writer.ArrayEnd();

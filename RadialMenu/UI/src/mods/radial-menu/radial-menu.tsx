@@ -9,8 +9,14 @@ import {
     acceptSuggestion$,
     allAssets$,
     browseAllThemes$,
+    activatePrefab,
     close,
     Favorite,
+    FindItCategory,
+    findItActive$,
+    findItAssets$,
+    findItCategories$,
+    FindItSubCategory,
     favorites$,
     isOpen$,
     hubImage$,
@@ -29,6 +35,7 @@ import { HubChips, useAssetChips } from "./asset-chips";
 import { usePrefabTitle } from "./asset-data";
 import { appendToQuery, Chip, chipQuery } from "./query/chips";
 import { useLocalization } from "./localization";
+import { FIND_IT_ICON, FIND_IT_TITLE, findItTitle } from "./find-it";
 import { FAVORITE_COLOR, FAVORITE_ICON, FAVORITES_EMPTY_MESSAGE, FAVORITES_TITLE } from "./favorites";
 import { TintedIcon } from "./tinted-icon";
 import { ContextMenu, ContextTarget, OpenContextMenu } from "./context-menu";
@@ -150,6 +157,9 @@ interface Path {
     menu?: toolbar.ToolbarItem;
     category?: toolbar.AssetCategory;
     favorites?: boolean;
+    // The Find It level: its categories, then a category's subcategories,
+    // then a subcategory's assets (RadialMenuUISystem.FindIt.cs).
+    findIt?: { category?: FindItCategory; sub?: FindItSubCategory };
 }
 
 // What the hub names when nothing is hovered. `title` is shown as is; without
@@ -264,17 +274,26 @@ function selectAssetChain(menu: Entity, category: Entity, asset: Entity) {
     close();
 }
 
-// An asset shown outside its own category, with the menu and category that
-// picking it selects: search results and favorites.
-interface AssetElsewhere {
-    asset: toolbar.Asset;
-    menu: Entity;
-    category: Entity;
+// Places an asset that isn't in the vanilla toolbar (Find It's catalogue)
+// directly, as Find It does. Vanilla's toolbar notices the new active prefab
+// by itself (ToolbarUISystem.OnUpdate), so no toolbar selects are needed.
+function placeDirectly(asset: Entity) {
+    selectedInfo.clearSelection();
+    map.disableMapTileView();
+    activatePrefab(asset);
+    close();
 }
+
+// An asset shown outside its own category: search results and favorites.
+// With a menu and category, picking it selects that chain; without (Find It
+// only), it's placed directly.
+type AssetElsewhere = SearchResult;
 
 const assetElsewhereEntries = (items: AssetElsewhere[], lockPlaced: boolean): WheelEntry[] =>
     items.map(({ asset, menu, category }) =>
-        assetEntry(asset, lockPlaced, () => selectAssetChain(menu, category, asset.entity))
+        assetEntry(asset, lockPlaced, () =>
+            menu && category ? selectAssetChain(menu, category, asset.entity) : placeDirectly(asset.entity)
+        )
     );
 
 // Favorites are never disabled for being placed.
@@ -285,11 +304,7 @@ const favoriteEntries = (favorites: Favorite[]) => assetElsewhereEntries(favorit
 function useResultEntries(results: SearchResult[], neverLockPlaced = false): WheelEntry[] {
     const lockPlaced = useValue(lockPlacedUnique$) && !neverLockPlaced;
     return useMemo(
-        () =>
-            assetElsewhereEntries(
-                results.map(({ asset, menu, category }) => ({ asset, menu: menu.entity, category: category.entity })),
-                lockPlaced
-            ),
+        () => assetElsewhereEntries(results, lockPlaced),
         [results, lockPlaced]
     );
 }
@@ -604,9 +619,11 @@ const Wheel = ({
 interface RootLevelProps extends SearchProps {
     onOpenMenu: (menu: toolbar.ToolbarItem) => void;
     onOpenFavorites: () => void;
+    onOpenFindIt: () => void;
 }
 
-const RootLevel = ({ onOpenMenu, onOpenFavorites, ...searchProps }: RootLevelProps) => {
+const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenFindIt, ...searchProps }: RootLevelProps) => {
+    const findItActive = useValue(findItActive$);
     const groups = useValue(toolbar.toolbarGroups$);
     const { inRadial: bulldozerInRadial } = useBulldozerPlacement();
     const search = useAssetSearch(searchProps.query, useLocalization(), groups, "all");
@@ -638,8 +655,24 @@ const RootLevel = ({ onOpenMenu, onOpenFavorites, ...searchProps }: RootLevelPro
                 disabled: false,
                 group: groups.length,
                 onSelect: onOpenFavorites,
-            }),
-        [groups, bulldozerInRadial, onOpenMenu, onOpenFavorites]
+            }).concat(
+                // With the Find It catalogue in use, its browser, next to Favorites.
+                findItActive
+                    ? [
+                          {
+                              key: FIND_IT_KEY,
+                              entity: NO_ENTITY,
+                              name: FIND_IT_TITLE,
+                              title: FIND_IT_TITLE,
+                              icon: FIND_IT_ICON,
+                              disabled: false,
+                              group: groups.length,
+                              onSelect: onOpenFindIt,
+                          },
+                      ]
+                    : []
+            ),
+        [groups, bulldozerInRadial, onOpenMenu, onOpenFavorites, onOpenFindIt, findItActive]
     );
     const resultEntries = useResultEntries(search.results);
 
@@ -714,6 +747,73 @@ const FavoritesLevel = ({ onBack, ...searchProps }: FavoritesLevelProps) => {
 };
 
 const FAVORITES_LABEL: HubLabel = { entity: NO_ENTITY, name: FAVORITES_TITLE, title: FAVORITES_TITLE };
+
+const FIND_IT_KEY = "radialMenu.findIt";
+
+interface FindItLevelProps extends SearchProps {
+    category?: FindItCategory;
+    sub?: FindItSubCategory;
+    onOpen: (place: { category?: FindItCategory; sub?: FindItSubCategory }) => void;
+    onBack: () => void;
+}
+
+// The Find It catalogue: categories, then subcategories, then assets. A
+// category with one subcategory goes straight to its assets (as vanilla hides
+// the tab bar then). Assets are placed directly (placeDirectly). Typing
+// searches what's in view: everything, a category, or a subcategory.
+const FindItLevel = ({ category, sub, onOpen, onBack, ...searchProps }: FindItLevelProps) => {
+    const loc = useLocalization();
+    const categories = useValue(findItCategories$);
+    const assets = useMapValue(findItAssets$, sub?.id) ?? EMPTY;
+    const lockPlaced = useValue(lockPlacedUnique$);
+
+    const searchSubs = useMemo(
+        () => (sub ? [sub.id] : (category ? [category] : categories).flatMap((c) => c.subCategories.map((s) => s.id))),
+        [sub, category, categories]
+    );
+    const search = useAssetSearch(searchProps.query, loc, EMPTY, EMPTY, false, searchSubs);
+    const resultEntries = useResultEntries(search.results);
+
+    const entries = useMemo<WheelEntry[]>(() => {
+        if (sub) return assets.map((asset) => assetEntry(asset, lockPlaced, () => placeDirectly(asset.entity)));
+        if (category) {
+            return category.subCategories.map((s) => ({
+                key: `findIt.sub.${s.id}`,
+                entity: NO_ENTITY,
+                name: s.name,
+                title: findItTitle(loc, s.name),
+                icon: s.icon ?? category.icon ?? FIND_IT_ICON,
+                disabled: false,
+                onSelect: () => onOpen({ category, sub: s }),
+            }));
+        }
+        return categories.map((c) => ({
+            key: `findIt.category.${c.id}`,
+            entity: NO_ENTITY,
+            name: c.name,
+            title: findItTitle(loc, c.name),
+            icon: c.icon ?? FIND_IT_ICON,
+            disabled: false,
+            onSelect: () =>
+                onOpen(c.subCategories.length === 1 ? { category: c, sub: c.subCategories[0] } : { category: c }),
+        }));
+    }, [sub, category, categories, assets, lockPlaced, loc, onOpen]);
+
+    const deepest = sub ?? category;
+    const current: HubLabel = deepest
+        ? { entity: NO_ENTITY, name: deepest.name, title: findItTitle(loc, deepest.name) }
+        : { entity: NO_ENTITY, name: FIND_IT_TITLE, title: FIND_IT_TITLE };
+
+    return (
+        <Wheel
+            entries={search.active ? resultEntries : entries}
+            search={search}
+            current={current}
+            onBack={onBack}
+            {...searchProps}
+        />
+    );
+};
 
 interface CategoryLevelProps extends SearchProps {
     menu: toolbar.ToolbarItem;
@@ -829,6 +929,15 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
 
     const openMenu = useCallback((menu: toolbar.ToolbarItem) => setPath({ menu }), []);
     const openFavorites = useCallback(() => setPath({ favorites: true }), []);
+    const openFindIt = useCallback(
+        (place: { category?: FindItCategory; sub?: FindItSubCategory } = {}) => setPath({ findIt: place }),
+        []
+    );
+    // Leave the Find It level if the integration is switched off meanwhile.
+    const findItActive = useValue(findItActive$);
+    useEffect(() => {
+        if (!findItActive && path.findIt) setPath({});
+    }, [findItActive, path.findIt]);
     const openCategory = useCallback(
         (category: toolbar.AssetCategory) => setPath((p) => ({ ...p, category })),
         []
@@ -860,6 +969,15 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         // Favorites never opened a vanilla menu, so there's nothing to reset.
         if (path.favorites) {
             setPath({});
+            return;
+        }
+        // Find It: up one step (a single-subcategory category was skipped on
+        // the way in, so skip it on the way out too); nothing vanilla to reset.
+        if (path.findIt) {
+            const { category, sub } = path.findIt;
+            if (sub && category && category.subCategories.length > 1) setPath({ findIt: { category } });
+            else if (sub || category) setPath({ findIt: {} });
+            else setPath({});
             return;
         }
         toolbar.clearAssetSelection();
@@ -967,6 +1085,18 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     let level;
     if (path.favorites) {
         level = <FavoritesLevel key="favorites" onBack={back} {...searchProps} />;
+    } else if (path.findIt) {
+        const { category, sub } = path.findIt;
+        level = (
+            <FindItLevel
+                key={`findIt:${category?.id ?? ""}:${sub?.id ?? ""}`}
+                category={category}
+                sub={sub}
+                onOpen={openFindIt}
+                onBack={back}
+                {...searchProps}
+            />
+        );
     } else if (path.menu && path.category) {
         level = (
             <CategoryLevel
@@ -989,7 +1119,15 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
             />
         );
     } else {
-        level = <RootLevel key="root" onOpenMenu={openMenu} onOpenFavorites={openFavorites} {...searchProps} />;
+        level = (
+            <RootLevel
+                key="root"
+                onOpenMenu={openMenu}
+                onOpenFavorites={openFavorites}
+                onOpenFindIt={openFindIt}
+                {...searchProps}
+            />
+        );
     }
 
     return (

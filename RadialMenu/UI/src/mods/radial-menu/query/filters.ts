@@ -7,6 +7,8 @@ export interface FilterContext {
     themes: string[];
     dlcs: string[];
     packs: string[];
+    // Find It category words in scope (cat:).
+    cats: string[];
     zones: string[];
     // "WxD", ordered by area.
     sizes: string[];
@@ -137,6 +139,16 @@ export const FILTERS: FilterDef[] = [
         compile: (atoms, ctx) => {
             if (!atoms.every((a) => knownWordPrefix(ctx.packs, a))) return null;
             return (r) => atoms.some((a) => hasWordPrefix(r.packLc, a));
+        },
+    },
+    {
+        // Find It's categories and subcategories ("cat: decals"), while its
+        // catalogue is in use.
+        key: "cat",
+        suggest: (ctx) => ctx.cats,
+        compile: (atoms, ctx) => {
+            if (!atoms.every((a) => knownWordPrefix(ctx.cats, a))) return null;
+            return (r) => atoms.some((a) => hasWordPrefix(r.catLc, a));
         },
     },
     {

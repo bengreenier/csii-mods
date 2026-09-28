@@ -13,6 +13,8 @@ export interface RecordSource {
     themeText: string | null;
     // Asset pack display text (names + titles) for the asset's packs, if any.
     packText: string | null;
+    // Find It category text (find-it.ts findItCategoryText), if any.
+    catText: string | null;
     // From the C# assetMeta binding; 0 / null when not applicable.
     lotWidth: number;
     lotDepth: number;
@@ -38,6 +40,7 @@ export interface AssetRecord {
     locationLc: string;
     themeLc: string;
     packLc: string;
+    catLc: string;
     // Lot size in cells (frontage x depth); 0 if not a building.
     lotWidth: number;
     lotDepth: number;
@@ -86,6 +89,7 @@ export function buildRecord(src: RecordSource, order: number): AssetRecord {
         locationLc: `${src.menuTitle} ${src.menuName} ${src.categoryTitle} ${src.categoryName}`.toLowerCase(),
         themeLc: (src.themeText ?? "").toLowerCase(),
         packLc: (src.packText ?? "").toLowerCase(),
+        catLc: (src.catText ?? "").toLowerCase(),
         lotWidth: src.lotWidth,
         netWidth: src.netWidth,
         lotDepth: src.lotDepth,

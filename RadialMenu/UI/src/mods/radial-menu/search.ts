@@ -4,8 +4,9 @@ import { prefab, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
 import { Entity, entityKey } from "cs2/utils";
 import { assetTitle as title, useAssetMetaByKey, useThemes } from "./asset-data";
-import { allAssets$, AssetMeta, searchAllThemes$ } from "./bindings";
+import { allAssets$, AssetMeta, findItActive$, findItAssets$, findItCategories$, searchAllThemes$ } from "./bindings";
 import { useFavoriteKeys } from "./favorites";
+import { findItCategoryText } from "./find-it";
 import { evaluate } from "./query/evaluate";
 import { FilterContext } from "./query/filters";
 import { parse, ParsedQuery } from "./query/parser";
@@ -26,8 +27,13 @@ export interface SearchScope {
     category: toolbar.AssetCategory;
 }
 
-export interface SearchResult extends SearchScope {
+// A match, with where it lives in the vanilla toolbar (picking it selects the
+// menu, category and asset, as a manual drill-down would). Assets only in Find
+// It's catalogue have no menu or category: they're placed directly.
+export interface SearchResult {
     asset: toolbar.Asset;
+    menu?: Entity | null;
+    category?: Entity | null;
 }
 
 export interface SearchResults {
@@ -54,7 +60,8 @@ interface SearchIndex {
  * Searches assets within `scope` (every unlocked menu at the root, else the
  * given categories) using the query language in docs/search-schema.md.
  * `favoritesOnly` narrows that to this city's favorites (the Favorites level),
- * using the same flag as is:favorite.
+ * using the same flag as is:favorite. `findIt` adds Find It subcategories
+ * while its catalogue is in use: all of them by default at the root.
  * Nothing is subscribed while `query` is empty.
  */
 export function useAssetSearch(
@@ -62,7 +69,8 @@ export function useAssetSearch(
     loc: l10n.Localization,
     groups: toolbar.ToolbarGroup[],
     scope: SearchScope[] | "all",
-    favoritesOnly = false
+    favoritesOnly = false,
+    findIt: number[] | "all" = scope === "all" ? "all" : EMPTY
 ): SearchResults {
     const searching = query.trim().length > 0;
     const themes = useThemes();
@@ -92,13 +100,25 @@ export function useAssetSearch(
     const searchAllThemes = useValue(searchAllThemes$);
     const assetsPerCategory = useMapValues(searchAllThemes ? allAssets$ : toolbar.assets$, categoryKeys);
 
+    // Find It's catalogue, by subcategory (after the toolbar, so duplicates
+    // keep the toolbar's entry and toolbar assets win ties).
+    const findItActive = useValue(findItActive$);
+    const findItCategories = useValue(findItCategories$);
+    const findItSubs = useMemo(() => {
+        if (!searching || !findItActive) return EMPTY;
+        if (findIt !== "all") return findIt;
+        return findItCategories.flatMap((c) => c.subCategories.map((s) => s.id));
+    }, [searching, findItActive, findIt, findItCategories]);
+    const findItKeys = useStableNumbers(findItSubs);
+    const assetsPerFindItSub = useMapValues(findItAssets$, findItKeys);
+
     // For is:favorite and favoritesOnly.
     const favoriteKeys = useFavoriteKeys(searching);
 
     // Rebuilt only when game data changes, never per keystroke.
     const index = useMemo(
-        () => buildIndex(resolvedScope, assetsPerCategory, themes, metaByKey, favoriteKeys, loc),
-        [resolvedScope, assetsPerCategory, themes, metaByKey, favoriteKeys, loc]
+        () => buildIndex(resolvedScope, assetsPerCategory, assetsPerFindItSub, themes, metaByKey, favoriteKeys, loc),
+        [resolvedScope, assetsPerCategory, assetsPerFindItSub, themes, metaByKey, favoriteKeys, loc]
     );
 
     const parsed = useMemo(() => parse(query, index.ctx), [query, index.ctx]);
@@ -151,6 +171,7 @@ export function useAssetSearch(
 function buildIndex(
     scope: SearchScope[],
     assetsPerCategory: (toolbar.Asset[] | undefined)[],
+    assetsPerFindItSub: (toolbar.Asset[] | undefined)[],
     themes: { name: string; icon: string }[],
     metaByKey: ReadonlyMap<string, AssetMeta>,
     favoriteKeys: ReadonlySet<string>,
@@ -180,53 +201,77 @@ function buildIndex(
     const depths = new Set<number>();
     const levels = new Set<number>();
 
-    scope.forEach((s, i) => {
-        const menuTitle = title(loc, s.menu.name);
-        const categoryTitle = title(loc, s.category.name);
-        for (const asset of assetsPerCategory[i] ?? EMPTY) {
-            const key = entityKey(asset.entity);
-            if (byKey.has(key)) continue;
-            byKey.set(key, { ...s, asset });
-            const meta = metaByKey.get(key);
-            const record = buildRecord(
-                {
-                    key,
-                    name: asset.name,
-                    title: title(loc, asset.name),
-                    menuName: s.menu.name,
-                    menuTitle,
-                    categoryName: s.category.name,
-                    categoryTitle,
-                    // Unmapped theme icons fall back to the icon's file name,
-                    // so theme: still has something to match.
-                    themeText: asset.theme ? themeText.get(asset.theme) ?? iconSlug(asset.theme) : null,
-                    packText: meta?.packs.map(packTextOf).join(" ") || null,
-                    lotWidth: meta?.lotWidth ?? 0,
-                    lotDepth: meta?.lotDepth ?? 0,
-                    netWidth: meta?.netWidth ?? 0,
-                    zone: meta?.zone ?? null,
-                    level: meta?.level ?? 0,
-                    dlcIcon: asset.dlc,
-                    unique: asset.unique,
-                    placed: asset.placed,
-                    highlight: asset.highlight,
-                    favorite: favoriteKeys.has(key),
-                    locked: asset.locked,
-                },
-                records.length
-            );
-            records.push(record);
-            if (record.dlcLc) dlcs.add(record.dlcLc);
-            if (record.lotWidth > 0) {
-                const text = `${record.lotWidth}x${record.lotDepth}`;
-                sizes.set(text, { text, area: record.lotWidth * record.lotDepth });
-                widths.add(record.lotWidth);
-                depths.add(record.lotDepth);
-            }
-            if (record.netWidth > 0) netWidths.add(record.netWidth);
-            if (record.level > 0) levels.add(record.level);
+    // cat: text per Find It subcategory name, computed once each.
+    const catText = new Map<string, string>();
+    const catTextOf = (name: string) => {
+        let text = catText.get(name);
+        if (text === undefined) catText.set(name, (text = findItCategoryText(loc, name)));
+        return text;
+    };
+
+    // One record per asset; the first place an asset is seen wins.
+    const add = (
+        asset: toolbar.Asset,
+        place: { menu?: Entity; category?: Entity },
+        location: { menuName: string; menuTitle: string; categoryName: string; categoryTitle: string }
+    ) => {
+        const key = entityKey(asset.entity);
+        if (byKey.has(key)) return;
+        byKey.set(key, { asset, ...place });
+        const meta = metaByKey.get(key);
+        const record = buildRecord(
+            {
+                key,
+                name: asset.name,
+                title: title(loc, asset.name),
+                ...location,
+                // Unmapped theme icons fall back to the icon's file name,
+                // so theme: still has something to match.
+                themeText: asset.theme ? themeText.get(asset.theme) ?? iconSlug(asset.theme) : null,
+                packText: meta?.packs.map(packTextOf).join(" ") || null,
+                catText: meta?.findItCategory ? catTextOf(meta.findItCategory) : null,
+                lotWidth: meta?.lotWidth ?? 0,
+                lotDepth: meta?.lotDepth ?? 0,
+                netWidth: meta?.netWidth ?? 0,
+                zone: meta?.zone ?? null,
+                level: meta?.level ?? 0,
+                dlcIcon: asset.dlc,
+                unique: asset.unique,
+                placed: asset.placed,
+                highlight: asset.highlight,
+                favorite: favoriteKeys.has(key),
+                locked: asset.locked,
+            },
+            records.length
+        );
+        records.push(record);
+        if (record.dlcLc) dlcs.add(record.dlcLc);
+        if (record.lotWidth > 0) {
+            const text = `${record.lotWidth}x${record.lotDepth}`;
+            sizes.set(text, { text, area: record.lotWidth * record.lotDepth });
+            widths.add(record.lotWidth);
+            depths.add(record.lotDepth);
         }
+        if (record.netWidth > 0) netWidths.add(record.netWidth);
+        if (record.level > 0) levels.add(record.level);
+    };
+
+    scope.forEach((s, i) => {
+        const location = {
+            menuName: s.menu.name,
+            menuTitle: title(loc, s.menu.name),
+            categoryName: s.category.name,
+            categoryTitle: title(loc, s.category.name),
+        };
+        const place = { menu: s.menu.entity, category: s.category.entity };
+        for (const asset of assetsPerCategory[i] ?? EMPTY) add(asset, place, location);
     });
+    // Find It's catalogue: not in a vanilla toolbar category (in: doesn't
+    // match them; cat: does, from assetMeta).
+    const noLocation = { menuName: "", menuTitle: "", categoryName: "", categoryTitle: "" };
+    for (const assets of assetsPerFindItSub) {
+        for (const asset of assets ?? EMPTY) add(asset, {}, noLocation);
+    }
 
     // Suggest only themes/packs assets in scope actually have (as dlc: does).
     // Completions must be single words (a space would end the token).
@@ -247,6 +292,7 @@ function buildIndex(
             themes: words((r) => r.themeLc),
             dlcs: [...dlcs].sort(),
             packs: words((r) => r.packLc),
+            cats: words((r) => r.catLc),
             zones: words((r) => r.zoneLc),
             sizes: [...sizes.values()].sort((a, b) => a.area - b.area || a.text.localeCompare(b.text)).map((s) => s.text),
             // Lot widths in cells, then network widths ("2u", or "12m" when
@@ -273,6 +319,12 @@ function useDetailSlot(index: SearchIndex, loadKeys: string[], slot: number) {
 
 // useMapValues re-subscribes whenever the keys array identity changes, so
 // only hand it a new array when the entities themselves change.
+function useStableNumbers(keys: number[]): number[] {
+    const signature = keys.join(",");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return useMemo(() => (keys.length ? keys : EMPTY), [signature]);
+}
+
 function useStableKeys(keys: Entity[]): Entity[] {
     const signature = keys.map(entityKey).join(",");
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -18,6 +18,7 @@ namespace RadialMenu
     {
         private List<FindItBridge.Entry> _findItEntries;
         private Dictionary<int, List<Entity>> _findItBySubCategory = new Dictionary<int, List<Entity>>();
+        private Dictionary<Entity, string> _findItCategoryByEntity = new Dictionary<Entity, string>();
         private RawValueBinding _findItCategories;
         private RawMapBinding<int> _findItAssets;
         private ValueBinding<bool> _findItActive;
@@ -46,6 +47,7 @@ namespace RadialMenu
         {
             _findItEntries = null;
             _findItBySubCategory = new Dictionary<int, List<Entity>>();
+            _findItCategoryByEntity = new Dictionary<Entity, string>();
         }
 
         // Called every update: reads the index once Find It is ready, and
@@ -53,7 +55,12 @@ namespace RadialMenu
         private void UpdateFindIt()
         {
             var active = FindItActive && _findItEntries != null;
-            if (_findItActive.value != active) _findItActive.Update(active);
+            if (_findItActive.value != active)
+            {
+                _findItActive.Update(active);
+                // assetMeta includes Find It's catalogue only while it's on.
+                RefreshAssetMeta();
+            }
 
             if (_findItEntries != null || !FindItActive || !FindItBridge.IsReady()) return;
 
@@ -64,12 +71,19 @@ namespace RadialMenu
             _findItBySubCategory = entries
                 .GroupBy(e => e.SubCategory)
                 .ToDictionary(g => g.Key, g => g.Select(e => e.Entity).ToList());
+            _findItCategoryByEntity = new Dictionary<Entity, string>();
+            foreach (var entry in entries) _findItCategoryByEntity[entry.Entity] = entry.SubCategoryName;
             Mod.LOG.Info($"Find It {FindItBridge.Version}: read {entries.Count} catalogue entries " +
                          $"({_findItBySubCategory.Count} subcategories) in {stopwatch.ElapsedMilliseconds} ms");
             _findItCategories.Update();
             _findItAssets.UpdateAll();
             _findItActive.Update(FindItActive);
+            RefreshAssetMeta();
         }
+
+        // Find It's subcategory name for an asset (assetMeta), while it's on.
+        private string FindItCategoryOf(Entity entity) =>
+            FindItActive && _findItCategoryByEntity.TryGetValue(entity, out var name) ? name : null;
 
         // [{ id, name, icon, subCategories: [{ id, name, icon, count }] }], in
         // Find It's order. Names are Find It's enum names; the UI shows them

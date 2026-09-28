@@ -36,6 +36,9 @@ export interface ChipSource {
     level: number;
     // Effect type names (effectTypes in record.ts); empty until details load.
     effects: string[];
+    // Find It's subcategory ("Props_Decals") and its title ("Decals"), while
+    // the Find It integration is on.
+    findItCategory: { name: string; title: string } | null;
 }
 
 // "OfficeEvolution" -> "Office Evolution".
@@ -62,6 +65,11 @@ export function assetChips(src: ChipSource): Chip[] {
     if (src.unique) is(src.placed ? "placed" : "unique");
     if (src.mod) is("mod");
 
+    // cat: the subcategory's own word ("Props_Decals" -> "decals").
+    if (src.findItCategory) {
+        const { name, title } = src.findItCategory;
+        add("cat", title, name.slice(name.lastIndexOf("_") + 1).toLowerCase());
+    }
     if (src.themeTitle) add("theme", src.themeTitle, firstWord(src.themeTitle));
     for (const pack of src.packTitles) add("pack", pack, firstWord(pack));
     // dlc: matches part of the DLC's icon name, e.g. "officeevolution".
