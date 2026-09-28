@@ -517,7 +517,7 @@ namespace RadialMenu
                     "With the Find It mod enabled and 'Use Find It's catalogue' on (Main tab, on by default), the radial menu " +
                     "can reach everything Find It lists: props, decals, trees, vehicles and more, not just the vanilla toolbar.\n" +
                     "The Find It button at the end of the top ring browses Find It's categories. " +
-                    "Searching from the top ring includes the whole catalogue, with toolbar items first.\n" +
+                    "Searching from the top ring includes the whole catalogue; between equally good matches, toolbar items come first.\n" +
                     "'cat: decals' - things in a Find It category, e.g. 'cat: props', 'cat: trees' or 'cat: fences'. " +
                     "Combine them to narrow down: 'cat: props cat: residential'.\n" +
                     "Anything from Find It can be added to your favorites too."

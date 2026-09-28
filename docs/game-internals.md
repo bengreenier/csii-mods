@@ -485,8 +485,12 @@ compile-time reference, since it's optional.
     Dictionary<PrefabSubCategory, IndexedPrefabList>>`; `[Any = -1][Any = -1]`
     is everything. `IndexedPrefabList` is `IEnumerable<PrefabIndex>`.
   - `FindItUtil.IsReady`: set once its full index is built (in its
-    `PrefabIndexingSystem.OnGameLoadingComplete`). We poll it after each
-    load and snapshot the index once.
+    `PrefabIndexingSystem.OnGameLoadingComplete`), and **never reset**. So
+    after a second load it's already true before Find It re-indexes: we
+    snapshot only once our own `OnGameLoadingComplete` has run too (every
+    loading-complete callback, Find It's re-index included, finishes before
+    our next update). Prefabs Find It adds later (its incremental `OnUpdate`
+    indexing) aren't picked up until the next load.
   - `PrefabIndex.Prefab` (`PrefabBase`), `.Category`, `.SubCategory` (enums,
     read as ints; names via `Enum.GetName`).
   - The `CategoryIconAttribute.Icon` on the category enums, for icons. Some
@@ -507,8 +511,13 @@ compile-time reference, since it's optional.
   `FindItUtil`, `PrefabIndexBase`, `PrefabIndex` and compare.
 - **Cost:** the snapshot's size and read time are logged after each load
   (`Find It <version>: read N catalogue entries (M subcategories) in T ms`).
-  Top-ring search subscribes every subcategory, so the first search after a
-  load sends the whole catalogue once.
+  Top-ring and Favorites search subscribe every subcategory while a query is
+  typed. Subscriptions end when the query is cleared or the menu closes, and
+  resubscribing makes C# write every subcategory again, so **each new search**
+  (not just the first) sends the whole catalogue and rebuilds the UI's search
+  index (one title lookup per asset). If that shows as a hitch on the first
+  keystroke, the fix is to keep the Find It subscriptions alive for the whole
+  time the menu is open, or cache the index across searches.
 
 ## Other runtime quirks
 

@@ -22,6 +22,12 @@ namespace RadialMenu
         private RawValueBinding _findItCategories;
         private RawMapBinding<int> _findItAssets;
         private ValueBinding<bool> _findItActive;
+        // Set once this load has completed. Find It sets FindItUtil.IsReady
+        // once and never resets it, so after a second load IsReady is already
+        // true before Find It re-indexes; waiting for loading-complete (all its
+        // callbacks, Find It's re-index included, run before our next update)
+        // avoids snapshotting the previous load's index.
+        private bool _findItLoadComplete;
 
         /// <summary>The integration is wanted and possible right now.</summary>
         internal static bool FindItActive => (Mod.Settings?.UseFindIt ?? true) && FindItBridge.IsAvailable;
@@ -45,6 +51,7 @@ namespace RadialMenu
         // A new load gets a fresh snapshot (Find It re-indexes on each load).
         private void ResetFindIt()
         {
+            _findItLoadComplete = false;
             _findItEntries = null;
             _findItBySubCategory = new Dictionary<int, List<Entity>>();
             _findItCategoryByEntity = new Dictionary<Entity, string>();
@@ -62,7 +69,7 @@ namespace RadialMenu
                 RefreshAssetMeta();
             }
 
-            if (_findItEntries != null || !FindItActive || !FindItBridge.IsReady()) return;
+            if (_findItEntries != null || !_findItLoadComplete || !FindItActive || !FindItBridge.IsReady()) return;
 
             var stopwatch = Stopwatch.StartNew();
             var entries = FindItBridge.ReadIndex(_prefabSystem);
@@ -80,6 +87,9 @@ namespace RadialMenu
             _findItActive.Update(FindItActive);
             RefreshAssetMeta();
         }
+
+        // From OnGameLoadingComplete: Find It's index for this load is built.
+        private void OnFindItLoadComplete() => _findItLoadComplete = true;
 
         // Find It's subcategory name for an asset (assetMeta), while it's on.
         private string FindItCategoryOf(Entity entity) =>

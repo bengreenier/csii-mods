@@ -59,6 +59,7 @@ namespace RadialMenu
         protected override void OnGameLoadingComplete(Purpose purpose, GameMode mode)
         {
             base.OnGameLoadingComplete(purpose, mode);
+            OnFindItLoadComplete();
             // The UI may have subscribed mid-load and received a partial list.
             _assetMetaCache = null;
             _assetMeta.Update();
