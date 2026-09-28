@@ -190,8 +190,25 @@ namespace RadialMenu
             }
         }
 
+        // Rebuilds every cache that otherwise only refreshes on the next load
+        // (RadialMenuUISystem.Refresh.cs). Needs a city.
+        [SettingsUIButton]
+        [SettingsUIDisableByCondition(typeof(Setting), nameof(IsNoCityLoaded))]
+        [SettingsUISection(KSection, KUtilitiesGroup)]
+        public bool RefreshData
+        {
+            set
+            {
+                if (IsNoCityLoaded()) return;
+                RadialMenuUISystem.RequestDataRefresh();
+            }
+        }
+
         // Clears everything the mod stores in the loaded city's save (see
         // FavoritesSystem.ResetCityData); takes effect when the city is saved.
+        // Last in Utilities (declaration order is display order) as the only
+        // destructive one; [SettingsUIConfirmation] asks first, with the
+        // GetOptionWarningLocaleID text from LocaleEn.
         [SettingsUIButton]
         [SettingsUIConfirmation]
         [SettingsUIDisableByCondition(typeof(Setting), nameof(IsNoCityLoaded))]
@@ -207,20 +224,6 @@ namespace RadialMenu
                 }
                 World.DefaultGameObjectInjectionWorld?.GetExistingSystemManaged<FavoritesSystem>()?.ResetCityData();
                 Mod.LOG.Info("Removed Radial Menu data from this city");
-            }
-        }
-
-        // Rebuilds every cache that otherwise only refreshes on the next load
-        // (RadialMenuUISystem.Refresh.cs). Needs a city.
-        [SettingsUIButton]
-        [SettingsUIDisableByCondition(typeof(Setting), nameof(IsNoCityLoaded))]
-        [SettingsUISection(KSection, KUtilitiesGroup)]
-        public bool RefreshData
-        {
-            set
-            {
-                if (IsNoCityLoaded()) return;
-                RadialMenuUISystem.RequestDataRefresh();
             }
         }
 
