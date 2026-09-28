@@ -94,8 +94,11 @@ $hub-size: 240rem;
 
 .hubQuery {
     max-width: 100%;
+    // Overridden inline by layoutQuery's chosen size (query-layout.ts).
     font-size: 28rem;
     font-weight: bold;
+    // Lines are wrapped by layoutQuery, not here.
+    white-space: nowrap;
 }
 
 // Query token states (see query/parser.ts TokenStatus).

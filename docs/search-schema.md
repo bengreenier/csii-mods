@@ -168,7 +168,15 @@ When text is typed and nothing is hovered, the hub shows:
 
 1. **The query**, coloured per token: text is white, recognized filters blue,
    incomplete or ignored ones dimmed, invalid or unknown ones red and struck
-   through. Long queries show their tail behind `...`.
+   through. It's fitted by `layoutQuery` (`query-layout.ts`):
+   - each font size from 28 down to 17 is tried, wrapping whole tokens onto
+     as many lines as that size allows (2 at the largest, 4 at the smallest);
+   - only if nothing fits at the smallest size is it cut, from the front:
+     leading tokens drop behind `...`, and a token too long for a line keeps
+     its end (`...ingword`), since that's where the user is typing.
+
+   Lines are wrapped with an estimated character width (`CHAR_WIDTH_EM`),
+   not measured, so layout is instant and never flickers.
 2. **Match count**: "12 matches", "1-61 of 214 matches", "No matches", or
    "(checking N...)" while `fx:` details load. With more than one page, a
    "Scroll or PgUp/PgDn for more" line follows the hint.
@@ -376,6 +384,7 @@ steps back a level; Escape and clicking the hub do.
 | `store-links.ts` | DLC store / Paradox Mods URLs for "Copy ... link" | yes |
 | `asset-data.ts` | Shared lookups: `useAssetMetaByKey` (cached per list), `useThemes`, `assetTitle` / `themeTitle` | no |
 | `query/chips.ts` / `asset-chips.tsx` | An asset's metadata chips: fitted in the hub, in full in the context menu | chips.ts yes |
+| `query-layout.ts` | `layoutQuery`: fits the typed query into the hub (font size, lines, front truncation) | yes |
 | `localization.ts` | `useLocalization` (the runtime name of the typings' `useCachedLocalization`) | no |
 | `favorites.ts` | Shared favorites bits: `useFavoriteKeys`, icons, texts (Favorites level, context actions, `is:favorite`) | no |
 

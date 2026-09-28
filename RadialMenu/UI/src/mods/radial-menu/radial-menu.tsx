@@ -33,6 +33,7 @@ import { FAVORITE_COLOR, FAVORITE_ICON, FAVORITES_EMPTY_MESSAGE, FAVORITES_TITLE
 import { TintedIcon } from "./tinted-icon";
 import { ContextMenu, ContextTarget, OpenContextMenu } from "./context-menu";
 import { layoutWheel, searchPageSize, wheelFitRadius, wheelGeometry } from "./layout";
+import { layoutQuery } from "./query-layout";
 import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
 import { SearchResult, SearchResults, SearchScope, useAssetSearch } from "./search";
@@ -329,9 +330,6 @@ function matchSummary({ active, results, pending }: SearchResults, page: number,
 const pageSummary = (page: number, pageSize: number, total: number) =>
     `${page * pageSize + 1}-${Math.min(total, (page + 1) * pageSize)} of ${total}`;
 
-// The hub fits roughly this many characters of query per line.
-const QUERY_DISPLAY_CHARS = 18;
-
 const TOKEN_CLASS: Record<TokenStatus, string | undefined> = {
     text: undefined,
     filter: styles.tokenFilter,
@@ -341,24 +339,22 @@ const TOKEN_CLASS: Record<TokenStatus, string | undefined> = {
     ignored: styles.tokenIncomplete,
 };
 
-// The typed query, coloured per token. Long queries show their tail (where
-// the user is typing) behind an ellipsis.
+// The typed query, coloured per token and fitted to the hub by layoutQuery:
+// largest font and as many lines as fit first, then smaller, and only then cut
+// from the front (the end is where the user is typing).
 const QueryDisplay = ({ tokens }: { tokens: DisplayToken[] }) => {
-    const shown: DisplayToken[] = [];
-    let used = 0;
-    for (let i = tokens.length - 1; i >= 0; i--) {
-        used += tokens[i].raw.length + 1;
-        if (used > QUERY_DISPLAY_CHARS && shown.length > 0) break;
-        shown.unshift(tokens[i]);
-    }
+    const layout = useMemo(() => layoutQuery(tokens.map((t) => ({ text: t.raw, data: t.status }))), [tokens]);
     return (
-        <div className={styles.hubQuery}>
-            {/* Single text node per span: Gameface splits adjacent text nodes. */}
-            {shown.length < tokens.length && <span>{"... "}</span>}
-            {shown.map((t, i) => (
-                <span key={i} className={TOKEN_CLASS[t.status]}>
-                    {(i > 0 ? " " : "") + t.raw}
-                </span>
+        <div className={styles.hubQuery} style={{ fontSize: `${layout.fontSize}rem` }}>
+            {layout.lines.map((line, l) => (
+                <div key={l}>
+                    {line.map((word, i) => (
+                        // Single text node per span: Gameface splits adjacent text nodes.
+                        <span key={i} className={word.marker ? undefined : TOKEN_CLASS[word.data]}>
+                            {(i > 0 ? " " : "") + word.text}
+                        </span>
+                    ))}
+                </div>
             ))}
         </div>
     );
