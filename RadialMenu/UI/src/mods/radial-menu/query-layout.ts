@@ -36,9 +36,10 @@ export interface FontStep {
 // the query fits; `shrink` skips the first few when the hub measured the
 // result as too tall (see QueryDisplay), which ends in fewer, smaller lines.
 export const QUERY_FONT_STEPS: FontStep[] = [
-    { size: 28, maxLines: 2 },
-    { size: 24, maxLines: 2 },
-    { size: 20, maxLines: 3 },
+    { size: 28, maxLines: 3 },
+    { size: 24, maxLines: 3 },
+    { size: 20, maxLines: 4 },
+    { size: 17, maxLines: 5 },
     { size: 17, maxLines: 4 },
     { size: 17, maxLines: 3 },
     { size: 17, maxLines: 2 },

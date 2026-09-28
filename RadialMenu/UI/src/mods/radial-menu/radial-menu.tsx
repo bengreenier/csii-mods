@@ -37,7 +37,7 @@ import { layoutQuery, MAX_QUERY_SHRINK } from "./query-layout";
 
 // Most of the hub circle's height the content may use; less than all of it,
 // since the circle narrows toward the top and bottom.
-const HUB_CONTENT_MAX_HEIGHT = 0.88;
+const HUB_CONTENT_MAX_HEIGHT = 0.9;
 import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
 import { SearchResult, SearchResults, SearchScope, useAssetSearch } from "./search";
@@ -511,9 +511,16 @@ const Wheel = ({
         hubContent = (
             <>
                 <QueryDisplay tokens={search.parsed.tokens} shrink={shrink} />
-                <div className={styles.hubHint}>{matchSummary(search, page, pageSize)}</div>
-                {hint && <div className={styles.hubTypeHint}>{hint.text}</div>}
-                {pageCount > 1 && <div className={styles.hubFilterHints}>Scroll or PgUp/PgDn for more</div>}
+                {/* Tighter spacing than the idle hub: room goes to the query. */}
+                <div className={classNames(styles.hubHint, styles.hubSearchLine)}>
+                    {matchSummary(search, page, pageSize)}
+                </div>
+                {hint && <div className={classNames(styles.hubTypeHint, styles.hubSearchLine)}>{hint.text}</div>}
+                {pageCount > 1 && (
+                    <div className={classNames(styles.hubFilterHints, styles.hubSearchLine)}>
+                        Scroll or PgUp/PgDn for more
+                    </div>
+                )}
             </>
         );
     }

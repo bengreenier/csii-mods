@@ -150,6 +150,13 @@ $hub-size: 240rem;
     opacity: 0.35;
 }
 
+// Lines under the query while searching (match count, hint, paging): less
+// space above each than in the idle hub, so the query gets more lines.
+// Doubled for specificity over .hubHint etc., whatever their order.
+.hubSearchLine.hubSearchLine {
+    margin-top: 3rem;
+}
+
 .hubHint {
     margin-top: 8rem;
     font-size: 16rem;

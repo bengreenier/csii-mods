@@ -170,7 +170,7 @@ When text is typed and nothing is hovered, the hub shows:
    incomplete or ignored ones dimmed, invalid or unknown ones red and struck
    through. It's fitted by `layoutQuery` (`query-layout.ts`):
    - each font size from 28 down to 17 is tried, wrapping whole tokens onto
-     as many lines as that size allows (2 at the largest, 4 at the smallest);
+     as many lines as that size allows (3 at the largest, 5 at the smallest);
    - only if nothing fits at the smallest size is it cut, from the front:
      leading tokens drop behind `...`, and a token too long for a line keeps
      its end (`...ingword`), since that's where the user is typing.
@@ -178,9 +178,11 @@ When text is typed and nothing is hovered, the hub shows:
    Lines are wrapped with an estimated character width (`CHAR_WIDTH_EM`).
    Height is then checked for real: after each render, before paint, the
    wheel measures the hub's content against the circle (`HUB_CONTENT_MAX_HEIGHT`,
-   88% of its height) and, if it's too tall, steps to the next more compact
-   layout (`shrink`, through `QUERY_FONT_STEPS`: 28/2 lines, 24/2, 20/3, 17/4,
-   17/3, 17/2, 17/1). Each new query starts over at the most readable one.
+   90% of its height) and, if it's too tall, steps to the next more compact
+   layout (`shrink`, through `QUERY_FONT_STEPS`: 28/3 lines, 24/3, 20/4, 17/5,
+   17/4, 17/3, 17/2, 17/1). Each new query starts over at the most readable
+   one. While searching, the lines under the query sit closer together
+   (`hubSearchLine`) to leave it more room.
 2. **Match count**: "12 matches", "1-61 of 214 matches", "No matches", or
    "(checking N...)" while `fx:` details load. With more than one page, a
    "Scroll or PgUp/PgDn for more" line follows the hint.
