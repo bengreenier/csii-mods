@@ -206,6 +206,13 @@ $hub-size: 240rem;
     border-bottom: 2rem solid rgba(255, 255, 255, 0.15);
 }
 
+.contextTitle {
+    margin: 2rem 2rem 4rem 2rem;
+    max-width: 300rem;
+    font-size: 16rem;
+    font-weight: bold;
+}
+
 .contextChips {
     display: flex;
     flex-direction: row;

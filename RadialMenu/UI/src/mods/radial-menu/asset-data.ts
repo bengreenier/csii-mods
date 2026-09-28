@@ -1,11 +1,12 @@
 // Shared lookups over game data used by search (search.ts), the right-click
-// actions (context-actions.ts) and the hub's chips (hub-chips.tsx).
+// menu (context-actions.ts), the metadata chips (asset-chips.tsx) and titles.
 import { useMemo } from "react";
-import { useValue } from "cs2/api";
+import { useMapValue, useValue } from "cs2/api";
 import { prefab, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
-import { entityKey } from "cs2/utils";
+import { Entity, entityKey } from "cs2/utils";
 import { AssetMeta, assetMeta$ } from "./bindings";
+import { useLocalization } from "./localization";
 
 // Asset, menu, category, theme and pack titles use the key "Assets.NAME[<name>]"
 // (see Game.dll).
@@ -15,6 +16,16 @@ export const assetTitle = (loc: l10n.Localization, name: string) => loc.translat
 // falling back to the Assets.NAME title.
 export const themeTitle = (loc: l10n.Localization, name: string) =>
     loc.translate(`ToolOptions.TOOLTIP_TITLE[${name}]`) || assetTitle(loc, name);
+
+/**
+ * A prefab's title, as the vanilla asset panel shows it (its details' titleId),
+ * or `fallback` until the details load. Null entity: `fallback`.
+ */
+export function usePrefabTitle(entity: Entity | undefined, fallback: string): string {
+    const details = useMapValue(prefab.prefabDetails$, entity);
+    const loc = useLocalization();
+    return (details && loc.translate(details.titleId, fallback)) || fallback;
+}
 
 /** Every theme: toolbar.themes$ may only cover the vanilla panel's current category. */
 export function useThemes(): { name: string; icon: string }[] {

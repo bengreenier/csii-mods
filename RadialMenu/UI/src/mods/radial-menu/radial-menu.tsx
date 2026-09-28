@@ -26,6 +26,7 @@ import {
 import { isBulldozer, useBulldozerPlacement } from "./bulldozer";
 import { useContextActions } from "./context-actions";
 import { HubChips, useAssetChips } from "./asset-chips";
+import { usePrefabTitle } from "./asset-data";
 import { useLocalization } from "./localization";
 import { FAVORITE_COLOR, FAVORITE_ICON, FAVORITES_EMPTY_MESSAGE, FAVORITES_TITLE } from "./favorites";
 import { TintedIcon } from "./tinted-icon";
@@ -295,12 +296,9 @@ const NO_ENTITY: Entity = { index: 0, version: 0 };
 const HubTitle = ({ label }: { label: HubLabel }) =>
     label.title !== undefined ? <>{label.title}</> : <PrefabTitle entity={label.entity} fallback={label.name} />;
 
-const PrefabTitle = ({ entity, fallback }: { entity: Entity; fallback: string }) => {
-    const details = useMapValue(prefab.prefabDetails$, entity);
-    const loc = useLocalization();
-    const title = details ? loc.translate(details.titleId, fallback) : fallback;
-    return <>{title ?? fallback}</>;
-};
+const PrefabTitle = ({ entity, fallback }: { entity: Entity; fallback: string }) => (
+    <>{usePrefabTitle(entity, fallback)}</>
+);
 
 // Setting.HubImageMode values ("Center image").
 const HUB_IMAGE_BUTTON_ICON = 1;
@@ -779,8 +777,10 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     // whether the asset is a favorite).
     const openActions = context ? contextActions(context.target) : EMPTY;
     const hasOpenActions = openActions.length > 0;
-    // Every chip for the right-clicked asset (the hub only fits some).
-    const contextChips = useAssetChips(context?.target.kind === "asset" ? context.target.asset : null);
+    // The right-clicked asset's name and every chip (the hub only fits some).
+    const contextAsset = context?.target.kind === "asset" ? context.target.asset : null;
+    const contextTitle = usePrefabTitle(contextAsset?.entity, contextAsset?.name ?? "");
+    const contextChips = useAssetChips(contextAsset);
     useEffect(() => {
         if (context && !hasOpenActions) setContext(null);
     }, [context, hasOpenActions]);
@@ -970,6 +970,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
                     x={context.x}
                     y={context.y}
                     actions={openActions}
+                    title={contextTitle || undefined}
                     chips={contextChips}
                     onClose={closeContext}
                 />

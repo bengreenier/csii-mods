@@ -268,7 +268,8 @@ Right-clicking a wheel item opens a small menu of actions for it at the cursor
 (`context-menu.tsx`). Which actions an item offers is decided in one place,
 `useContextActions` in `context-actions.ts`, by the item's `context` target
 (only assets so far). An item with no actions opens nothing. An asset's menu
-starts with all of its metadata chips (see Hub display), then offers:
+starts with its name (`usePrefabTitle`, as the hub title) and all of its
+metadata chips (see Hub display), then a divider and its actions:
 
 - "Add to favorites" or "Remove from favorites";
 - for a mod asset, "Copy Paradox Mods link"

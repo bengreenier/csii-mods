@@ -44,7 +44,8 @@ interface ContextMenuProps {
     x: number;
     y: number;
     actions: ContextAction[];
-    // The target's metadata, shown in full above the actions (asset-chips.tsx).
+    // The target's name and metadata, shown above the actions (asset-chips.tsx).
+    title?: string;
     chips?: Chip[];
     onClose: () => void;
 }
@@ -52,7 +53,7 @@ interface ContextMenuProps {
 // Opens at the cursor, towards the bottom right, and flips or shifts to stay
 // inside the view. Rendered outside the scaled wheel, so "Menu size" doesn't
 // change it.
-export const ContextMenu = ({ x, y, actions, chips, onClose }: ContextMenuProps) => {
+export const ContextMenu = ({ x, y, actions, title, chips, onClose }: ContextMenuProps) => {
     const ref = useRef<HTMLDivElement>(null);
     const [pos, setPos] = useState({ x, y });
 
@@ -66,8 +67,8 @@ export const ContextMenu = ({ x, y, actions, chips, onClose }: ContextMenuProps)
         const left = x > maxX ? Math.max(EDGE_MARGIN_PX, x - width) : x;
         const top = y > maxY ? Math.max(EDGE_MARGIN_PX, y - height) : y;
         setPos((p) => (p.x === left && p.y === top ? p : { x: left, y: top }));
-        // Chips change the size too, e.g. fx: once prefab details load.
-    }, [x, y, actions.length, chips]);
+        // The title and chips change the size too, once prefab details load.
+    }, [x, y, actions.length, title, chips]);
 
     return (
         <div
@@ -85,9 +86,10 @@ export const ContextMenu = ({ x, y, actions, chips, onClose }: ContextMenuProps)
             }}
             onWheel={(e) => e.stopPropagation()}
         >
-            {chips && chips.length > 0 && (
+            {(title || (chips && chips.length > 0)) && (
                 <div className={styles.contextDetails}>
-                    <ChipList chips={chips} />
+                    {title && <div className={styles.contextTitle}>{title}</div>}
+                    {chips && <ChipList chips={chips} />}
                 </div>
             )}
             {actions.map((action) => (
