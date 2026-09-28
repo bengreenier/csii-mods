@@ -392,6 +392,9 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
   elements whose `m_Pack` has `AssetPackData`, the same test as
   `ToolbarUISystem.FilterByPacks` / `BindPacks`. The pack's prefab name is
   sent; the UI adds its title.
+- **Network width (`width:` in metres, `netWidth`):**
+  `NetGeometryData.m_DefaultWidth` (metres) on network prefabs: roads, tracks,
+  paths and so on.
 - **Lot size (`size:`, `width:`, `depth:`):** `BuildingData.m_LotSize` (x = frontage, y = depth,
   in cells), for any building prefab.
 - **Zone (`zone:`):** the zone prefab is `SpawnableBuildingData.m_ZonePrefab`

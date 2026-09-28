@@ -1,7 +1,7 @@
 // The filterable metadata of one asset, as small "key: value" chips for the
 // hub and the right-click menu (asset-chips.tsx). Each chip mirrors a filter in filters.ts, so what's shown
 // is what can be searched for. Pure.
-import { camelWords } from "./record";
+import { camelWords, metres } from "./record";
 
 export interface Chip {
     key: string;
@@ -31,6 +31,8 @@ export interface ChipSource {
     // Lot size in cells; 0 if not a building.
     lotWidth: number;
     lotDepth: number;
+    // Network width in metres; 0 if not a network.
+    netWidth: number;
     level: number;
     // Effect type names (effectTypes in record.ts); empty until details load.
     effects: string[];
@@ -69,6 +71,8 @@ export function assetChips(src: ChipSource): Chip[] {
     for (const word of src.zone ? valueWords(src.zone) : []) add("zone", word, word);
     const size = `${src.lotWidth}x${src.lotDepth}`;
     if (src.lotWidth > 0) add("size", size, size);
+    // Networks have no lot; their width is in metres ("width: 16m").
+    if (src.netWidth > 0) add("width", metres(src.netWidth), metres(src.netWidth));
     if (src.level > 0) add("level", String(src.level), String(src.level));
     // fx: terms include the whole type, lowercased.
     for (const effect of src.effects) add("fx", spaced(effect).toLowerCase(), effect.toLowerCase());

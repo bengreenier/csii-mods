@@ -31,8 +31,11 @@ namespace RadialMenu
             public int Level;
             // Paradox Mods ID of the mod the asset comes from; null otherwise.
             public string ModId;
+            // NetGeometryData.m_DefaultWidth in metres for networks (roads,
+            // tracks, paths, ...); 0 otherwise.
+            public float NetWidth;
 
-            public bool IsEmpty => Packs == null && LotWidth == 0 && Zone == null && Level == 0 && ModId == null;
+            public bool IsEmpty => Packs == null && LotWidth == 0 && Zone == null && Level == 0 && ModId == null && NetWidth == 0;
         }
 
         private RawValueBinding _assetMeta;
@@ -84,6 +87,8 @@ namespace RadialMenu
                 writer.PropertyName("modId");
                 if (meta.ModId != null) writer.Write(meta.ModId);
                 else writer.WriteNull();
+                writer.PropertyName("netWidth");
+                writer.Write(meta.NetWidth);
                 writer.TypeEnd();
             }
             writer.ArrayEnd();
@@ -111,6 +116,8 @@ namespace RadialMenu
                 }
                 meta.Zone = GetZoneWords(zonePrefab);
                 meta.ModId = GetModId(entity);
+                if (EntityManager.TryGetComponent(entity, out NetGeometryData net) && net.m_DefaultWidth > 0)
+                    meta.NetWidth = net.m_DefaultWidth;
                 if (!meta.IsEmpty) result.Add(meta);
             }
             return result;

@@ -9,7 +9,7 @@ import { useFavoriteKeys } from "./favorites";
 import { evaluate } from "./query/evaluate";
 import { FilterContext } from "./query/filters";
 import { parse, ParsedQuery } from "./query/parser";
-import { AssetRecord, buildRecord, dlcSlug as iconSlug, fxTerms } from "./query/record";
+import { AssetRecord, buildRecord, dlcSlug as iconSlug, fxTerms, metres } from "./query/record";
 
 // ToolbarItemType.menu, see radial-menu.tsx.
 const TOOLBAR_ITEM_TYPE_MENU = 1;
@@ -176,6 +176,7 @@ function buildIndex(
     const dlcs = new Set<string>();
     const sizes = new Map<string, { text: string; area: number }>();
     const widths = new Set<number>();
+    const netWidths = new Set<number>();
     const depths = new Set<number>();
     const levels = new Set<number>();
 
@@ -202,6 +203,7 @@ function buildIndex(
                     packText: meta?.packs.map(packTextOf).join(" ") || null,
                     lotWidth: meta?.lotWidth ?? 0,
                     lotDepth: meta?.lotDepth ?? 0,
+                    netWidth: meta?.netWidth ?? 0,
                     zone: meta?.zone ?? null,
                     level: meta?.level ?? 0,
                     dlcIcon: asset.dlc,
@@ -221,6 +223,7 @@ function buildIndex(
                 widths.add(record.lotWidth);
                 depths.add(record.lotDepth);
             }
+            if (record.netWidth > 0) netWidths.add(record.netWidth);
             if (record.level > 0) levels.add(record.level);
         }
     });
@@ -246,7 +249,8 @@ function buildIndex(
             packs: words((r) => r.packLc),
             zones: words((r) => r.zoneLc),
             sizes: [...sizes.values()].sort((a, b) => a.area - b.area || a.text.localeCompare(b.text)).map((s) => s.text),
-            widths: numbers(widths),
+            // Lot widths in cells, then network widths in metres ("16m").
+            widths: [...numbers(widths), ...[...netWidths].sort((a, b) => a - b).map(metres)],
             depths: numbers(depths),
             levels: numbers(levels),
         },

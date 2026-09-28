@@ -16,6 +16,7 @@ export interface RecordSource {
     // From the C# assetMeta binding; 0 / null when not applicable.
     lotWidth: number;
     lotDepth: number;
+    netWidth: number;
     zone: string | null;
     level: number;
     // Asset.dlc icon path, if any. Mod assets get the Paradox Mods icon instead
@@ -40,6 +41,8 @@ export interface AssetRecord {
     // Lot size in cells (frontage x depth); 0 if not a building.
     lotWidth: number;
     lotDepth: number;
+    // Network width in metres; 0 if not a network.
+    netWidth: number;
     // Zone words, e.g. "residential high"; "" if none.
     zoneLc: string;
     // Building level; 0 if none.
@@ -84,6 +87,7 @@ export function buildRecord(src: RecordSource, order: number): AssetRecord {
         themeLc: (src.themeText ?? "").toLowerCase(),
         packLc: (src.packText ?? "").toLowerCase(),
         lotWidth: src.lotWidth,
+        netWidth: src.netWidth,
         lotDepth: src.lotDepth,
         zoneLc: (src.zone ?? "").toLowerCase(),
         level: src.level,
@@ -127,6 +131,13 @@ export function effectTypes(effects: ReadonlyArray<any> | null | undefined): str
     }
     return [...types];
 }
+
+// A building cell is 8 m: width: compares lot widths (cells) with network
+// widths (metres) through it.
+export const CELL_METRES = 8;
+
+// "16m", "12.5m": a network width as width: values write it.
+export const metres = (width: number) => `${Number(width.toFixed(1))}m`;
 
 // Words of a camelCase type name: "CrimeAccumulation" -> ["Crime", "Accumulation"].
 export const camelWords = (type: string) => type.split(/(?=[A-Z])/).filter(Boolean);

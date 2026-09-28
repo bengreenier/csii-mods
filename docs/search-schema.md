@@ -69,7 +69,7 @@ Titles come from the localization key `Assets.NAME[<prefab name>]`.
 | `pack:` | an asset pack word, e.g. a pack's name or title | belong to that asset pack (word prefix over the pack's name and title) | cheap (C#) |
 | `zone:` | `residential`, `commercial`, `industrial`, `office`, and densities `low`, `medium`, `high` | are zoned buildings (e.g. signature buildings) or zone types (the Zones tab) of that zone type or density. Plain industrial has no density. | cheap (C#) |
 | `size:` | `WxD` in cells, e.g. `2x3` | are buildings on a lot W cells wide (frontage) and D deep. Not rotated: `2x3` doesn't match a 3x2 lot. | cheap (C#) |
-| `width:` | a number of cells, e.g. `4`, `2,3` | are buildings with that lot frontage | cheap (C#) |
+| `width:` | cells, e.g. `4`, `2,3`, or metres, e.g. `16m`, `12.5m` | are buildings with that lot frontage, or networks (roads, tracks, paths) that wide. A cell is 8 m, so each unit also finds the other kind: `width: 2` matches 16 m roads, and `width: 16m` matches 2-cell buildings. Widths that aren't whole cells (e.g. 12 m) are only found in metres. | cheap (C#) |
 | `depth:` | a number of cells, e.g. `4` | are buildings with that lot depth | cheap (C#) |
 | `level:` | a number, e.g. `1`, `3,4` | are zoned buildings of that level | cheap (C#) |
 | `dlc:` | `none`, or part of a DLC's icon name, e.g. `sanfrancisco` | `none` = base game (no DLC, not a mod); otherwise the asset's DLC icon file name contains the value. Mod assets are not a DLC here: use `is:mod`. | cheap |
@@ -104,6 +104,7 @@ The direction of an `fx:` effect (positive or negative) is not considered.
 | `size:2x2` | Buildings on a 2x2 lot |
 | `width:4 depth:4` | The same as `size:4x4` |
 | `width:1,2` | Buildings with 1 or 2 cells of frontage |
+| `width:16m in:roads` | 16 m roads |
 | `level:3,4` | Zoned buildings of level 3 or 4 |
 | `pack:<name>` | Assets from one asset pack; type `pack:` to see the packs in scope |
 | `in:parks is:ok` | Placeable park assets |

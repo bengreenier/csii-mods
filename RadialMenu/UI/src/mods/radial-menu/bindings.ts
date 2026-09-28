@@ -44,6 +44,8 @@ export interface AssetMeta {
     zone: string | null;
     // Building level; 0 if none.
     level: number;
+    // Network (road, track, path...) width in metres; 0 if not a network.
+    netWidth: number;
     // Paradox Mods ID of the mod the asset comes from; null otherwise.
     modId: string | null;
 }

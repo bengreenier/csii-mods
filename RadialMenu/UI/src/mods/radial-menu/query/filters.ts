@@ -1,6 +1,6 @@
 // Registry of `key:value` filters. Adding a filter = adding an entry here (and
 // documenting it in docs/search-schema.md). Pure.
-import { AssetRecord, hasWordPrefix } from "./record";
+import { AssetRecord, CELL_METRES, hasWordPrefix } from "./record";
 
 // Dynamic value lists, for validation and hints. All lowercase.
 export interface FilterContext {
@@ -10,7 +10,7 @@ export interface FilterContext {
     zones: string[];
     // "WxD", ordered by area.
     sizes: string[];
-    // Lot widths / depths in scope, ascending.
+    // Lot widths (cells) then network widths ("16m") in scope, ascending.
     widths: string[];
     depths: string[];
     // "1".."5", ascending.
@@ -68,6 +68,21 @@ function sizeTest(atom: string): ((r: AssetRecord) => boolean) | null {
     const width = Number(m[1]);
     const depth = Number(m[2]);
     return (r) => r.lotWidth === width && r.lotDepth === depth;
+}
+
+// width: atoms are cells ("2") or metres ("16m", "12.5m"). Buildings have a
+// lot width in cells and networks a width in metres; either unit finds both,
+// through CELL_METRES. Null if the atom is neither.
+function widthTest(atom: string): ((r: AssetRecord) => boolean) | null {
+    const near = (a: number, b: number) => Math.abs(a - b) < 0.05;
+    const inMetres = /^(\d+(?:\.\d+)?)m$/.exec(atom);
+    if (inMetres) {
+        const m = Number(inMetres[1]);
+        return (r) => (r.netWidth > 0 && near(r.netWidth, m)) || (r.lotWidth > 0 && near(r.lotWidth * CELL_METRES, m));
+    }
+    if (!/^\d+$/.test(atom)) return null;
+    const cells = Number(atom);
+    return (r) => r.lotWidth === cells || (r.netWidth > 0 && near(r.netWidth, cells * CELL_METRES));
 }
 
 // A filter whose values are whole numbers (comma = OR), matched exactly
@@ -132,7 +147,15 @@ export const FILTERS: FilterDef[] = [
             return (r) => tests.some((t) => t!(r));
         },
     },
-    numberFilter("width", (r) => r.lotWidth, (ctx) => ctx.widths),
+    {
+        key: "width",
+        suggest: (ctx) => ctx.widths,
+        compile: (atoms) => {
+            const tests = atoms.map(widthTest);
+            if (tests.some((t) => !t)) return null;
+            return (r) => tests.some((t) => t!(r));
+        },
+    },
     numberFilter("depth", (r) => r.lotDepth, (ctx) => ctx.depths),
     numberFilter("level", (r) => r.level, (ctx) => ctx.levels),
     {

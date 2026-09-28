@@ -51,6 +51,7 @@ export function useAssetChips(asset: toolbar.Asset | null): Chip[] {
             zone: meta?.zone ?? null,
             lotWidth: meta?.lotWidth ?? 0,
             lotDepth: meta?.lotDepth ?? 0,
+            netWidth: meta?.netWidth ?? 0,
             level: meta?.level ?? 0,
             effects: effectTypes(details?.effects),
         });
