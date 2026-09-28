@@ -11,6 +11,7 @@ import {
     browseAllThemes$,
     activatePrefab,
     close,
+    dataRefreshed$,
     Favorite,
     FindItCategory,
     findItActive$,
@@ -46,7 +47,14 @@ import { layoutQuery, MAX_QUERY_SHRINK } from "./query-layout";
 const HUB_CONTENT_MAX_HEIGHT = 0.9;
 import { FILTER_EXAMPLES } from "./query/filters";
 import { DisplayToken, TokenStatus } from "./query/parser";
-import { SearchResult, SearchResults, SearchScope, useAssetSearch, usePrewarmFindItSearch } from "./search";
+import {
+    clearSearchSessionCaches,
+    SearchResult,
+    SearchResults,
+    SearchScope,
+    useAssetSearch,
+    usePrewarmFindItSearch,
+} from "./search";
 import { FindItCatalogueContext, useFindItCatalogueRoot } from "./find-it-catalogue";
 import styles from "./radial-menu.module.scss";
 
@@ -897,6 +905,7 @@ export const RadialMenu = () => {
     const backRef = useRef<(() => void) | null>(null);
     useModalInput(useValue(isolateInput$), backRef);
     useResetVanillaThemes();
+    useDataRefreshed();
     // Find It's catalogue: subscribed and indexed here, once, not per search.
     const findItCatalogue = useFindItCatalogueRoot();
     usePrewarmFindItSearch(findItCatalogue, useLocalization());
@@ -907,6 +916,15 @@ export const RadialMenu = () => {
         </FindItCatalogueContext.Provider>
     );
 };
+
+// "Refresh radial menu data" (settings): C# has resent everything; drop the
+// UI's own session caches too.
+function useDataRefreshed() {
+    useEffect(() => {
+        const subscription = dataRefreshed$.subscribe(() => clearSearchSessionCaches());
+        return () => subscription.dispose();
+    }, []);
+}
 
 // "Reset vanilla theme filter" (settings). Clears the asset selection first:
 // vanilla's setSelectedThemes would otherwise switch the active tool to the

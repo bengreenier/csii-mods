@@ -210,21 +210,19 @@ namespace RadialMenu
             }
         }
 
-        // Re-reads Find It's index and resends it, rebuilding the search cache
-        // (RadialMenuUISystem.RequestFindItRebuild). Needs Find It and a city.
+        // Rebuilds every cache that otherwise only refreshes on the next load
+        // (RadialMenuUISystem.Refresh.cs). Needs a city.
         [SettingsUIButton]
-        [SettingsUIDisableByCondition(typeof(Setting), nameof(IsFindItRebuildUnavailable))]
+        [SettingsUIDisableByCondition(typeof(Setting), nameof(IsNoCityLoaded))]
         [SettingsUISection(KSection, KUtilitiesGroup)]
-        public bool RebuildFindItCatalogue
+        public bool RefreshData
         {
             set
             {
-                if (IsFindItRebuildUnavailable()) return;
-                RadialMenuUISystem.RequestFindItRebuild();
+                if (IsNoCityLoaded()) return;
+                RadialMenuUISystem.RequestDataRefresh();
             }
         }
-
-        private static bool IsFindItRebuildUnavailable() => IsFindItMissing() || IsNoCityLoaded();
 
         private static bool IsNoCityLoaded() => GameManager.instance.gameMode != GameMode.Game;
 
@@ -334,8 +332,8 @@ namespace RadialMenu
                 { _setting.GetOptionDescLocaleID(nameof(Setting.RemoveCityData)), "Clear everything Radial Menu stores in this city's save, which is your favorites. Save the city afterwards to keep the change; loading it without saving brings the data back. The save then only has an empty Radial Menu section, which the game skips if the mod is not installed. To remove even that, disable the mod and save the city again. Only works while a city is loaded." },
                 { _setting.GetOptionWarningLocaleID(nameof(Setting.RemoveCityData)), "Remove all Radial Menu data, including your favorites, from this city? Save the city afterwards to keep the change." },
 
-                { _setting.GetOptionLabelLocaleID(nameof(Setting.RebuildFindItCatalogue)), "Rebuild Find It catalogue" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.RebuildFindItCatalogue)), "Read Find It's catalogue again and rebuild the radial menu's copy of it, including its search. Use this if Find It items look out of date or missing, for example after assets were added while the city was loaded. Only available with Find It enabled and a city loaded." },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.RefreshData)), "Refresh radial menu data" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.RefreshData)), "If anything in the radial menu or its search looks out of date or missing, press this instead of reloading the city. It rebuilds everything the radial menu keeps about assets, including Find It's catalogue when Find It is enabled, and search updates right after. Only works while a city is loaded." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.HideVanillaToolbar)), "Hide vanilla toolbar tabs" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.HideVanillaToolbar)), "Hide the bottom toolbar's tab buttons and the asset panel that opens from them, so the radial menu replaces them. The bulldozer stays if 'Bulldozer in radial menu' is off." },

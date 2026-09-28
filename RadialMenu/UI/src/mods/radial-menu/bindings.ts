@@ -71,6 +71,10 @@ export const allAssets$ = bindMap<Entity, toolbar.Asset[]>(GROUP, "allAssets");
 // city's default theme.
 export const resetVanillaThemes$ = bindEvent<Entity>(GROUP, "resetVanillaThemes");
 
+// Fired by C# after "Refresh radial menu data" has resent everything; the UI
+// then drops its own session caches (RadialMenuUISystem.Refresh.cs).
+export const dataRefreshed$ = bindEvent<void>(GROUP, "dataRefreshed");
+
 // Fired by C# when the "Accept search suggestion" key is pressed while open.
 export const acceptSuggestion$ = bindEvent<void>(GROUP, "acceptSuggestion");
 

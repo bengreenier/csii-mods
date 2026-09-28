@@ -62,6 +62,7 @@ namespace RadialMenu
             CreateStoreLinkBindings();
             // After CreateAllAssetsBinding (shares its systems).
             CreateFindItBindings();
+            CreateRefreshBindings();
         }
 
         protected override void OnGamePreload(Colossal.Serialization.Entities.Purpose purpose, GameMode mode)
@@ -79,6 +80,7 @@ namespace RadialMenu
             UpdateInputIsolation();
             HandleThemeResetRequest();
             UpdateFavorites();
+            HandleDataRefresh();
             UpdateFindIt();
 
             if (GameManager.instance.gameMode != GameMode.Game)

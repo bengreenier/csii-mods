@@ -28,18 +28,10 @@ namespace RadialMenu
         // callbacks, Find It's re-index included, run before our next update)
         // avoids snapshotting the previous load's index.
         private bool _findItLoadComplete;
-        private static bool _findItRebuildRequested;
-
-        /// <summary>
-        /// From the "Rebuild Find It catalogue" settings button: re-reads Find
-        /// It's index on the next update and resends it, which also rebuilds
-        /// the UI's cached search records (keyed on the data sent).
-        /// </summary>
-        public static void RequestFindItRebuild()
-        {
-            _findItRebuildRequested = true;
-            Mod.LOG.Info("Rebuild Find It catalogue requested");
-        }
+        // Set by "Refresh radial menu data" (RadialMenuUISystem.Refresh.cs):
+        // re-read Find It's index and resend it, which also rebuilds the UI's
+        // cached search records (keyed on the data sent).
+        private bool _findItRebuildRequested;
 
         /// <summary>The integration is wanted and possible right now.</summary>
         internal static bool FindItActive => (Mod.Settings?.UseFindItWanted ?? true) && FindItBridge.IsAvailable;
@@ -83,8 +75,8 @@ namespace RadialMenu
             }
 
             if (!_findItLoadComplete || !FindItActive || !FindItBridge.IsReady()) return;
-            // A snapshot is taken once per load, or again on request ("Rebuild
-            // Find It catalogue"): replaced in place, so the integration never
+            // A snapshot is taken once per load, or again on request ("Refresh
+            // radial menu data"): replaced in place, so the integration never
             // blinks off (which would hide the Find It entry mid-use).
             var rebuild = _findItRebuildRequested;
             _findItRebuildRequested = false;

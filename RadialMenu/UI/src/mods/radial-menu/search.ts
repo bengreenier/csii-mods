@@ -122,6 +122,15 @@ export function usePrewarmFindItSearch(catalogue: FindItCatalogue, loc: l10n.Loc
     }, [catalogue, factory]);
 }
 
+/**
+ * Drops the search's session caches that nothing else invalidates (fx:
+ * effect terms), for "Refresh radial menu data". Everything else is keyed on
+ * data that C# resends, so it rebuilds by itself.
+ */
+export function clearSearchSessionCaches() {
+    FX_CACHE.clear();
+}
+
 // ---- Search ----------------------------------------------------------------
 
 /**

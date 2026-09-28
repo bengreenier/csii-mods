@@ -24,6 +24,7 @@ used, what breaks if it changes, and how to re-find it.
 - [Search filter data (assetMeta)](#search-filter-data-assetmeta)
 - [Per-save data (favorites)](#per-save-data-favorites)
 - [Find It](#find-it)
+- [Caches](#caches)
 - [Other runtime quirks](#other-runtime-quirks)
 - [Log messages](#log-messages)
 
@@ -497,11 +498,11 @@ compile-time reference, since it's optional.
     snapshot only once our own `OnGameLoadingComplete` has run too (every
     loading-complete callback, Find It's re-index included, finishes before
     our next update). Prefabs Find It adds later (its incremental `OnUpdate`
-    indexing) aren't picked up until the next load, or until the "Rebuild
-    Find It catalogue" button (Utilities; needs Find It and a city) is
-    pressed. That re-reads the index in place (the integration never blinks
-    off) and resends it; the UI's cached records rebuild in the background,
-    since they're keyed on the resent arrays.
+    indexing) aren't picked up until the next load, or until "Refresh
+    radial menu data" (Utilities) is pressed. That re-reads the index in
+    place (the integration never blinks off) and resends it; the UI's cached
+    records rebuild in the background, since they're keyed on the resent
+    arrays. See Caches.
   - `PrefabIndex.Prefab` (`PrefabBase`), `.Category`, `.SubCategory` (enums,
     read as ints; names via `Enum.GetName`).
   - The `CategoryIconAttribute.Icon` on the category enums, for icons.
@@ -547,6 +548,27 @@ compile-time reference, since it's optional.
     tick, when the catalogue arrives or favorites/assetMeta change, so even
     the first search doesn't stall;
   - a search then only builds the small toolbar part and merges.
+
+## Caches
+
+Nothing the mod caches should ever require reloading a city. Most caches
+refresh themselves; the rest are rebuilt by the **"Refresh radial menu
+data"** button (Utilities, needs a city; `RadialMenuUISystem.Refresh.cs`).
+
+| Cache | Where | Refreshes |
+|---|---|---|
+| Favorites | C# `favorites` | on every change |
+| Unfiltered asset lists | C# `allAssets` | whenever the menu opens |
+| `assetMeta` (packs, lot, zone, level, net width, mod ID, Find It category) | C# | on load, when the Find It snapshot changes, and on Refresh |
+| DLC Steam app IDs | C# `dlcSteamApps` | once per session, and on Refresh |
+| Find It snapshot | C# `findItCategories` / `findItAssets` | on load, and on Refresh (in place) |
+| `fx:` effect terms | UI `FX_CACHE` (search.ts) | on Refresh (the `dataRefreshed` event) |
+| assetMeta lookup, themes, favorite keys | UI (asset-data.ts, favorites.ts) | whenever the data they come from changes |
+| Record factory, Find It search records | UI (search.ts) | whenever themes, assetMeta, favorites, the locale or the catalogue change |
+| Wheel entries for results | UI (radial-menu.tsx) | whenever their results change |
+
+When adding a cache, either key it on data C# resends, or clear it in
+`HandleDataRefresh` / the UI's `dataRefreshed` handler.
 
 ## Other runtime quirks
 
@@ -634,7 +656,7 @@ messages mostly exist to flag breakage after a game update.
 | `Could not resolve DLC Steam app IDs; DLC assets get no store link` (warning) | The game's DLC data couldn't be read (after a game update?); DLC assets offer no "Copy Steam store link" |
 | `Could not read the Paradox Mods ID of <prefab>; ...` (warning, once) | An asset's mod metadata couldn't be read; that asset (and any other failing one) gets no "Copy Paradox Mods link" |
 | `Find It <version>: read N catalogue entries (M subcategories) in T ms` | Once per load with the Find It integration on |
-| `Rebuild Find It catalogue requested`, then `Find It <version>: rebuilt N catalogue entries ...` | The "Rebuild Find It catalogue" button was pressed |
+| `Refresh radial menu data requested`, `Refreshed radial menu data`, and with Find It `Find It <version>: rebuilt N catalogue entries ...` | The "Refresh radial menu data" button was pressed |
 | `Find It integration off: <what> (Find It <version>)...` (warning) | Find It's internals didn't look as expected (after a Find It update?); the radial menu works without it |
 | `Reset vanilla theme filter` | The "Reset vanilla theme filter" button was used; followed by `... skipped: no city loaded` if there was no city |
 | `ToolSystem.m_LastToolInfoview/m_LastToolInfomodes not found; ...` (warning) | A game update renamed vanilla's private fields. The flicker-free tool info view path is off, and the fallback is used. See [Tool info views](#tool-info-views-show-info-views-for-radial-menu-selections). |
