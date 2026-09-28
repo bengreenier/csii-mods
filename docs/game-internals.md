@@ -223,9 +223,9 @@ What to check:
 - `RadialMenuUISystem` therefore reads bound keys directly while the menu is
   open: `InputSystem.FindControl(binding.path)` on `ProxyAction.bindings`,
   including modifiers.
-  - "Open radial menu" (action `ToggleRadialMenu`, name kept so bindings
-    carry over) only opens, so it's only needed while the menu is closed,
-    when the field isn't focused: it's read as a normal action.
+  - "Open radial menu" (action `OpenRadialMenu`) only opens, so it's only
+    needed while the menu is closed, when the field isn't focused: it's read
+    as a normal action.
   - The "Accept suggestion / pick first result" action is **only** read this
     way. It stays disabled (its binding is just data) and has its own usage,
     `RadialMenuSearch`, so it never conflicts with game shortcuts. It fires the

@@ -24,8 +24,8 @@ namespace RadialMenu
         KSearchQuickStartGroup, KSearchKeysGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
         KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
         KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
-    [SettingsUIKeyboardAction(Mod.KToggleActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
-    [SettingsUIMouseAction(Mod.KToggleActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
+    [SettingsUIKeyboardAction(Mod.KOpenActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
+    [SettingsUIMouseAction(Mod.KOpenActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
     // Own usage: only read while typing in the menu, so it shouldn't be reported
     // as conflicting with e.g. the arrow-key camera controls.
     [SettingsUIKeyboardAction(Mod.KAcceptSuggestionActionName, ActionType.Button, usages: new[] { KSearchUsage })]
@@ -153,13 +153,13 @@ namespace RadialMenu
 
         // --- Key bindings ---
 
-        [SettingsUIKeyboardBinding(BindingKeyboard.Tab, Mod.KToggleActionName)]
+        [SettingsUIKeyboardBinding(BindingKeyboard.Tab, Mod.KOpenActionName)]
         [SettingsUISection(KSection, KKeybindingGroup)]
-        public ProxyBinding ToggleKeyboardBinding { get; set; }
+        public ProxyBinding OpenKeyboardBinding { get; set; }
 
-        [SettingsUIMouseBinding(BindingMouse.Forward, Mod.KToggleActionName)]
+        [SettingsUIMouseBinding(BindingMouse.Forward, Mod.KOpenActionName)]
         [SettingsUISection(KSection, KKeybindingGroup)]
-        public ProxyBinding ToggleMouseBinding { get; set; }
+        public ProxyBinding OpenMouseBinding { get; set; }
 
         [SettingsUIKeyboardBinding(BindingKeyboard.Enter, Mod.KAcceptSuggestionActionName)]
         [SettingsUISection(KSection, KKeybindingGroup)]
@@ -376,11 +376,11 @@ namespace RadialMenu
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ItemSpacing)), "Item spacing" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ItemSpacing)), "How much space is left between neighbouring buttons, and between rings when there are several. At 0% buttons touch. Wider spacing fits fewer search results on each page. Changes apply immediately." },
 
-                { _setting.GetOptionLabelLocaleID(nameof(Setting.ToggleKeyboardBinding)), "Open radial menu" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.ToggleKeyboardBinding)), "Keyboard key that opens the radial menu. It closes by itself when you pick something; Escape goes back a level and closes it from the top ring, and clicking outside the wheel closes it too." },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.OpenKeyboardBinding)), "Open radial menu" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.OpenKeyboardBinding)), "Keyboard key that opens the radial menu. It closes by itself when you pick something; Escape goes back a level and closes it from the top ring, and clicking outside the wheel closes it too." },
 
-                { _setting.GetOptionLabelLocaleID(nameof(Setting.ToggleMouseBinding)), "Open radial menu (mouse)" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.ToggleMouseBinding)), "Mouse button that opens the radial menu. It closes by itself when you pick something; Escape goes back a level and closes it from the top ring, and clicking outside the wheel closes it too." },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.OpenMouseBinding)), "Open radial menu (mouse)" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.OpenMouseBinding)), "Mouse button that opens the radial menu. It closes by itself when you pick something; Escape goes back a level and closes it from the top ring, and clicking outside the wheel closes it too." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.AcceptSuggestionBinding)), "Accept suggestion / pick first result" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.AcceptSuggestionBinding)), "While searching in the radial menu, accepts the suggestion shown in the middle of the wheel, " +
@@ -557,7 +557,7 @@ namespace RadialMenu
                     "Anything from Find It can be added to your favorites too."
                 },
 
-                { _setting.GetBindingKeyLocaleID(Mod.KToggleActionName), "Open radial menu" },
+                { _setting.GetBindingKeyLocaleID(Mod.KOpenActionName), "Open radial menu" },
                 { _setting.GetBindingKeyLocaleID(Mod.KAcceptSuggestionActionName), "Accept suggestion / pick first result" },
 
                 { _setting.GetBindingMapLocaleID(), "Radial Menu" },
