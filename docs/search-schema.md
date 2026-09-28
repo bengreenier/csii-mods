@@ -52,6 +52,15 @@ word     := any other run of non-whitespace
 | `"exact phrase"` | Title or prefab name contains the phrase, spaces included. |
 | `-word` / `-"phrase"` | Exclude assets whose title or prefab name contains it. |
 
+Some typed words also match other words, where the game names things
+differently from how players search (`TEXT_ALIASES` in `query/aliases.ts`).
+Aliases are one-way, apply to whole typed words and exclusions, and not to
+quoted phrases:
+
+| Typed | Also matches | Why |
+|---|---|---|
+| `road` | `street` | Pedestrian (1u) roads are "Pedestrian Streets": `road ped` finds them. (`street` does not match roads.) |
+
 Titles come from the localization key `Assets.NAME[<prefab name>]`.
 
 ## Filters
@@ -379,6 +388,7 @@ steps back a level; Escape and clicking the hub do.
 
 | File | Role | Pure (no game imports) |
 |---|---|---|
+| `query/aliases.ts` | One-way word aliases for text matching (`road` also matches `street`) | yes |
 | `query/lexer.ts` | `tokenize()`: tokens with negation/quote info; never throws | yes |
 | `query/filters.ts` | Filter registry (`is`, `theme`, `pack`, `zone`, `size`, `width`, `depth`, `level`, `dlc`, `in`, `fx`): compile, validate, suggest | yes |
 | `query/parser.ts` | `parse()`: words, phrases, excludes, filters, token statuses, hint | yes |

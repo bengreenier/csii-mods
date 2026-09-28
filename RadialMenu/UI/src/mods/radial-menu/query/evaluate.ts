@@ -1,6 +1,7 @@
 // Runs a parsed query over the precomputed records: one linear pass, cheapest
 // checks first. Pure. Spec: docs/search-schema.md.
 import { ParsedQuery } from "./parser";
+import { withAliases } from "./aliases";
 import { AssetRecord } from "./record";
 
 export interface Evaluation {
@@ -25,6 +26,9 @@ function rank(r: AssetRecord, term: string | undefined): number {
 
 const contains = (r: AssetRecord, text: string) => r.titleLc.includes(text) || r.nameLc.includes(text);
 
+// A typed word matches if the name has it or one of its aliases (aliases.ts).
+const containsAny = (r: AssetRecord, alternatives: string[]) => alternatives.some((a) => contains(r, a));
+
 export function evaluate(
     q: ParsedQuery,
     records: AssetRecord[],
@@ -33,6 +37,9 @@ export function evaluate(
     const cheap = q.filters.filter((f) => !f.def.needsDetails);
     const detailed = q.filters.filter((f) => f.def.needsDetails);
     const rankTerm = q.phrases[0] ?? q.words[0];
+    // Expanded once per query, not per record.
+    const words = q.words.map(withAliases);
+    const excludes = q.excludes.map(withAliases);
 
     const scored: { r: AssetRecord; rank: number }[] = [];
     const needDetails: string[] = [];
@@ -40,9 +47,10 @@ export function evaluate(
 
     for (const r of records) {
         if (!cheap.every((f) => f.predicate(r) !== f.negated)) continue;
-        if (!q.words.every((w) => contains(r, w))) continue;
+        if (!words.every((w) => containsAny(r, w))) continue;
+        // Quoted phrases are exact: no aliases.
         if (!q.phrases.every((p) => contains(r, p))) continue;
-        if (q.excludes.some((x) => contains(r, x))) continue;
+        if (excludes.some((x) => containsAny(r, x))) continue;
 
         if (detailed.length > 0) {
             const fx = detailsOf(r.key);

@@ -386,6 +386,8 @@ namespace RadialMenu
                     "Put a minus in front of a word to leave those results out: 'road -highway' " +
                     "finds roads, but no highways.\n" +
                     "\n" +
+                    "'road' also finds streets, so 'road ped' finds the pedestrian streets.\n" +
+                    "\n" +
                     "Where you search matters. From the top ring you search every unlocked tab at once. " +
                     "Inside a tab or category, you only search that tab or category."
                 },
