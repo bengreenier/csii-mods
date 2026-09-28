@@ -30,7 +30,7 @@ namespace RadialMenu
         private bool _findItLoadComplete;
 
         /// <summary>The integration is wanted and possible right now.</summary>
-        internal static bool FindItActive => (Mod.Settings?.UseFindIt ?? true) && FindItBridge.IsAvailable;
+        internal static bool FindItActive => (Mod.Settings?.UseFindItWanted ?? true) && FindItBridge.IsAvailable;
 
         private void CreateFindItBindings()
         {
@@ -89,7 +89,13 @@ namespace RadialMenu
         }
 
         // From OnGameLoadingComplete: Find It's index for this load is built.
-        private void OnFindItLoadComplete() => _findItLoadComplete = true;
+        // The first one (the main menu) comes after every mod has loaded, so
+        // Find It's presence is settled then.
+        private void OnFindItLoadComplete()
+        {
+            FindItBridge.Settle();
+            _findItLoadComplete = true;
+        }
 
         // Find It's subcategory name for an asset (assetMeta), while it's on.
         private string FindItCategoryOf(Entity entity) =>

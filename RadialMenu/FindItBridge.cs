@@ -46,9 +46,19 @@ namespace RadialMenu
         private static Func<object, int> _getCategory;
         private static Func<object, int> _getSubCategory;
 
-        /// <summary>Find It is enabled in the playset (as Find It itself detects other mods).</summary>
-        internal static bool IsEnabled =>
-            _enabled ??= GameManager.instance?.modManager?.ListModsEnabled().Any(x => x.StartsWith(kAssemblyName + ", ")) ?? false;
+        /// <summary>
+        /// Find It is enabled in the playset (as Find It itself detects other
+        /// mods). Mods load one by one, and Find It may load after us, so this
+        /// is only cached once Settle() is called after all have loaded;
+        /// before that it's checked again each time.
+        /// </summary>
+        internal static bool IsEnabled => _enabled ?? Detect();
+
+        /// <summary>Caches IsEnabled; call once every mod has loaded.</summary>
+        internal static void Settle() => _enabled ??= Detect();
+
+        private static bool Detect() =>
+            GameManager.instance?.modManager?.ListModsEnabled().Any(x => x.StartsWith(kAssemblyName + ", ")) ?? false;
 
         /// <summary>Enabled, and its index could be read so far.</summary>
         internal static bool IsAvailable => IsEnabled && !_failed;

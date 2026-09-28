@@ -478,7 +478,14 @@ compile-time reference, since it's optional.
 
 - **Detection:** `GameManager.instance.modManager.ListModsEnabled()` has an
   entry starting with `"FindIt, "` (the way Find It detects RoadBuilder).
-  The setting is greyed out otherwise.
+  Mods load one at a time, and Find It may load **after** us (it does:
+  "RadialMenu" loads before "FindIt"), so the answer isn't cached until the
+  first `OnGameLoadingComplete` (the main menu, after every mod has loaded);
+  until then it's re-checked on each call.
+- **Setting:** the saved choice is the hidden `UseFindItWanted` (default on).
+  The visible `UseFindIt` is `[Exclude]`d from the settings file: it shows
+  ticked only when wanted and Find It is enabled, and is greyed out (and
+  ignores clicks) without Find It, so a disabled box never looks ticked.
 - **Members read** (checked against the shipped v1.5.8 DLL, Paradox Mods
   77240):
   - `FindIt.Utilities.FindItUtil.CategorizedPrefabs`: `Dictionary<PrefabCategory,

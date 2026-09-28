@@ -1,5 +1,6 @@
 using Colossal;
 using Colossal.IO.AssetDatabase;
+using Colossal.Json;
 using Game;
 using Game.Input;
 using Game.Modding;
@@ -117,10 +118,23 @@ namespace RadialMenu
         public bool LockPlacedUnique { get; set; }
 
         // Search and browse Find It's whole catalogue too (FindItBridge.cs).
-        // On by default; greyed out without Find It, where it has no effect.
+        // The saved choice (on by default) is UseFindItWanted; UseFindIt is
+        // what's shown: ticked only when wanted AND Find It is there, and
+        // greyed out without Find It, where clicks don't change the choice.
+        [SettingsUIHidden]
+        public bool UseFindItWanted { get; set; }
+
+        [Exclude]
         [SettingsUIDisableByCondition(typeof(Setting), nameof(IsFindItMissing))]
         [SettingsUISection(KSection, KAssetsGroup)]
-        public bool UseFindIt { get; set; }
+        public bool UseFindIt
+        {
+            get => UseFindItWanted && FindItBridge.IsEnabled;
+            set
+            {
+                if (FindItBridge.IsEnabled) UseFindItWanted = value;
+            }
+        }
 
         private static bool IsFindItMissing() => !FindItBridge.IsEnabled;
 
@@ -265,7 +279,7 @@ namespace RadialMenu
             SearchAllThemes = true;
             BrowseAllThemes = false;
             LockPlacedUnique = false;
-            UseFindIt = true;
+            UseFindItWanted = true;
             MenuScale = 1f;
             RingDistance = 1f;
             ItemSpacing = 1f;
