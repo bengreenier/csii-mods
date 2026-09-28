@@ -68,6 +68,7 @@ namespace RadialMenu
             SetOpen(false);
             // Loading resets vanilla's theme filter anyway (ToolbarUISystem.OnGameLoaded).
             _themeResetRequested = false;
+            ResetFindIt();
         }
 
         protected override void OnUpdate()
@@ -76,6 +77,7 @@ namespace RadialMenu
             UpdateInputIsolation();
             HandleThemeResetRequest();
             UpdateFavorites();
+            UpdateFindIt();
 
             if (GameManager.instance.gameMode != GameMode.Game)
             {

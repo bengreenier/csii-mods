@@ -115,6 +115,14 @@ namespace RadialMenu
         [SettingsUISection(KSection, KAssetsGroup)]
         public bool LockPlacedUnique { get; set; }
 
+        // Search and browse Find It's whole catalogue too (FindItBridge.cs).
+        // On by default; greyed out without Find It, where it has no effect.
+        [SettingsUIDisableByCondition(typeof(Setting), nameof(IsFindItMissing))]
+        [SettingsUISection(KSection, KAssetsGroup)]
+        public bool UseFindIt { get; set; }
+
+        private static bool IsFindItMissing() => !FindItBridge.IsEnabled;
+
         // --- Vanilla toolbar and tools ---
 
         [SettingsUISection(KSection, KVanillaGroup)]
@@ -252,6 +260,7 @@ namespace RadialMenu
             SearchAllThemes = true;
             BrowseAllThemes = false;
             LockPlacedUnique = false;
+            UseFindIt = true;
             MenuScale = 1f;
             RingDistance = 1f;
             ItemSpacing = 1f;
@@ -301,6 +310,9 @@ namespace RadialMenu
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.LockPlacedUnique)), "Disable placed unique buildings" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.LockPlacedUnique)), "Dim unique buildings, such as signature buildings, once one is placed in your city, and don't let them be picked from the radial menu, as the vanilla asset menu does. When off, they can always be picked. Favorites are never greyed out this way. Things you haven't unlocked yet are always greyed out." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.UseFindIt)), "Use Find It's catalogue" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.UseFindIt)), "Requires the Find It mod. Search and browse everything Find It lists, such as props, decals, trees and vehicles, not just what the vanilla toolbar has. Adds a Find It button to the radial menu, and a 'cat:' filter for Find It's categories. Greyed out when Find It isn't enabled." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.BrowseAllThemes)), "Show every theme and asset pack" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.BrowseAllThemes)), "When browsing the radial menu without searching, show assets from every theme and asset pack, such as North American buildings in a European city. Turn off to only show what the vanilla asset menu's theme and pack filters show. Picking an asset from another theme switches the vanilla theme filter to it, as in the vanilla asset menu." },
