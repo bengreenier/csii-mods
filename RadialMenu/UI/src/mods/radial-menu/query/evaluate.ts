@@ -41,11 +41,21 @@ export function evaluate(
     const words = q.words.map(withAliases);
     const excludes = q.excludes.map(withAliases);
 
-    const scored: { r: AssetRecord; rank: number }[] = [];
+    // Ranking has six levels (placeable or not x three text ranks), and ties
+    // go by `order`. Records normally arrive in `order` already (toolbar, then
+    // Find It by subcategory), so matches are dropped into per-level buckets
+    // and concatenated: the same result as sorting, in one linear pass. With
+    // tens of thousands of candidates (Find It), sorting every keystroke was
+    // the slow part. If the input isn't in order, fall back to sorting.
+    const buckets: AssetRecord[][] = [[], [], [], [], [], []];
+    let inOrder = true;
+    let lastOrder = -Infinity;
     const needDetails: string[] = [];
     let pending = 0;
 
     for (const r of records) {
+        if (r.order < lastOrder) inOrder = false;
+        lastOrder = r.order;
         if (!cheap.every((f) => f.predicate(r) !== f.negated)) continue;
         if (!words.every((w) => containsAny(r, w))) continue;
         // Quoted phrases are exact: no aliases.
@@ -62,10 +72,15 @@ export function evaluate(
             if (!detailed.every((f) => f.predicate(r, fx) !== f.negated)) continue;
         }
 
-        scored.push({ r, rank: rank(r, rankTerm) });
+        // Placeable first, then by text rank.
+        buckets[(r.ok ? 0 : 3) + rank(r, rankTerm)].push(r);
     }
 
-    // Placeable first, then by text rank, then toolbar order (stable).
-    scored.sort((a, b) => Number(!a.r.ok) - Number(!b.r.ok) || a.rank - b.rank || a.r.order - b.r.order);
-    return { matches: scored.map((s) => s.r), pending, needDetails };
+    const matches = ([] as AssetRecord[]).concat(...buckets);
+    // Then toolbar order (stable), if the records didn't come in it.
+    if (!inOrder) {
+        const level = (r: AssetRecord) => (r.ok ? 0 : 3) + rank(r, rankTerm);
+        matches.sort((a, b) => level(a) - level(b) || a.order - b.order);
+    }
+    return { matches, pending, needDetails };
 }
