@@ -136,8 +136,15 @@ export function effectTypes(effects: ReadonlyArray<any> | null | undefined): str
 // widths (metres) through it.
 export const CELL_METRES = 8;
 
-// "16m", "12.5m": a network width as width: values write it.
+// "16m", "12.5m": a network width in metres, as width: values write it.
 export const metres = (width: number) => `${Number(width.toFixed(1))}m`;
+
+// A network width as players usually say it: whole cells as units ("2u", as
+// in "a 2u road"), anything else in metres ("12m").
+export function netWidthLabel(width: number): string {
+    const cells = width / CELL_METRES;
+    return Math.abs(cells - Math.round(cells)) < 0.01 ? `${Math.round(cells)}u` : metres(width);
+}
 
 // Words of a camelCase type name: "CrimeAccumulation" -> ["Crime", "Accumulation"].
 export const camelWords = (type: string) => type.split(/(?=[A-Z])/).filter(Boolean);

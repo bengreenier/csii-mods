@@ -9,7 +9,7 @@ import { useFavoriteKeys } from "./favorites";
 import { evaluate } from "./query/evaluate";
 import { FilterContext } from "./query/filters";
 import { parse, ParsedQuery } from "./query/parser";
-import { AssetRecord, buildRecord, dlcSlug as iconSlug, fxTerms, metres } from "./query/record";
+import { AssetRecord, buildRecord, dlcSlug as iconSlug, fxTerms, netWidthLabel } from "./query/record";
 
 // ToolbarItemType.menu, see radial-menu.tsx.
 const TOOLBAR_ITEM_TYPE_MENU = 1;
@@ -249,8 +249,9 @@ function buildIndex(
             packs: words((r) => r.packLc),
             zones: words((r) => r.zoneLc),
             sizes: [...sizes.values()].sort((a, b) => a.area - b.area || a.text.localeCompare(b.text)).map((s) => s.text),
-            // Lot widths in cells, then network widths in metres ("16m").
-            widths: [...numbers(widths), ...[...netWidths].sort((a, b) => a - b).map(metres)],
+            // Lot widths in cells, then network widths ("2u", or "12m" when
+            // not whole cells).
+            widths: [...numbers(widths), ...new Set([...netWidths].sort((a, b) => a - b).map(netWidthLabel))],
             depths: numbers(depths),
             levels: numbers(levels),
         },

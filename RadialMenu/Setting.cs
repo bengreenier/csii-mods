@@ -437,8 +437,9 @@ namespace RadialMenu
                     "'size: 2x3' - buildings on a lot 2 cells wide along the road and 3 cells deep. " +
                     "'width: 2' and 'depth: 3' look at just one side, and can be combined: " +
                     "'width: 4 depth: 4' is the same as 'size: 4x4'.\n" +
-                    "'width: 16m' - roads, tracks and paths by their width in metres. A cell is 8 metres, " +
-                    "so 'width: 2' also finds 16 metre roads, and 'width: 16m' also finds buildings 2 cells wide.\n" +
+                    "'width: 2u' or 'width: 16m' - roads, tracks and paths by width, in units (cells, as in a '2u road') or metres. " +
+                    "A unit is 8 metres, so 'width: 2', 'width: 2u' and 'width: 16m' all find both 16 metre roads and buildings 2 cells wide. " +
+                    "'depth: 3u' works like 'depth: 3'.\n" +
                     "'level: 3' - zoned buildings of that level"
                 },
                 {

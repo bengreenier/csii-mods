@@ -10,7 +10,7 @@ export interface FilterContext {
     zones: string[];
     // "WxD", ordered by area.
     sizes: string[];
-    // Lot widths (cells) then network widths ("16m") in scope, ascending.
+    // Lot widths (cells) then network widths ("2u", "12m") in scope, ascending.
     widths: string[];
     depths: string[];
     // "1".."5", ascending.
@@ -70,9 +70,10 @@ function sizeTest(atom: string): ((r: AssetRecord) => boolean) | null {
     return (r) => r.lotWidth === width && r.lotDepth === depth;
 }
 
-// width: atoms are cells ("2") or metres ("16m", "12.5m"). Buildings have a
-// lot width in cells and networks a width in metres; either unit finds both,
-// through CELL_METRES. Null if the atom is neither.
+// width: atoms are cells ("2", or "2u": units, as players say "a 2u road") or
+// metres ("16m", "12.5m"). Buildings have a lot width in cells and networks a
+// width in metres; either unit finds both, through CELL_METRES. Null if the
+// atom is neither.
 function widthTest(atom: string): ((r: AssetRecord) => boolean) | null {
     const near = (a: number, b: number) => Math.abs(a - b) < 0.05;
     const inMetres = /^(\d+(?:\.\d+)?)m$/.exec(atom);
@@ -80,20 +81,28 @@ function widthTest(atom: string): ((r: AssetRecord) => boolean) | null {
         const m = Number(inMetres[1]);
         return (r) => (r.netWidth > 0 && near(r.netWidth, m)) || (r.lotWidth > 0 && near(r.lotWidth * CELL_METRES, m));
     }
-    if (!/^\d+$/.test(atom)) return null;
-    const cells = Number(atom);
+    const inCells = /^(\d+)u?$/.exec(atom);
+    if (!inCells) return null;
+    const cells = Number(inCells[1]);
     return (r) => r.lotWidth === cells || (r.netWidth > 0 && near(r.netWidth, cells * CELL_METRES));
 }
 
 // A filter whose values are whole numbers (comma = OR), matched exactly
 // against a record field where 0 means "none".
-function numberFilter(key: string, field: (r: AssetRecord) => number, values: (ctx: FilterContext) => string[]): FilterDef {
+// With `units`, a trailing "u" is allowed ("3u" = 3 cells).
+function numberFilter(
+    key: string,
+    field: (r: AssetRecord) => number,
+    values: (ctx: FilterContext) => string[],
+    units = false
+): FilterDef {
+    const pattern = units ? /^\d+u?$/ : /^\d+$/;
     return {
         key,
         suggest: values,
         compile: (atoms) => {
-            if (!atoms.every((a) => /^\d+$/.test(a))) return null;
-            const wanted = atoms.map(Number);
+            if (!atoms.every((a) => pattern.test(a))) return null;
+            const wanted = atoms.map((a) => parseInt(a, 10));
             return (r) => field(r) > 0 && wanted.includes(field(r));
         },
     };
@@ -156,7 +165,7 @@ export const FILTERS: FilterDef[] = [
             return (r) => tests.some((t) => t!(r));
         },
     },
-    numberFilter("depth", (r) => r.lotDepth, (ctx) => ctx.depths),
+    numberFilter("depth", (r) => r.lotDepth, (ctx) => ctx.depths, true),
     numberFilter("level", (r) => r.level, (ctx) => ctx.levels),
     {
         key: "dlc",
