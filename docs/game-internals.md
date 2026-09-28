@@ -473,6 +473,17 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
   Apply". The UI "Back" action is Escape and gamepad buttons only, so
   right-clicks reach the radial menu only as DOM mouse events. The menu's
   input isolation removes "Secondary Action" while it's open.
+- **Text ("I-beam") cursor:** the game shows whatever cursor the UI view
+  reports (`UserInterface.OnCursorChanged`, from
+  `view.Listener.CursorChanged`). Checked with temporary logging on
+  2026-09-27: the radial menu's hidden search field never changes the cursor
+  (open, type, close: no events). The stray "T" came with the menu closed and
+  no field focused: on the main menu around starting a new game, briefly
+  during loading, and over vanilla text fields in the city. Like any cursor,
+  it stays until the mouse moves (Gameface only re-evaluates on mouse move), so
+  it can seem stuck after a click. It's vanilla behaviour, not the mod's. To
+  recheck, log `GameManager.instance.userInterface.view.Listener.CursorChanged`
+  (needs a `cohtml.Net` reference).
 - **Colouring glyphs:** the `Media/Glyphs/*.svg` icons (e.g. the stars) are
   black. As an `<img>` they stay black; draw them as a `mask-image` over a
   coloured `background-color` instead, like vanilla's `TintedIcon`
