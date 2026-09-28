@@ -27,6 +27,7 @@ namespace RadialMenu
             // subcategory's enum name, e.g. 500 / 50x / "Props_Decals".
             public int Category;
             public int SubCategory;
+            public string CategoryName;
             public string SubCategoryName;
         }
 
@@ -81,19 +82,24 @@ namespace RadialMenu
                     return new List<Entry>();
 
                 var names = new Dictionary<int, string>();
+                var categoryNames = new Dictionary<int, string>();
                 var result = new List<Entry>();
                 foreach (var index in all)
                 {
                     var prefab = _getPrefab(index);
                     if (prefab == null || !prefabSystem.TryGetEntity(prefab, out var entity)) continue;
                     var subCategory = _getSubCategory(index);
+                    var category = _getCategory(index);
                     if (!names.TryGetValue(subCategory, out var name))
                         names[subCategory] = name = Enum.GetName(_subCategoryType, subCategory) ?? subCategory.ToString();
+                    if (!categoryNames.TryGetValue(category, out var categoryName))
+                        categoryNames[category] = categoryName = Enum.GetName(_categoryType, category) ?? category.ToString();
                     result.Add(new Entry
                     {
                         Entity = entity,
-                        Category = _getCategory(index),
+                        Category = category,
                         SubCategory = subCategory,
+                        CategoryName = categoryName,
                         SubCategoryName = name,
                     });
                 }
@@ -102,6 +108,28 @@ namespace RadialMenu
             catch (Exception e)
             {
                 Fail(e, "reading the index");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// The icon Find It shows for a category or subcategory (its
+        /// CategoryIconAttribute), or null. Some are coui://uil or
+        /// coui://findit paths, which Find It itself serves.
+        /// </summary>
+        internal static string IconOf(bool subCategory, int value)
+        {
+            if (!Bind()) return null;
+            var type = subCategory ? _subCategoryType : _categoryType;
+            try
+            {
+                var field = type.GetField(Enum.GetName(type, value) ?? "", BindingFlags.Public | BindingFlags.Static);
+                var attribute = field?.GetCustomAttributes(false).FirstOrDefault(a => a.GetType().Name == "CategoryIconAttribute");
+                return attribute?.GetType().GetProperty("Icon")?.GetValue(attribute) as string;
+            }
+            catch (Exception)
+            {
+                // Only an icon: the entry still works without it.
                 return null;
             }
         }
