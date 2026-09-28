@@ -185,7 +185,7 @@ thumbnail otherwise; "Button icon" always uses the button's thumbnail.
 
 Under the title, the hovered asset's filterable metadata shows as chips, one
 per filter value it matches, e.g. `is: favorite`, `theme: European`,
-`pack: ...`, `dlc: Office Evolution`, `zone: residential high`, `size: 2x3`,
+`pack: ...`, `dlc: Office Evolution`, `zone: residential`, `zone: high`, `size: 2x3`,
 `level: 3`, `fx: crime accumulation`. The order is `is:` flags, then theme,
 pack, DLC, zone, size, level and effects. The hub is a circle, so chips are
 limited to two rows, 160 wide: `HubChips` measures where each one lands
@@ -197,8 +197,8 @@ above its actions (`ChipList`); both come from `useAssetChips` in
 
 **Clicking a chip** in the right-click menu adds its filter to the search, and a
 **right click** adds it negated. The query change closes the menu, and the
-results show at once. Each chip carries the exact tokens to insert
-(`Chip.tokens`, built in `query/chips.ts`), since display values aren't always
+results show at once. Each chip carries exactly one token to insert
+(`Chip.token`, built in `query/chips.ts`), since display values aren't always
 valid filter values:
 
 | Chip | Click adds | Right click adds |
@@ -207,12 +207,14 @@ valid filter values:
 | `theme: North American` | `theme: north` (first word; values are single words) | `-theme: north` |
 | `pack: <title>` | `pack: <first word of the title>` | negated |
 | `dlc: Office Evolution` | `dlc: officeevolution` | negated |
-| `zone: residential high` | `zone: residential zone: high` | `-zone: residential` (the zone type only) |
+| `zone: residential` / `zone: high` (one chip per zone word) | `zone: residential` / `zone: high` | negated |
 | `size: 2x3` / `level: 3` | the same | negated |
 | `fx: crime accumulation` | `fx: crimeaccumulation` | negated |
 
-A right click only negates the first token, because excluding every word
-would also hide unrelated values (e.g. every high-density zone). Nothing is
+One token per chip keeps both clicks exact. The query language only ANDs
+filters, so a two-token chip couldn't be negated exactly: "not (residential and
+high)" is neither `-zone: residential` (which hides all residential) nor
+`-zone: residential -zone: high` (which also hides commercial-high). Nothing is
 added twice in a row (`appendToQuery`). The hub's chips aren't clickable: they
 only show while an item is hovered. `fx:` chips appear once the prefab's details have
 loaded (the hub title subscribes to them anyway). `in:` isn't shown, since the

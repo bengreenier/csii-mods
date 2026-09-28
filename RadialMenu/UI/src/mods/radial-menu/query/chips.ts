@@ -7,11 +7,12 @@ export interface Chip {
     key: string;
     // Display text; may have spaces and capitals.
     value: string;
-    // The search tokens that find this value, e.g. ["theme: north"] for
+    // The one search token that finds this value, e.g. "theme: north" for
     // "North American" (filter values are single lowercase words). Clicking a
-    // chip adds them all; right-clicking adds the first one negated
-    // (chipQuery).
-    tokens: string[];
+    // chip adds it; right-clicking adds it negated (chipQuery). One token per
+    // chip keeps both exact: a negated pair like "-a -b" would mean "neither",
+    // not "not both".
+    token: string;
 }
 
 export interface ChipSource {
@@ -46,12 +47,12 @@ const token = (key: string, value: string) => `${key}: ${value}`;
 
 export function assetChips(src: ChipSource): Chip[] {
     const chips: Chip[] = [];
-    const add = (key: string, value: string, tokenValues: string[]) => {
-        if (tokenValues.length > 0) chips.push({ key, value, tokens: tokenValues.map((v) => token(key, v)) });
+    const add = (key: string, value: string, tokenValue: string | undefined) => {
+        if (tokenValue) chips.push({ key, value, token: token(key, tokenValue) });
     };
-    const is = (value: string) => add("is", value, [value]);
+    const is = (value: string) => add("is", value, value);
     // theme:/pack: match a word prefix of the name or title, so one word does.
-    const firstWord = (text: string) => valueWords(text).slice(0, 1);
+    const firstWord = (text: string) => valueWords(text)[0];
 
     if (src.favorite) is("favorite");
     if (src.locked) is("locked");
@@ -62,23 +63,21 @@ export function assetChips(src: ChipSource): Chip[] {
     if (src.themeTitle) add("theme", src.themeTitle, firstWord(src.themeTitle));
     for (const pack of src.packTitles) add("pack", pack, firstWord(pack));
     // dlc: matches part of the DLC's icon name, e.g. "officeevolution".
-    if (src.dlcName) add("dlc", spaced(src.dlcName), [src.dlcName.toLowerCase()]);
-    // zone: words are ANDed as separate tokens: "zone: residential zone: high".
-    if (src.zone) add("zone", src.zone, valueWords(src.zone));
-    if (src.lotWidth > 0) add("size", `${src.lotWidth}x${src.lotDepth}`, [`${src.lotWidth}x${src.lotDepth}`]);
-    if (src.level > 0) add("level", String(src.level), [String(src.level)]);
+    if (src.dlcName) add("dlc", spaced(src.dlcName), src.dlcName.toLowerCase());
+    // One chip per zone word, e.g. "zone: residential" and "zone: high": each
+    // is its own filter value, so each chip stays exact when negated.
+    for (const word of src.zone ? valueWords(src.zone) : []) add("zone", word, word);
+    const size = `${src.lotWidth}x${src.lotDepth}`;
+    if (src.lotWidth > 0) add("size", size, size);
+    if (src.level > 0) add("level", String(src.level), String(src.level));
     // fx: terms include the whole type, lowercased.
-    for (const effect of src.effects) add("fx", spaced(effect).toLowerCase(), [effect.toLowerCase()]);
+    for (const effect of src.effects) add("fx", spaced(effect).toLowerCase(), effect.toLowerCase());
 
     return chips;
 }
 
-/**
- * The query text to add for a chip: all its tokens, or (negated) only the
- * first one with a leading "-". Excluding just the defining token keeps e.g.
- * "-zone: residential" from also hiding every other high-density zone.
- */
-export const chipQuery = (chip: Chip, negated: boolean) => (negated ? `-${chip.tokens[0]}` : chip.tokens.join(" "));
+/** The query text to add for a chip: its token, negated with a leading "-". */
+export const chipQuery = (chip: Chip, negated: boolean) => (negated ? `-${chip.token}` : chip.token);
 
 /**
  * `query` with `addition` appended, separated by a space and followed by one
