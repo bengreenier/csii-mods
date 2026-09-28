@@ -69,3 +69,19 @@ search over every asset in the game fast on every keystroke.
 - Per-frame systems should exit early. Compare the one thing that matters
   (e.g. "did the tool's info view change?") before doing any work.
 - Reflection: resolve `FieldInfo`s once (in static fields) and reuse them.
+
+## Measuring in game
+
+- `performance.now()` is not useful for timing in Gameface: in testing
+  (2026-09-27), every measured interval (a keystroke to its committed render,
+  building thousands of search records) read 0.0 ms, so the clock seems fixed
+  within a frame, or very coarse.
+- Judge speed by feel instead, and reason about cost from the code: per
+  keystroke, count what's O(all records), and whether anything sorts, allocates
+  or builds per record.
+- If you need numbers, test `Date.now()` first, measure across frames
+  (`requestAnimationFrame` counts), or do the timing on the C# side.
+- The big wins in this mod came from caching per-record work across searches
+  and replacing a per-keystroke sort with a linear pass. Also, never key shared
+  caches on per-component objects: `useLocalization()` returns a new wrapper
+  in each component.
