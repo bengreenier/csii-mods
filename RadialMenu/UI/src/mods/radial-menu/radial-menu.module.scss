@@ -154,6 +154,13 @@ $hub-size: 240rem;
     height: 100%;
 }
 
+// TintedIcon (tinted-icon.tsx): the glyph is a mask over the background colour.
+.tintedIcon {
+    mask-size: contain;
+    mask-position: center;
+    mask-repeat: no-repeat;
+}
+
 // Right-click menu on wheel items (context-menu.tsx). Positioned in view
 // pixels on the backdrop, outside the scaled wheel.
 .contextMenu {

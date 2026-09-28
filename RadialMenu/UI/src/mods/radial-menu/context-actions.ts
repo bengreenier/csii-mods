@@ -5,7 +5,7 @@ import { useValue } from "cs2/api";
 import { entityKey } from "cs2/utils";
 import { addFavorite, assetMeta$, dlcSteamApps$, removeFavorite, setClipboard } from "./bindings";
 import { ContextAction, ContextTarget } from "./context-menu";
-import { FAVORITE_ICON, UNFAVORITE_ICON, useFavoriteKeys } from "./favorites";
+import { FAVORITE_COLOR, FAVORITE_ICON, UNFAVORITE_ICON, useFavoriteKeys } from "./favorites";
 import { dlcStoreUrl, modPageUrl } from "./store-links";
 
 export type ContextActionProvider = (target: ContextTarget) => ContextAction[];
@@ -38,12 +38,14 @@ export function useContextActions(): ContextActionProvider {
                                   id: "favorite",
                                   label: "Remove from favorites",
                                   icon: UNFAVORITE_ICON,
+                                  iconColor: FAVORITE_COLOR,
                                   onSelect: () => removeFavorite(target.entity),
                               }
                             : {
                                   id: "favorite",
                                   label: "Add to favorites",
                                   icon: FAVORITE_ICON,
+                                  iconColor: FAVORITE_COLOR,
                                   onSelect: () => addFavorite(target.entity),
                               },
                     ];

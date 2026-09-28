@@ -24,7 +24,8 @@ import {
 } from "./bindings";
 import { isBulldozer, useBulldozerPlacement } from "./bulldozer";
 import { useContextActions } from "./context-actions";
-import { FAVORITE_ICON, FAVORITES_EMPTY_MESSAGE, FAVORITES_TITLE } from "./favorites";
+import { FAVORITE_COLOR, FAVORITE_ICON, FAVORITES_EMPTY_MESSAGE, FAVORITES_TITLE } from "./favorites";
+import { TintedIcon } from "./tinted-icon";
 import { ContextMenu, ContextTarget, OpenContextMenu } from "./context-menu";
 import { layoutWheel, searchPageSize, wheelFitRadius, wheelGeometry } from "./layout";
 import { FILTER_EXAMPLES } from "./query/filters";
@@ -158,6 +159,8 @@ interface WheelEntry extends HubLabel {
     // aren't prefabs (e.g. Favorites) set their own.
     key?: string;
     icon: string;
+    // Draws `icon` as a single-colour glyph in this colour (TintedIcon).
+    iconColor?: string;
     disabled: boolean;
     group?: number;
     // Leaf entries (placeable assets) show a large preview in the hub on hover.
@@ -542,7 +545,11 @@ const Wheel = ({
                         if (pressedHere) openContext(entry, e.clientX, e.clientY);
                     }}
                 >
-                    <img className={styles.icon} src={entry.icon} />
+                    {entry.iconColor ? (
+                        <TintedIcon className={styles.icon} src={entry.icon} color={entry.iconColor} />
+                    ) : (
+                        <img className={styles.icon} src={entry.icon} />
+                    )}
                 </button>
             ))}
         </div>
@@ -582,6 +589,7 @@ const RootLevel = ({ onOpenMenu, onOpenFavorites, ...searchProps }: RootLevelPro
                 name: FAVORITES_TITLE,
                 title: FAVORITES_TITLE,
                 icon: FAVORITE_ICON,
+                iconColor: FAVORITE_COLOR,
                 disabled: false,
                 group: groups.length,
                 onSelect: onOpenFavorites,

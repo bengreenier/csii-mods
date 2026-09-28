@@ -10,6 +10,8 @@ export const FAVORITES_TITLE = "Favorites";
 // The Favorites entry and "Add to favorites"; "Remove from favorites" uses the outline.
 export const FAVORITE_ICON = "Media/Glyphs/StarFilled.svg";
 export const UNFAVORITE_ICON = "Media/Glyphs/StarOutline.svg";
+// The star glyphs are black; they're drawn in this classic favorites yellow.
+export const FAVORITE_COLOR = "rgba(255, 200, 40, 1)";
 export const FAVORITES_EMPTY_MESSAGE = ["No favorites yet", "Right-click any item and choose 'Add to favorites'"];
 
 const NO_KEYS: ReadonlySet<string> = new Set<string>();

@@ -5,6 +5,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { Entity } from "cs2/utils";
 import classNames from "classnames";
 import styles from "./radial-menu.module.scss";
+import { TintedIcon } from "./tinted-icon";
 
 // What was right-clicked. Only assets have actions so far; add a kind here and
 // handle it in the action provider (context-actions.ts) to give other items a
@@ -21,6 +22,8 @@ export interface ContextAction {
     id: string;
     label: string;
     icon?: string;
+    // Draws `icon` as a single-colour glyph in this colour (TintedIcon).
+    iconColor?: string;
     disabled?: boolean;
     onSelect: () => void;
 }
@@ -89,7 +92,12 @@ export const ContextMenu = ({ x, y, actions, onClose }: ContextMenuProps) => {
                         onClose();
                     }}
                 >
-                    {action.icon && <img className={styles.contextActionIcon} src={action.icon} />}
+                    {action.icon &&
+                        (action.iconColor ? (
+                            <TintedIcon className={styles.contextActionIcon} src={action.icon} color={action.iconColor} />
+                        ) : (
+                            <img className={styles.contextActionIcon} src={action.icon} />
+                        ))}
                     <div className={styles.contextActionLabel}>{action.label}</div>
                 </div>
             ))}

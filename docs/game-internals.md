@@ -473,6 +473,11 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
   Apply". The UI "Back" action is Escape and gamepad buttons only, so
   right-clicks reach the radial menu only as DOM mouse events. The menu's
   input isolation removes "Secondary Action" while it's open.
+- **Colouring glyphs:** the `Media/Glyphs/*.svg` icons (e.g. the stars) are
+  black. As an `<img>` they stay black; draw them as a `mask-image` over a
+  coloured `background-color` instead, like vanilla's `TintedIcon`
+  (`game-ui/common/image/tinted-icon.tsx`: `mask-size: contain`, centred, no
+  repeat). Ours is `tinted-icon.tsx`.
 - **`:nth-child(n + k)`** only parses with the spaces (vanilla's form). The
   production build's CSS minifier writes `n+k`, which Gameface rejects: the
   whole rule is dropped, with `CSS parsing error "syntax error" near text: +k`
