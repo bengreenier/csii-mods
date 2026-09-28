@@ -193,7 +193,28 @@ limited to two rows, 160 wide: `HubChips` measures where each one lands
 characters are cut with `...`, and the chip area is also capped at two rows'
 height in CSS as a fallback. The right-click menu shows every chip, untruncated,
 above its actions (`ChipList`); both come from `useAssetChips` in
-`asset-chips.tsx`. `fx:` chips appear once the prefab's details have
+`asset-chips.tsx`.
+
+**Clicking a chip** in the right-click menu adds its filter to the search, and a
+**right click** adds it negated. The query change closes the menu, and the
+results show at once. Each chip carries the exact tokens to insert
+(`Chip.tokens`, built in `query/chips.ts`), since display values aren't always
+valid filter values:
+
+| Chip | Click adds | Right click adds |
+|---|---|---|
+| `is: favorite` | `is: favorite` | `-is: favorite` |
+| `theme: North American` | `theme: north` (first word; values are single words) | `-theme: north` |
+| `pack: <title>` | `pack: <first word of the title>` | negated |
+| `dlc: Office Evolution` | `dlc: officeevolution` | negated |
+| `zone: residential high` | `zone: residential zone: high` | `-zone: residential` (the zone type only) |
+| `size: 2x3` / `level: 3` | the same | negated |
+| `fx: crime accumulation` | `fx: crimeaccumulation` | negated |
+
+A right click only negates the first token, because excluding every word
+would also hide unrelated values (e.g. every high-density zone). Nothing is
+added twice in a row (`appendToQuery`). The hub's chips aren't clickable: they
+only show while an item is hovered. `fx:` chips appear once the prefab's details have
 loaded (the hub title subscribes to them anyway). `in:` isn't shown, since the
 level already tells where you are. The rules are in `query/chips.ts`, next to
 the filters they mirror.

@@ -11,6 +11,7 @@ import { useFavoriteKeys } from "./favorites";
 import { useLocalization } from "./localization";
 import { assetChips, Chip, spaced } from "./query/chips";
 import { dlcSlug, effectTypes, iconName, MOD_DLC_SLUG } from "./query/record";
+import classNames from "classnames";
 import styles from "./radial-menu.module.scss";
 
 // The hub is a circle, so space runs out fast: chips are limited to this many
@@ -60,14 +61,36 @@ export function useAssetChips(asset: toolbar.Asset | null): Chip[] {
 const chipText = (chip: Chip, maxChars = Infinity) =>
     `${chip.key}: ${chip.value.length > maxChars ? `${chip.value.slice(0, maxChars - 3)}...` : chip.value}`;
 
-/** Every chip in `chips`, wrapping as needed (the context menu has room). */
-export const ChipList = ({ chips }: { chips: Chip[] }) => {
+const MOUSE_SECONDARY = 2;
+
+/**
+ * Every chip in `chips`, wrapping as needed (the context menu has room). With
+ * `onChipClick`, a left click on a chip adds its filter to the search and a
+ * right click adds it negated.
+ */
+export const ChipList = ({
+    chips,
+    onChipClick,
+}: {
+    chips: Chip[];
+    onChipClick?: (chip: Chip, negated: boolean) => void;
+}) => {
     if (chips.length === 0) return null;
     return (
         <div className={styles.contextChips}>
             {chips.map((chip, i) => (
                 // One string per element: Gameface splits adjacent text nodes.
-                <div key={i} className={styles.chip}>
+                <div
+                    key={i}
+                    className={classNames(styles.chip, onChipClick && styles.chipClickable)}
+                    onClick={onChipClick && (() => onChipClick(chip, false))}
+                    onMouseUp={
+                        onChipClick &&
+                        ((e) => {
+                            if (e.button === MOUSE_SECONDARY) onChipClick(chip, true);
+                        })
+                    }
+                >
                     {chipText(chip)}
                 </div>
             ))}

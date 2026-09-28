@@ -47,13 +47,15 @@ interface ContextMenuProps {
     // The target's name and metadata, shown above the actions (asset-chips.tsx).
     title?: string;
     chips?: Chip[];
+    // A chip was clicked: add its filter to the search (negated: right click).
+    onChipClick?: (chip: Chip, negated: boolean) => void;
     onClose: () => void;
 }
 
 // Opens at the cursor, towards the bottom right, and flips or shifts to stay
 // inside the view. Rendered outside the scaled wheel, so "Menu size" doesn't
 // change it.
-export const ContextMenu = ({ x, y, actions, title, chips, onClose }: ContextMenuProps) => {
+export const ContextMenu = ({ x, y, actions, title, chips, onChipClick, onClose }: ContextMenuProps) => {
     const ref = useRef<HTMLDivElement>(null);
     const [pos, setPos] = useState({ x, y });
 
@@ -89,7 +91,7 @@ export const ContextMenu = ({ x, y, actions, title, chips, onClose }: ContextMen
             {(title || (chips && chips.length > 0)) && (
                 <div className={styles.contextDetails}>
                     {title && <div className={styles.contextTitle}>{title}</div>}
-                    {chips && <ChipList chips={chips} />}
+                    {chips && <ChipList chips={chips} onChipClick={onChipClick} />}
                 </div>
             )}
             {actions.map((action) => (

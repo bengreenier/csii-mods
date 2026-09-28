@@ -213,6 +213,11 @@ $hub-size: 240rem;
     font-weight: bold;
 }
 
+.chipClickable:hover {
+    background-color: rgba(64, 128, 224, 0.95);
+    opacity: 1;
+}
+
 .contextChips {
     display: flex;
     flex-direction: row;

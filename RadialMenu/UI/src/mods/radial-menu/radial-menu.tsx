@@ -27,6 +27,7 @@ import { isBulldozer, useBulldozerPlacement } from "./bulldozer";
 import { useContextActions } from "./context-actions";
 import { HubChips, useAssetChips } from "./asset-chips";
 import { usePrefabTitle } from "./asset-data";
+import { appendToQuery, Chip, chipQuery } from "./query/chips";
 import { useLocalization } from "./localization";
 import { FAVORITE_COLOR, FAVORITE_ICON, FAVORITES_EMPTY_MESSAGE, FAVORITES_TITLE } from "./favorites";
 import { TintedIcon } from "./tinted-icon";
@@ -781,6 +782,12 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     const contextAsset = context?.target.kind === "asset" ? context.target.asset : null;
     const contextTitle = usePrefabTitle(contextAsset?.entity, contextAsset?.name ?? "");
     const contextChips = useAssetChips(contextAsset);
+    // Clicking a chip adds its filter to the search (right click: negated). The
+    // query change closes the context menu (see the effect on [query, path]).
+    const addChipToQuery = useCallback(
+        (chip: Chip, negated: boolean) => setQuery((q) => appendToQuery(q, chipQuery(chip, negated))),
+        []
+    );
     useEffect(() => {
         if (context && !hasOpenActions) setContext(null);
     }, [context, hasOpenActions]);
@@ -972,6 +979,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
                     actions={openActions}
                     title={contextTitle || undefined}
                     chips={contextChips}
+                    onChipClick={addChipToQuery}
                     onClose={closeContext}
                 />
             )}
