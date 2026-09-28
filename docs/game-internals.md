@@ -497,7 +497,11 @@ compile-time reference, since it's optional.
     snapshot only once our own `OnGameLoadingComplete` has run too (every
     loading-complete callback, Find It's re-index included, finishes before
     our next update). Prefabs Find It adds later (its incremental `OnUpdate`
-    indexing) aren't picked up until the next load.
+    indexing) aren't picked up until the next load, or until the "Rebuild
+    Find It catalogue" button (Utilities; needs Find It and a city) is
+    pressed. That re-reads the index in place (the integration never blinks
+    off) and resends it; the UI's cached records rebuild in the background,
+    since they're keyed on the resent arrays.
   - `PrefabIndex.Prefab` (`PrefabBase`), `.Category`, `.SubCategory` (enums,
     read as ints; names via `Enum.GetName`).
   - The `CategoryIconAttribute.Icon` on the category enums, for icons.
@@ -625,6 +629,7 @@ messages mostly exist to flag breakage after a game update.
 | `Could not resolve DLC Steam app IDs; DLC assets get no store link` (warning) | The game's DLC data couldn't be read (after a game update?); DLC assets offer no "Copy Steam store link" |
 | `Could not read the Paradox Mods ID of <prefab>; ...` (warning, once) | An asset's mod metadata couldn't be read; that asset (and any other failing one) gets no "Copy Paradox Mods link" |
 | `Find It <version>: read N catalogue entries (M subcategories) in T ms` | Once per load with the Find It integration on |
+| `Rebuild Find It catalogue requested`, then `Find It <version>: rebuilt N catalogue entries ...` | The "Rebuild Find It catalogue" button was pressed |
 | `Find It integration off: <what> (Find It <version>)...` (warning) | Find It's internals didn't look as expected (after a Find It update?); the radial menu works without it |
 | `Reset vanilla theme filter` | The "Reset vanilla theme filter" button was used; followed by `... skipped: no city loaded` if there was no city |
 | `ToolSystem.m_LastToolInfoview/m_LastToolInfomodes not found; ...` (warning) | A game update renamed vanilla's private fields. The flicker-free tool info view path is off, and the fallback is used. See [Tool info views](#tool-info-views-show-info-views-for-radial-menu-selections). |

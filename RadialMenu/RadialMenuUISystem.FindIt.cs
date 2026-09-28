@@ -28,6 +28,18 @@ namespace RadialMenu
         // callbacks, Find It's re-index included, run before our next update)
         // avoids snapshotting the previous load's index.
         private bool _findItLoadComplete;
+        private static bool _findItRebuildRequested;
+
+        /// <summary>
+        /// From the "Rebuild Find It catalogue" settings button: re-reads Find
+        /// It's index on the next update and resends it, which also rebuilds
+        /// the UI's cached search records (keyed on the data sent).
+        /// </summary>
+        public static void RequestFindItRebuild()
+        {
+            _findItRebuildRequested = true;
+            Mod.LOG.Info("Rebuild Find It catalogue requested");
+        }
 
         /// <summary>The integration is wanted and possible right now.</summary>
         internal static bool FindItActive => (Mod.Settings?.UseFindItWanted ?? true) && FindItBridge.IsAvailable;
@@ -52,6 +64,7 @@ namespace RadialMenu
         private void ResetFindIt()
         {
             _findItLoadComplete = false;
+            _findItRebuildRequested = false;
             _findItEntries = null;
             _findItBySubCategory = new Dictionary<int, List<Entity>>();
             _findItCategoryByEntity = new Dictionary<Entity, string>();
@@ -69,7 +82,13 @@ namespace RadialMenu
                 RefreshAssetMeta();
             }
 
-            if (_findItEntries != null || !_findItLoadComplete || !FindItActive || !FindItBridge.IsReady()) return;
+            if (!_findItLoadComplete || !FindItActive || !FindItBridge.IsReady()) return;
+            // A snapshot is taken once per load, or again on request ("Rebuild
+            // Find It catalogue"): replaced in place, so the integration never
+            // blinks off (which would hide the Find It entry mid-use).
+            var rebuild = _findItRebuildRequested;
+            _findItRebuildRequested = false;
+            if (_findItEntries != null && !rebuild) return;
 
             var stopwatch = Stopwatch.StartNew();
             var entries = FindItBridge.ReadIndex(_prefabSystem);
@@ -80,7 +99,7 @@ namespace RadialMenu
                 .ToDictionary(g => g.Key, g => g.Select(e => e.Entity).ToList());
             _findItCategoryByEntity = new Dictionary<Entity, string>();
             foreach (var entry in entries) _findItCategoryByEntity[entry.Entity] = entry.SubCategoryName;
-            Mod.LOG.Info($"Find It {FindItBridge.Version}: read {entries.Count} catalogue entries " +
+            Mod.LOG.Info($"Find It {FindItBridge.Version}: {(rebuild ? "rebuilt" : "read")} {entries.Count} catalogue entries " +
                          $"({_findItBySubCategory.Count} subcategories) in {stopwatch.ElapsedMilliseconds} ms");
             _findItCategories.Update();
             _findItAssets.UpdateAll();
