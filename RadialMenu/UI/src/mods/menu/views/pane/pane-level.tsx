@@ -70,8 +70,8 @@ export const PaneLevel = ({ level }: LevelViewProps) => {
 
     // The session calls these; read through a ref so they always see this
     // render's rows, without re-registering on every render.
-    const latest = useRef({ highlight, select, highlighted, index, count, query, onBack, complete });
-    latest.current = { highlight, select, highlighted, index, count, query, onBack, complete };
+    const latest = useRef({ highlight, select, highlighted, index, count, query, onBack, complete, closeContext });
+    latest.current = { highlight, select, highlighted, index, count, query, onBack, complete, closeContext };
     useEffect(() => {
         const commands = commandsRef.current;
         commands.onKey = (keyCode, field) => {
@@ -79,6 +79,8 @@ export const PaneLevel = ({ level }: LevelViewProps) => {
             switch (keyCode) {
                 case KEY_UP:
                 case KEY_DOWN:
+                    // The context menu stays where it opened; its row may scroll away.
+                    l.closeContext();
                     l.highlight(moveIndex(l.index, keyCode === KEY_DOWN ? 1 : -1, l.count), true);
                     return true;
                 case KEY_RIGHT: {

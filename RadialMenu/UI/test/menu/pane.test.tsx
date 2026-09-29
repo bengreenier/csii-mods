@@ -195,11 +195,15 @@ describe("pane", () => {
         expect(itemIcons()).toContain("icon/Tree02.svg");
     });
 
-    it("opens the context menu on a row; scrolling or Escape closes it", () => {
+    it("opens the context menu on a row; scrolling, Up/Down or Escape closes it", () => {
         openTrees();
         rightClick(item("icon/Tree01.svg"));
         expect(contextMenu()).not.toBeNull();
         scrollList(100);
+        expect(contextMenu()).toBeNull();
+
+        rightClick(item("icon/Tree05.svg"));
+        key(KEY.DOWN);
         expect(contextMenu()).toBeNull();
 
         rightClick(item("icon/Tree05.svg"));

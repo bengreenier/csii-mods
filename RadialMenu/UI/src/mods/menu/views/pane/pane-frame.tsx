@@ -48,20 +48,19 @@ export const PaneFrame = ({ searchField, children }: { searchField: ReactNode; c
     };
 
     return (
+        // A zero-size anchor at the pane's top-left corner, scaled ("Pane
+        // size"), as the wheel scales around its centre: no reliance on
+        // transform-origin.
         <div
-            className={styles.pane}
-            style={{
-                left: `${position.left}px`,
-                top: `${position.top}px`,
-                width: `${PANE_WIDTH}rem`,
-                height: `${PANE_HEIGHT}rem`,
-                transform: `scale(${scale})`,
-            }}
+            className={styles.anchor}
+            style={{ left: `${position.left}px`, top: `${position.top}px`, transform: `scale(${scale})` }}
             onClick={onClick}
         >
-            {/* Rendered unconditionally, first: the session's one focused field. */}
-            <div className={styles.header}>{searchField}</div>
-            {children}
+            <div className={styles.pane} style={{ width: `${PANE_WIDTH}rem`, height: `${PANE_HEIGHT}rem` }}>
+                {/* Rendered unconditionally, first: the session's one focused field. */}
+                <div className={styles.header}>{searchField}</div>
+                {children}
+            </div>
         </div>
     );
 };
