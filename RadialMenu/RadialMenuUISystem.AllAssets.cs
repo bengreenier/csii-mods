@@ -50,7 +50,7 @@ namespace RadialMenu
 
         // The UI applies it through vanilla's toolbar.clearAssetSelection and
         // toolbar.setSelectedThemes triggers, so ToolbarUISystem does its usual
-        // bookkeeping (see radial-menu.tsx). Clearing first means the theme
+        // bookkeeping (see useResetVanillaThemes in UI/src/mods/menu/shell.tsx). Clearing first means the theme
         // change can't swap the active tool to the "closest" asset in the theme.
         private void HandleThemeResetRequest()
         {

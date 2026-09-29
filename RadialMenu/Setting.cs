@@ -16,11 +16,11 @@ namespace RadialMenu
     [SettingsUITabOrder(KSection, KGuideSection)]
     // Main tab first (settings), then the Usage Guide, which reads top to bottom:
     // basics, then each filter.
-    [SettingsUIGroupOrder(KLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
+    [SettingsUIGroupOrder(KLayoutGroup, KRadialLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
         KSearchQuickStartGroup, KSearchKeysGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
         KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
         KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
-    [SettingsUIShowGroupName(KLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
+    [SettingsUIShowGroupName(KLayoutGroup, KRadialLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
         KSearchQuickStartGroup, KSearchKeysGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
         KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
         KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
@@ -34,7 +34,10 @@ namespace RadialMenu
         public const string KSection = "Main";
         // Main tab groups. Settings are saved by property name, so moving one
         // between groups doesn't reset it.
+        // Settings for any view of the menu; the wheel's own are in
+        // KRadialLayoutGroup.
         public const string KLayoutGroup = "Layout";
+        public const string KRadialLayoutGroup = "RadialLayout";
         public const string KAssetsGroup = "Assets";
         public const string KVanillaGroup = "Vanilla";
         public const string KKeybindingGroup = "KeyBinding";
@@ -66,28 +69,30 @@ namespace RadialMenu
 
         // --- Menu layout ---
 
+        [SettingsUISection(KSection, KLayoutGroup)]
+        public bool OpenAtCursor { get; set; }
+
+        // --- Radial menu layout ---
+
         // Scale factor for the whole wheel (1 = 100%), shown as a percentage like
         // the vanilla audio sliders.
         [SettingsUISlider(min = 50f, max = 200f, step = 5f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
-        [SettingsUISection(KSection, KLayoutGroup)]
+        [SettingsUISection(KSection, KRadialLayoutGroup)]
         public float MenuScale { get; set; }
 
         // Gap between the center and the first ring (1 = 100%; 0 = touching).
         [SettingsUISlider(min = 0f, max = 400f, step = 25f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
-        [SettingsUISection(KSection, KLayoutGroup)]
+        [SettingsUISection(KSection, KRadialLayoutGroup)]
         public float RingDistance { get; set; }
 
         // Gap between neighbouring buttons and between rings (1 = 100%; 0 = touching).
         [SettingsUISlider(min = 0f, max = 400f, step = 25f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
-        [SettingsUISection(KSection, KLayoutGroup)]
+        [SettingsUISection(KSection, KRadialLayoutGroup)]
         public float ItemSpacing { get; set; }
-
-        [SettingsUISection(KSection, KLayoutGroup)]
-        public bool OpenAtCursor { get; set; }
 
         // The image in the middle of the wheel while hovering an asset. Sent to
         // the UI as an int: keep the values in sync with HUB_IMAGE_* in
-        // radial-menu.tsx.
+        // UI/src/mods/menu/item-details.tsx.
         public enum HubImageMode
         {
             // The prefab's dedicated preview when it has one (e.g. signature
@@ -97,7 +102,7 @@ namespace RadialMenu
             ButtonIcon = 1,
         }
 
-        [SettingsUISection(KSection, KLayoutGroup)]
+        [SettingsUISection(KSection, KRadialLayoutGroup)]
         public HubImageMode HubImage { get; set; }
 
         // --- Assets ---
@@ -323,6 +328,7 @@ namespace RadialMenu
                 { _setting.GetOptionTabLocaleID(Setting.KSection), "Main" },
 
                 { _setting.GetOptionGroupLocaleID(Setting.KLayoutGroup), "Menu layout" },
+                { _setting.GetOptionGroupLocaleID(Setting.KRadialLayoutGroup), "Radial menu layout" },
                 { _setting.GetOptionGroupLocaleID(Setting.KAssetsGroup), "Assets" },
                 { _setting.GetOptionGroupLocaleID(Setting.KVanillaGroup), "Vanilla toolbar and tools" },
                 { _setting.GetOptionGroupLocaleID(Setting.KKeybindingGroup), "Key bindings" },
