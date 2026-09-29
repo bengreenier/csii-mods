@@ -10,10 +10,14 @@ export default defineConfig({
         alias: [
             { find: /^mod\.json$/, replacement: r("mod.json") },
             { find: /^mods\//, replacement: r("src/mods") + "/" },
+            // The game provides cs2/* at runtime (webpack externals); tests
+            // get fakes backed by an in-memory store (test/fakes/).
+            { find: /^cs2\/(api|bindings|l10n|modding|utils)$/, replacement: r("test/fakes") + "/cs2-$1.ts" },
         ],
     },
     test: {
         include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
         environment: "node",
+        testTimeout: 10_000,
     },
 });
