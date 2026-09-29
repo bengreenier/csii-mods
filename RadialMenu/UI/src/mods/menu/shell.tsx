@@ -26,7 +26,7 @@ export const MenuShell = () => {
     // Mounted only while open, so navigation and search reset on every open.
     return (
         <FindItCatalogueContext.Provider value={findItCatalogue}>
-            {/* One view for now; how a view gets chosen is open (README, decision 3). */}
+            {/* One view for now (docs/ui-architecture.md, "Adding a view"). */}
             <MenuViewContext.Provider value={radialView}>
                 {isOpen ? <MenuSession backRef={backRef} /> : null}
             </MenuViewContext.Provider>

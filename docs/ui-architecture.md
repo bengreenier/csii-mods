@@ -37,6 +37,9 @@ Also shared by any view: `actions.ts` (selecting and placing), `navigation.ts`,
   field focused" state. See `docs/game-internals.md`, input isolation.
 - **Frames render `searchField` unconditionally, at a stable position.** They
   choose its look (hidden for the wheel), never its behaviour.
+- **A view is one module-level object** (`views/radial/index.ts`). Building
+  `{ Frame, Level }` inline, or picking a view per render, gives `Frame` a new
+  identity each time: React remounts it, and the search field with it.
 - **Views register, the session calls.** Paging and keys go through
   `commandsRef.current` (`page`, `onKey`). A view clears what it set on
   unmount, so the next level never sees a stale handler.

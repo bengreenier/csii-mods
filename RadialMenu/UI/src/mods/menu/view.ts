@@ -1,5 +1,7 @@
 // A way of drawing the open menu (views/<name>/). The session owns the state,
-// input and the search field; a view only draws.
+// input and the search field; a view only draws. Export each view as one
+// module-level object: a new Frame component per render would remount the
+// frame, and with it the search field.
 import { ComponentType, createContext, ReactNode, useContext } from "react";
 import { LevelViewProps } from "./model";
 
