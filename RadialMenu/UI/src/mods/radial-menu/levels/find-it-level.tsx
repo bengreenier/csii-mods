@@ -8,7 +8,7 @@ import { useLocalization } from "../localization";
 import { Label, LevelModel, MenuItem, NO_ENTITY } from "../model";
 import { useAssetSearch } from "../search";
 import { useMenuSession } from "../session-context";
-import { Wheel } from "../wheel";
+import { LevelFrame } from "../level-frame";
 import { assetItem, useResultItems } from "./items";
 
 const EMPTY: never[] = [];
@@ -91,5 +91,5 @@ export const FindItLevel = ({ category, sub, onOpen, onBack }: FindItLevelProps)
         [search, resultItems, items, current, onBack]
     );
 
-    return <Wheel level={level} />;
+    return <LevelFrame level={level} />;
 };

@@ -437,7 +437,9 @@ steps back a level; Escape and clicking the hub do.
 | `query/evaluate.ts` | `evaluate()`: filter, rank, pending/need-details | yes |
 | `search.ts` | Hook glue: data subscriptions, index, lazy `fx:` details, caps | no |
 | `bindings.ts` / `RadialMenuUISystem.AssetMeta.cs` | `assetMeta`: static per-asset data from C# (packs, lot size, zone, level) | no |
-| `radial-menu.tsx` | Hub display, keys (accept event / Escape) | no |
+| `radial-menu.tsx` | Keys (accept event / Escape) | no |
+| `level-frame.tsx` | What the accept key does on a level (completion, or the only placeable match) | no |
+| `wheel.tsx` | Hub display | no |
 | `context-menu.tsx` / `context-actions.ts` | Right-click menu on wheel items, and the actions each item offers | no |
 | `store-links.ts` | DLC store / Paradox Mods URLs for "Copy ... link" | yes |
 | `asset-data.ts` | Shared lookups: `useAssetMetaByKey` (cached per list), `useThemes`, `assetTitle` / `themeTitle` | no |

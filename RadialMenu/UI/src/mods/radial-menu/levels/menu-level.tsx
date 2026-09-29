@@ -6,7 +6,7 @@ import { useLocalization } from "../localization";
 import { LevelModel, MenuItem } from "../model";
 import { SearchScope, useAssetSearch } from "../search";
 import { useMenuSession } from "../session-context";
-import { Wheel } from "../wheel";
+import { LevelFrame } from "../level-frame";
 import { CategoryLevel } from "./category-level";
 import { useResultItems } from "./items";
 
@@ -49,5 +49,5 @@ export const MenuLevel = ({ menu, onOpenCategory, onBack }: MenuLevelProps) => {
     if (categories.length === 1) {
         return <CategoryLevel menu={menu} category={categories[0]} current={menu} onBack={onBack} />;
     }
-    return <Wheel level={level} />;
+    return <LevelFrame level={level} />;
 };

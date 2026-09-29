@@ -7,7 +7,7 @@ import { useLocalization } from "../localization";
 import { LevelModel } from "../model";
 import { useAssetSearch } from "../search";
 import { useMenuSession } from "../session-context";
-import { Wheel } from "../wheel";
+import { LevelFrame } from "../level-frame";
 import { FAVORITES_LABEL, favoriteItems, useResultItems } from "./items";
 
 interface FavoritesLevelProps {
@@ -35,5 +35,5 @@ export const FavoritesLevel = ({ onBack }: FavoritesLevelProps) => {
         [search, resultItems, items, onBack]
     );
 
-    return <Wheel level={level} />;
+    return <LevelFrame level={level} />;
 };

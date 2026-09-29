@@ -10,7 +10,7 @@ import { useLocalization } from "../localization";
 import { LevelModel, MenuItem, NO_ENTITY } from "../model";
 import { useAssetSearch } from "../search";
 import { useMenuSession } from "../session-context";
-import { Wheel } from "../wheel";
+import { LevelFrame } from "../level-frame";
 import { FAVORITES_KEY, FIND_IT_KEY, useResultItems } from "./items";
 
 interface RootLevelProps {
@@ -81,5 +81,5 @@ export const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenFindIt }: RootLev
                 : { items, grouped: true, search },
         [search, resultItems, items]
     );
-    return <Wheel level={level} />;
+    return <LevelFrame level={level} />;
 };

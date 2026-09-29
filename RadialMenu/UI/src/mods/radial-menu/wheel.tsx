@@ -26,8 +26,6 @@ import { getLastMouse } from "./mouse";
 import { useMenuSession } from "./session-context";
 import styles from "./radial-menu.module.scss";
 
-const EMPTY: never[] = [];
-
 // Most of the hub circle's height the content may use; less than all of it,
 // since the circle narrows toward the top and bottom.
 const HUB_CONTENT_MAX_HEIGHT = 0.9;
@@ -81,8 +79,7 @@ const QueryDisplay = ({ tokens, shrink }: { tokens: DisplayToken[]; shrink: numb
 // `level` itself.
 export const Wheel = ({ level }: LevelViewProps) => {
     const { items: entries, grouped, current, search, emptyMessage, onBack } = level;
-    const { query, submitRef, completionRef, pageRef, example, contextKey, openContext, closeContext } =
-        useMenuSession();
+    const { query, pageRef, example, contextKey, openContext, closeContext } = useMenuSession();
     const [hovered, setHovered] = useState<MenuItem | null>(null);
     const hubRef = useRef<HTMLDivElement>(null);
     const hubContentRef = useRef<HTMLDivElement>(null);
@@ -124,26 +121,20 @@ export const Wheel = ({ level }: LevelViewProps) => {
     const contextEntry = contextKey !== null ? visible.find((e) => itemKey(e) === contextKey) ?? null : null;
     const hoveredEntry = contextEntry ?? (hovered && visible.includes(hovered) ? hovered : null);
 
-    // Close the context menu when its item leaves the wheel (results changed).
+    // Close the context menu when its item leaves the wheel: another page, or
+    // results changed (LevelFrame covers the latter for any view).
     useEffect(() => {
         if (contextKey !== null && !contextEntry) closeContext();
     }, [contextKey, contextEntry, closeContext]);
 
     const showingQuery = !!query;
-    const completion = showingQuery ? search.parsed.hint?.completion ?? null : null;
     useEffect(() => {
-        // Picks only when exactly one placeable result is left (all pages), so
-        // a double Enter (complete, then submit) can't place the top one of
-        // many by surprise.
-        const placeable = search.active ? entries.filter((e) => !e.disabled) : EMPTY;
-        submitRef.current = placeable.length === 1 ? () => placeable[0].onSelect() : null;
-        completionRef.current = completion;
         pageRef.current =
             pageCount > 1
                 ? (step) =>
                       setPageState({ query, page: Math.min(Math.max(page + step, 0), pageCount - 1) })
                 : null;
-    }, [search, entries, completion, query, page, pageCount, submitRef, completionRef, pageRef]);
+    }, [query, page, pageCount, pageRef]);
 
     let hubContent;
     if (hoveredEntry || !showingQuery) {

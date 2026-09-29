@@ -7,7 +7,7 @@ import { useLocalization } from "../localization";
 import { Label, LevelModel } from "../model";
 import { SearchScope, useAssetSearch } from "../search";
 import { useMenuSession } from "../session-context";
-import { Wheel } from "../wheel";
+import { LevelFrame } from "../level-frame";
 import { assetItem, useResultItems } from "./items";
 
 const EMPTY: never[] = [];
@@ -44,5 +44,5 @@ export const CategoryLevel = ({ menu, category, current, onBack }: CategoryLevel
         [search, resultItems, items, current, onBack]
     );
 
-    return <Wheel level={level} />;
+    return <LevelFrame level={level} />;
 };
