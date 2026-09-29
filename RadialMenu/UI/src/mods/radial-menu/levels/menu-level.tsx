@@ -3,25 +3,27 @@ import { useMapValue } from "cs2/api";
 import { toolbar } from "cs2/bindings";
 import { selectAssetCategory } from "../actions";
 import { useLocalization } from "../localization";
-import { LevelModel, MenuItem, SearchProps } from "../model";
+import { LevelModel, MenuItem } from "../model";
 import { SearchScope, useAssetSearch } from "../search";
+import { useMenuSession } from "../session-context";
 import { Wheel } from "../wheel";
 import { CategoryLevel } from "./category-level";
 import { useResultItems } from "./items";
 
 const EMPTY: never[] = [];
 
-interface MenuLevelProps extends SearchProps {
+interface MenuLevelProps {
     menu: toolbar.ToolbarItem;
     onOpenCategory: (category: toolbar.AssetCategory) => void;
     onBack: () => void;
 }
 
-export const MenuLevel = ({ menu, onOpenCategory, onBack, ...searchProps }: MenuLevelProps) => {
+export const MenuLevel = ({ menu, onOpenCategory, onBack }: MenuLevelProps) => {
+    const { query } = useMenuSession();
     const categories = useMapValue(toolbar.assetCategories$, menu.entity) ?? EMPTY;
     const scope = useMemo(() => categories.map<SearchScope>((category) => ({ menu, category })), [categories, menu]);
     // A single-category menu renders CategoryLevel, which searches instead.
-    const search = useAssetSearch(categories.length === 1 ? "" : searchProps.query, useLocalization(), EMPTY, scope);
+    const search = useAssetSearch(categories.length === 1 ? "" : query, useLocalization(), EMPTY, scope);
     const items = useMemo(
         () =>
             categories.map<MenuItem>((category) => ({
@@ -45,7 +47,7 @@ export const MenuLevel = ({ menu, onOpenCategory, onBack, ...searchProps }: Menu
     // Skips straight to the assets (as vanilla hides the tab bar then), with
     // path.category left unset: back() relies on that (navigation).
     if (categories.length === 1) {
-        return <CategoryLevel menu={menu} category={categories[0]} current={menu} onBack={onBack} {...searchProps} />;
+        return <CategoryLevel menu={menu} category={categories[0]} current={menu} onBack={onBack} />;
     }
-    return <Wheel level={level} {...searchProps} />;
+    return <Wheel level={level} />;
 };

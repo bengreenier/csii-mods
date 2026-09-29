@@ -7,22 +7,24 @@ import { isBulldozer, useBulldozerPlacement } from "../bulldozer";
 import { FAVORITE_COLOR, FAVORITE_ICON, FAVORITES_TITLE } from "../favorites";
 import { FIND_IT_ICON, FIND_IT_TITLE } from "../find-it";
 import { useLocalization } from "../localization";
-import { LevelModel, MenuItem, NO_ENTITY, SearchProps } from "../model";
+import { LevelModel, MenuItem, NO_ENTITY } from "../model";
 import { useAssetSearch } from "../search";
+import { useMenuSession } from "../session-context";
 import { Wheel } from "../wheel";
 import { FAVORITES_KEY, FIND_IT_KEY, useResultItems } from "./items";
 
-interface RootLevelProps extends SearchProps {
+interface RootLevelProps {
     onOpenMenu: (menu: toolbar.ToolbarItem) => void;
     onOpenFavorites: () => void;
     onOpenFindIt: () => void;
 }
 
-export const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenFindIt, ...searchProps }: RootLevelProps) => {
+export const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenFindIt }: RootLevelProps) => {
+    const { query } = useMenuSession();
     const findItActive = useValue(findItActive$);
     const groups = useValue(toolbar.toolbarGroups$);
     const { inRadial: bulldozerInRadial } = useBulldozerPlacement();
-    const search = useAssetSearch(searchProps.query, useLocalization(), groups, "all");
+    const search = useAssetSearch(query, useLocalization(), groups, "all");
     const items = useMemo(
         () =>
             groups.flatMap((group, groupIndex) =>
@@ -79,5 +81,5 @@ export const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenFindIt, ...search
                 : { items, grouped: true, search },
         [search, resultItems, items]
     );
-    return <Wheel level={level} {...searchProps} />;
+    return <Wheel level={level} />;
 };

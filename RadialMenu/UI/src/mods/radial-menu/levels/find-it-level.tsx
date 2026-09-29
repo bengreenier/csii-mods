@@ -5,14 +5,15 @@ import { FindItCategory, findItCategories$, FindItSubCategory, lockPlacedUnique$
 import { FIND_IT_ICON, FIND_IT_TITLE, findItTitle } from "../find-it";
 import { FindItCatalogueContext } from "../find-it-catalogue";
 import { useLocalization } from "../localization";
-import { Label, LevelModel, MenuItem, NO_ENTITY, SearchProps } from "../model";
+import { Label, LevelModel, MenuItem, NO_ENTITY } from "../model";
 import { useAssetSearch } from "../search";
+import { useMenuSession } from "../session-context";
 import { Wheel } from "../wheel";
 import { assetItem, useResultItems } from "./items";
 
 const EMPTY: never[] = [];
 
-interface FindItLevelProps extends SearchProps {
+interface FindItLevelProps {
     category?: FindItCategory;
     sub?: FindItSubCategory;
     onOpen: (place: { category?: FindItCategory; sub?: FindItSubCategory }) => void;
@@ -23,7 +24,8 @@ interface FindItLevelProps extends SearchProps {
 // category with one subcategory goes straight to its assets (as vanilla hides
 // the tab bar then). Assets are placed directly (placeDirectly). Typing
 // searches what's in view: everything, a category, or a subcategory.
-export const FindItLevel = ({ category, sub, onOpen, onBack, ...searchProps }: FindItLevelProps) => {
+export const FindItLevel = ({ category, sub, onOpen, onBack }: FindItLevelProps) => {
+    const { query } = useMenuSession();
     const loc = useLocalization();
     const categories = useValue(findItCategories$);
     const catalogue = useContext(FindItCatalogueContext);
@@ -46,7 +48,7 @@ export const FindItLevel = ({ category, sub, onOpen, onBack, ...searchProps }: F
         () => (sub ? [sub.id] : (category ? [category] : categories).flatMap((c) => c.subCategories.map((s) => s.id))),
         [sub, category, categories]
     );
-    const search = useAssetSearch(searchProps.query, loc, EMPTY, EMPTY, false, searchSubs);
+    const search = useAssetSearch(query, loc, EMPTY, EMPTY, false, searchSubs);
     const resultItems = useResultItems(search.results);
 
     const items = useMemo<MenuItem[]>(() => {
@@ -89,5 +91,5 @@ export const FindItLevel = ({ category, sub, onOpen, onBack, ...searchProps }: F
         [search, resultItems, items, current, onBack]
     );
 
-    return <Wheel level={level} {...searchProps} />;
+    return <Wheel level={level} />;
 };

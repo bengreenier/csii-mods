@@ -23,6 +23,7 @@ import { DisplayToken } from "./query/parser";
 import { TOKEN_CLASS } from "./query-tokens";
 import { itemKey, LevelViewProps, MenuItem } from "./model";
 import { getLastMouse } from "./mouse";
+import { useMenuSession } from "./session-context";
 import styles from "./radial-menu.module.scss";
 
 const EMPTY: never[] = [];
@@ -78,18 +79,10 @@ const QueryDisplay = ({ tokens, shrink }: { tokens: DisplayToken[]; shrink: numb
 // Draws one level. Levels build a new LevelModel object whenever anything in
 // it changes, so the wheel depends on its fields (items, search, ...), never on
 // `level` itself.
-export const Wheel = ({
-    level,
-    query,
-    submitRef,
-    completionRef,
-    pageRef,
-    example,
-    contextKey,
-    openContext,
-    closeContext,
-}: LevelViewProps) => {
+export const Wheel = ({ level }: LevelViewProps) => {
     const { items: entries, grouped, current, search, emptyMessage, onBack } = level;
+    const { query, submitRef, completionRef, pageRef, example, contextKey, openContext, closeContext } =
+        useMenuSession();
     const [hovered, setHovered] = useState<MenuItem | null>(null);
     const hubRef = useRef<HTMLDivElement>(null);
     const hubContentRef = useRef<HTMLDivElement>(null);

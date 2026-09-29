@@ -1,4 +1,4 @@
-import { KeyboardEvent, MouseEvent, MutableRefObject, WheelEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { KeyboardEvent, MouseEvent, MutableRefObject, WheelEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useValue } from "cs2/api";
 import { toolbar } from "cs2/bindings";
 import { entityKey, useCssLength } from "cs2/utils";
@@ -27,7 +27,8 @@ import { wheelFitRadius } from "./layout";
 import { FILTER_EXAMPLES } from "./query/filters";
 import { clearSearchSessionCaches, usePrewarmFindItSearch } from "./search";
 import { FindItCatalogueContext, useFindItCatalogueRoot } from "./find-it-catalogue";
-import { itemKey, MenuItem, SearchProps } from "./model";
+import { itemKey, MenuItem } from "./model";
+import { MenuSessionContext, MenuSessionState } from "./session-context";
 import { anchorAtCursor, useWheelGeometry, WheelAnchorContext } from "./wheel";
 import { CategoryLevel } from "./levels/category-level";
 import { FavoritesLevel } from "./levels/favorites-level";
@@ -298,20 +299,16 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         if (e.button === MOUSE_SECONDARY) setContext(null);
     };
 
-    const searchProps: SearchProps = {
-        query,
-        submitRef,
-        completionRef,
-        pageRef,
-        example,
-        contextKey: context?.entryKey ?? null,
-        openContext,
-        closeContext,
-    };
+    // Shared with the level and the view; changes only with its fields.
+    const contextKey = context?.entryKey ?? null;
+    const session = useMemo<MenuSessionState>(
+        () => ({ query, example, contextKey, openContext, closeContext, submitRef, completionRef, pageRef }),
+        [query, example, contextKey, openContext, closeContext]
+    );
     // Keyed per place, so each level starts on its first page.
     let level;
     if (path.favorites) {
-        level = <FavoritesLevel key="favorites" onBack={back} {...searchProps} />;
+        level = <FavoritesLevel key="favorites" onBack={back} />;
     } else if (path.findIt) {
         const { category, sub } = path.findIt;
         level = (
@@ -321,7 +318,6 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
                 sub={sub}
                 onOpen={openFindIt}
                 onBack={back}
-                {...searchProps}
             />
         );
     } else if (path.menu && path.category) {
@@ -332,7 +328,6 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
                 category={path.category}
                 current={path.category}
                 onBack={back}
-                {...searchProps}
             />
         );
     } else if (path.menu) {
@@ -342,7 +337,6 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
                 menu={path.menu}
                 onOpenCategory={openCategory}
                 onBack={back}
-                {...searchProps}
             />
         );
     } else {
@@ -352,7 +346,6 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
                 onOpenMenu={openMenu}
                 onOpenFavorites={openFavorites}
                 onOpenFindIt={openFindIt}
-                {...searchProps}
             />
         );
     }
@@ -369,7 +362,9 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
                 // the keyboard back to the game).
                 onBlur={() => requestAnimationFrame(focusInput)}
             />
-            <WheelAnchorContext.Provider value={anchor}>{level}</WheelAnchorContext.Provider>
+            <WheelAnchorContext.Provider value={anchor}>
+                <MenuSessionContext.Provider value={session}>{level}</MenuSessionContext.Provider>
+            </WheelAnchorContext.Provider>
             {context && hasOpenActions && (
                 <ContextMenu
                     // Remounts (and re-measures) when opened on another item.

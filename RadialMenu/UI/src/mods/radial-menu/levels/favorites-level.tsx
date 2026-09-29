@@ -4,21 +4,23 @@ import { toolbar } from "cs2/bindings";
 import { favorites$ } from "../bindings";
 import { FAVORITES_EMPTY_MESSAGE } from "../favorites";
 import { useLocalization } from "../localization";
-import { LevelModel, SearchProps } from "../model";
+import { LevelModel } from "../model";
 import { useAssetSearch } from "../search";
+import { useMenuSession } from "../session-context";
 import { Wheel } from "../wheel";
 import { FAVORITES_LABEL, favoriteItems, useResultItems } from "./items";
 
-interface FavoritesLevelProps extends SearchProps {
+interface FavoritesLevelProps {
     onBack: () => void;
 }
 
 // This city's favorites (per save; FavoritesSystem.cs). Typing searches only
 // the favorites, among the assets search covers.
-export const FavoritesLevel = ({ onBack, ...searchProps }: FavoritesLevelProps) => {
+export const FavoritesLevel = ({ onBack }: FavoritesLevelProps) => {
+    const { query } = useMenuSession();
     const favorites = useValue(favorites$);
     const groups = useValue(toolbar.toolbarGroups$);
-    const search = useAssetSearch(searchProps.query, useLocalization(), groups, "all", true);
+    const search = useAssetSearch(query, useLocalization(), groups, "all", true);
     const items = useMemo(() => favoriteItems(favorites), [favorites]);
     const resultItems = useResultItems(search.results, true);
     const level = useMemo<LevelModel>(
@@ -33,5 +35,5 @@ export const FavoritesLevel = ({ onBack, ...searchProps }: FavoritesLevelProps) 
         [search, resultItems, items, onBack]
     );
 
-    return <Wheel level={level} {...searchProps} />;
+    return <Wheel level={level} />;
 };
