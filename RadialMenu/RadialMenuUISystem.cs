@@ -52,6 +52,10 @@ namespace RadialMenu
             AddUpdateBinding(new GetterValueBinding<float>(kGroup, "itemSpacing",
                 () => InRangeOrDefault(Mod.Settings?.ItemSpacing, 0f, 4f)));
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "openAtCursor", () => Mod.Settings?.OpenAtCursor ?? false));
+            AddUpdateBinding(new GetterValueBinding<int>(kGroup, "menuStyle",
+                () => (int)(Mod.Settings?.MenuStyle ?? Setting.MenuStyleMode.Radial)));
+            AddUpdateBinding(new GetterValueBinding<float>(kGroup, "paneScale",
+                () => InRangeOrDefault(Mod.Settings?.PaneScale, 0.5f, 2f)));
             AddUpdateBinding(new GetterValueBinding<int>(kGroup, "hubImage",
                 () => (int)(Mod.Settings?.HubImage ?? Setting.HubImageMode.Preview)));
             CreateAssetMetaBinding();
@@ -97,7 +101,7 @@ namespace RadialMenu
             if (_isOpen.value && Mod.AcceptSuggestionAction != null && WasBindingPressedThisFrame(Mod.AcceptSuggestionAction))
                 _acceptSuggestion.Trigger();
 
-            // "Open radial menu" only opens. The menu closes by picking
+            // "Open menu" only opens. The menu closes by picking
             // something, Escape (from the top ring) or a click outside the
             // wheel; all handled in the UI.
             if (!_isOpen.value && Mod.OpenAction.WasPerformedThisFrame())

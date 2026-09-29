@@ -14,8 +14,12 @@ export const isolateInput$ = bindValue<boolean>(GROUP, "isolateInput", false);
 // Center the menu on the mouse cursor when it opens ("Open at mouse cursor").
 export const openAtCursor$ = bindValue<boolean>(GROUP, "openAtCursor", false);
 
-// "Center image": which picture the hub shows for a hovered asset
-// (Setting.HubImageMode; see HUB_IMAGE_* in item-details.tsx).
+// "Menu style": which view draws the open menu (Setting.MenuStyleMode).
+export const menuStyle$ = bindValue<number>(GROUP, "menuStyle", 0);
+export const MENU_STYLE_PANE = 1;
+
+// "Preview image": which picture the wheel's hub or the pane's detail side
+// shows for an asset (Setting.HubImageMode; see HUB_IMAGE_* in item-details.tsx).
 export const hubImage$ = bindValue<number>(GROUP, "hubImage", 0);
 
 export const hideVanillaToolbar$ = bindValue<boolean>(GROUP, "hideVanillaToolbar", false);
