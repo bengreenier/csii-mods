@@ -42,7 +42,7 @@ group) is still in the sections below.
 
 | Module path | Export | Used in | If it breaks |
 |---|---|---|---|
-| `game-ui/common/input-events/input-controller.ts` | `useInputController` | `radial-menu.tsx` (`useModalInput`), driven by `isolateInput` from `RadialMenuUISystem` | Guarded. Logs `useInputController not found` to `UI.log`; the menu works, but see the [pause-menu bug](#escape-back-and-the-pause-menu-input-isolation) |
+| `game-ui/common/input-events/input-controller.ts` | `useInputController` | `modal-input.ts` (`useModalInput`), driven by `isolateInput` from `RadialMenuUISystem` | Guarded. Logs `useInputController not found` to `UI.log`; the menu works, but see the [pause-menu bug](#escape-back-and-the-pause-menu-input-isolation) |
 | `game-ui/game/components/toolbar/top/toolbar-button-strip/toolbar-button-strip.tsx` | `ToolbarButtonStrip` | `hide-vanilla.tsx` (`trimStrip`) | Guarded (try/catch). The vanilla tab strip is no longer hidden |
 | `game-ui/game/components/asset-menu/asset-menu.tsx` | `AssetMenu` | `hide-vanilla.tsx` | Same; the vanilla asset panel shows again |
 | `game-ui/game/components/asset-menu/console-asset-menu.tsx` | `ConsoleAssetMenu` | `hide-vanilla.tsx` | Same, for the gamepad UI |
@@ -50,7 +50,7 @@ group) is still in the sections below.
 Runtime exports that differ from the typings:
 
 - `cs2/l10n` exports **`useLocalization`**, while the typings say
-  `useCachedLocalization`. Handled in `radial-menu.tsx`.
+  `useCachedLocalization`. Handled in `localization.ts`.
 - Enums in `cs2/bindings` (e.g. `ToolbarItemType`) are type-only and may not
   exist at runtime. The mod compares their numeric or string values instead.
 
@@ -93,7 +93,9 @@ Localization keys:
 ## Escape, "Back" and the pause menu (input isolation)
 
 **Code:**
-- `useModalInput`, `RadialMenu` and `OpenRadialMenu` in `radial-menu.tsx`;
+- `useModalInput` in `modal-input.ts`; `MenuShell` (`shell.tsx`, always
+  mounted, owns the isolation) and `MenuSession` (`session.tsx`, the open
+  menu: its search field, focus and blur on close);
 - the `isolateInput` binding in `RadialMenuUISystem.cs`.
 
 C# sources below were read by decompiling `Game.dll` with ILSpy
@@ -276,7 +278,7 @@ What the mod does:
     `ToolSystem.ActivatePrefabTool`) change the active tool **synchronously**
     inside the trigger handler, and UI triggers are handled in order.
   - Every selection the radial menu makes goes through wrappers in
-    `radial-menu.tsx`. These call the vanilla select, then the mod's
+    `actions.ts`. These call the vanilla select, then the mod's
     `radialSelect` trigger, so `RadialSelection.Mark()` records exactly the
     resulting active tool and `GetPrefab()`.
   - `RadialSelection.Update` runs each frame in the `ToolUpdate` phase. It drops
@@ -521,7 +523,7 @@ compile-time reference, since it's optional.
     `coui://uil/...` ones only load with a separate icon library mod
     installed (Find It registers only the `findit` host); without it,
     `UI.log` shows `ResourceHandler: Invalid host locations map` for each.
-    Wheel entries fall back via `<img onError>` (as vanilla's
+    Menu items fall back via `<img onError>` (as vanilla's
     `missing-icon-handler.ts` does) to a thumbnail from inside the
     category (`fallbackIcon`).
 - **Titles:** Find It's own locale keys, `Tooltip.LABEL[FindIt.<enum name>]`.
@@ -576,7 +578,7 @@ data"** button (Utilities, needs a city; `RadialMenuUISystem.Refresh.cs`).
 | `fx:` effect terms | UI `FX_CACHE` (search.ts) | on Refresh (the `dataRefreshed` event) |
 | assetMeta lookup, themes, favorite keys | UI (asset-data.ts, favorites.ts) | whenever the data they come from changes |
 | Record factory, Find It search records | UI (search.ts) | whenever themes, assetMeta, favorites, the locale or the catalogue change |
-| Wheel entries for results | UI (radial-menu.tsx) | whenever their results change |
+| Menu items for results | UI (levels/items.ts) | whenever their results change |
 
 When adding a cache, either key it on data C# resends, or clear it in
 `HandleDataRefresh` / the UI's `dataRefreshed` handler.
@@ -628,14 +630,14 @@ When adding a cache, either key it on data C# resends, or clear it in
   `mousemove` / `mousedown` on `window` fire **over the city too**, not just
   over UI elements (confirmed in game). `clientX` / `clientY` are view pixels,
   matching CSS `px`.
-  - "Open at mouse cursor" relies on this: `lastMouse` in `radial-menu.tsx`.
+  - "Open at mouse cursor" relies on this: `lastMouse` in `mouse.ts`.
   - If a game update stops delivering these events, the menu opens centred
     instead. The fallback would be reading `Mouse.current.position` in C#
     (bottom-left origin, screen pixels) and converting to view coordinates.
 - **Mouse wheel:** React `onWheel` works, and `deltaY` is populated (vanilla
   scroll views read it too). Wheel events over the menu's full-screen
   backdrop don't zoom the camera (confirmed in game), so result paging needs
-  no input-stack handling. `onWheel` in `radial-menu.tsx`.
+  no input-stack handling. `onWheel` in `session.tsx`.
 - **Cursor:** it only re-evaluates on mouse move. The wheel forces
   `cursor: default` everywhere, so elements swapped under a still mouse don't
   leave a stale cursor.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tokenize } from "mods/radial-menu/query/lexer";
+import { tokenize } from "mods/menu/query/lexer";
 
 const bodies = (input: string) => tokenize(input).map((t) => t.body);
 

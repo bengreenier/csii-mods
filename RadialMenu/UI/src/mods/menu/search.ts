@@ -4,6 +4,7 @@ import { prefab, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
 import { Entity, entityKey } from "cs2/utils";
 import { assetTitle as title, useAssetMetaByKey, useThemes } from "./asset-data";
+import { TOOLBAR_ITEM_TYPE_MENU } from "./actions";
 import { activeLocale$, allAssets$, AssetMeta, findItActive$, findItCategories$, searchAllThemes$ } from "./bindings";
 import { useFavoriteKeys } from "./favorites";
 import { FindItCatalogue, FindItCatalogueContext } from "./find-it-catalogue";
@@ -23,9 +24,6 @@ import {
 } from "./search-index";
 
 export type { SearchResult } from "./search-index";
-
-// ToolbarItemType.menu, see radial-menu.tsx.
-const TOOLBAR_ITEM_TYPE_MENU = 1;
 
 // fx: details are loaded in fixed subscription slots (hooks can't vary in
 // number); 4 x 100 matches MAX_DETAIL_CANDIDATES in query/evaluate.ts.

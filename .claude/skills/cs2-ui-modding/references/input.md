@@ -72,6 +72,11 @@ game's input asset; see `research.md`, game data files.)
   your own UI would otherwise hand the keyboard back to the game.
 - **Before unmount:** blur the field in a `useLayoutEffect` cleanup, which runs
   before DOM removal. Capture the element first, because refs are null by then.
+- **One field for the whole modal:** create the focused `<input>` once, in the
+  component that lives as long as the modal, and pass it down as a slot
+  (e.g. a `searchField` prop the layout places). Don't let per-level or
+  per-view components render their own. Each remount loses focus mid-typing,
+  and moves the unmount blur that returns the keyboard to the game.
 
 ## The stale "Pause Menu" trap (and the fix)
 

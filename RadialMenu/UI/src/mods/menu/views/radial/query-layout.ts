@@ -1,4 +1,4 @@
-// Fits the typed query into the hub (QueryDisplay in radial-menu.tsx). Pure.
+// Fits the typed query into the hub (QueryDisplay in wheel.tsx). Pure.
 //
 // Tries each font size from largest to smallest, wrapping words onto as many
 // lines as that size allows; only if nothing fits at the smallest size is the

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FILTER_EXAMPLES, FILTERS, FILTERS_BY_KEY } from "mods/radial-menu/query/filters";
+import { FILTER_EXAMPLES, FILTERS, FILTERS_BY_KEY } from "mods/menu/query/filters";
 import { context, parseQ, record } from "./helpers";
 
 const compile = (key: string, value: string, ctx = context()) =>

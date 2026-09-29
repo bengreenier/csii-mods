@@ -8,7 +8,7 @@ import {
     iconName,
     metres,
     netWidthLabel,
-} from "mods/radial-menu/query/record";
+} from "mods/menu/query/record";
 import { record } from "./helpers";
 
 describe("icon names", () => {

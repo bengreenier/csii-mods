@@ -1,8 +1,8 @@
 // Builders for query tests: records and filter contexts with sensible
 // defaults, so each test states only what it's about.
-import { FilterContext } from "mods/radial-menu/query/filters";
-import { parse } from "mods/radial-menu/query/parser";
-import { AssetRecord, buildRecord, RecordSource } from "mods/radial-menu/query/record";
+import { FilterContext } from "mods/menu/query/filters";
+import { parse } from "mods/menu/query/parser";
+import { AssetRecord, buildRecord, RecordSource } from "mods/menu/query/record";
 
 export const source = (over: Partial<RecordSource> = {}): RecordSource => ({
     key: "Asset",

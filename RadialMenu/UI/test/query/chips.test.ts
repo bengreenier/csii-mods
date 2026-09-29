@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appendToQuery, assetChips, chipQuery, ChipSource } from "mods/radial-menu/query/chips";
+import { appendToQuery, assetChips, chipQuery, ChipSource } from "mods/menu/query/chips";
 import { context, parseQ } from "./helpers";
 
 const source = (over: Partial<ChipSource> = {}): ChipSource => ({

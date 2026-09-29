@@ -1,12 +1,12 @@
 // Right-click context menu for wheel items. The open menu's state lives in
-// OpenRadialMenu (radial-menu.tsx), which also closes it on every input that
+// MenuSession (session.tsx), which also closes it on every input that
 // changes what's under it; see docs/search-schema.md, "Context menu".
 import { useLayoutEffect, useRef, useState } from "react";
 import { toolbar } from "cs2/bindings";
 import classNames from "classnames";
 import { ChipList } from "./asset-chips";
 import { Chip } from "./query/chips";
-import styles from "./radial-menu.module.scss";
+import styles from "./shared.module.scss";
 import { TintedIcon } from "./tinted-icon";
 
 // What was right-clicked. Only assets have actions so far; add a kind here and
@@ -29,7 +29,7 @@ export interface ContextAction {
 }
 
 export interface OpenContextMenu {
-    // Key of the wheel item it was opened on (see entryKey in radial-menu.tsx).
+    // Key of the item it was opened on (see itemKey in model.ts).
     entryKey: string;
     target: ContextTarget;
     // Cursor position when opened, in view pixels.

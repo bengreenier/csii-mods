@@ -2,7 +2,7 @@
 // What the hub says (checklist 6, text only: sizes and fitting need Gameface).
 import { describe, expect, it } from "vitest";
 import { MOD, setMap, setTexts, setValue } from "../fakes/game";
-import { FILTER_EXAMPLES } from "mods/radial-menu/query/filters";
+import { FILTER_EXAMPLES } from "mods/menu/query/filters";
 import { click, hover, hub, hubLines, item, start, type, unhover, useMenuTest } from "./driver";
 
 const openParks = () => {
