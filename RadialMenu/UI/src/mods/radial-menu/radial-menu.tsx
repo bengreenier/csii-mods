@@ -10,7 +10,6 @@ import {
     browseAllThemes$,
     close,
     dataRefreshed$,
-    Favorite,
     FindItCategory,
     findItActive$,
     findItCategories$,
@@ -30,7 +29,6 @@ import {
     placeDirectly,
     selectAsset,
     selectAssetCategory,
-    selectAssetChain,
     TOOLBAR_ITEM_TYPE_MENU,
 } from "./actions";
 import { isBulldozer, useBulldozerPlacement } from "./bulldozer";
@@ -67,13 +65,14 @@ import { DisplayToken } from "./query/parser";
 import { TOKEN_CLASS } from "./query-tokens";
 import {
     clearSearchSessionCaches,
-    SearchResult,
     SearchResults,
     SearchScope,
     useAssetSearch,
     usePrewarmFindItSearch,
 } from "./search";
 import { FindItCatalogueContext, useFindItCatalogueRoot } from "./find-it-catalogue";
+import { itemKey, Label, MenuItem, NO_ENTITY, SearchProps } from "./model";
+import { assetItem, FAVORITES_KEY, FAVORITES_LABEL, favoriteItems, FIND_IT_KEY, useResultItems } from "./levels/items";
 import styles from "./radial-menu.module.scss";
 import shared from "./shared.module.scss";
 
@@ -123,114 +122,6 @@ interface Path {
     findIt?: { category?: FindItCategory; sub?: FindItSubCategory };
 }
 
-// What the hub names when nothing is hovered. `title` is shown as is; without
-// it the hub looks up the prefab's title from `entity`.
-interface HubLabel {
-    entity: Entity;
-    name: string;
-    title?: string;
-}
-
-interface WheelEntry extends HubLabel {
-    // Stable identity on the wheel; defaults to the entity's key. Entries that
-    // aren't prefabs (e.g. Favorites) set their own.
-    key?: string;
-    icon: string;
-    // Shown if `icon` fails to load (e.g. a Find It icon from a host that
-    // isn't installed: coui://uil needs an icon library mod).
-    fallbackIcon?: string;
-    // Draws `icon` as a single-colour glyph in this colour (TintedIcon).
-    iconColor?: string;
-    disabled: boolean;
-    group?: number;
-    // Leaf entries (placeable assets) show a large preview in the hub on hover.
-    showPreview?: boolean;
-    // What a right-click offers actions for (context-actions.ts); none if unset.
-    context?: ContextTarget;
-    // The asset behind a leaf entry: its metadata chips show in the hub.
-    asset?: toolbar.Asset;
-    onSelect: () => void;
-}
-
-const entryKey = (entry: WheelEntry) => entry.key ?? entityKey(entry.entity);
-
-// Shared by every level: the typed query, plus slots the wheel fills for the
-// accept key (Enter by default): the hint's completed query, or else
-// "select the first match".
-interface SearchProps {
-    query: string;
-    submitRef: MutableRefObject<(() => void) | null>;
-    completionRef: MutableRefObject<string | null>;
-    // Flips the results page by `step` (mouse wheel, PageUp/PageDown); null
-    // while there's only one page.
-    pageRef: MutableRefObject<((step: number) => void) | null>;
-    // Example query for the idle hub hint; picked once per menu open.
-    example: string;
-    // The right-click menu (context-menu.tsx), owned by OpenRadialMenu: the key
-    // of the item it's open on (null while closed), a request to open it on an
-    // entry, and a request to close it.
-    contextKey: string | null;
-    openContext: (entry: WheelEntry, x: number, y: number) => void;
-    closeContext: () => void;
-}
-
-// `lockPlaced`: dim and block unique buildings already placed (the "Disable
-// placed unique buildings" setting; vanilla's asset grid always does).
-function assetEntry(asset: toolbar.Asset, lockPlaced: boolean, onSelect: () => void): WheelEntry {
-    return {
-        entity: asset.entity,
-        name: asset.name,
-        icon: asset.icon,
-        // Locked assets can't be selected at all (vanilla's selectAsset refuses
-        // them). A placed unique one can: the tool then shows "already exists".
-        disabled: asset.locked || (lockPlaced && asset.unique && asset.placed),
-        showPreview: true,
-        asset,
-        context: { kind: "asset", asset },
-        onSelect,
-    };
-}
-
-// An asset shown outside its own category: search results and favorites.
-// With a menu and category, picking it selects that chain; without (Find It
-// only), it's placed directly.
-type AssetElsewhere = SearchResult;
-
-const assetElsewhereEntries = (items: AssetElsewhere[], lockPlaced: boolean): WheelEntry[] =>
-    items.map(({ asset, menu, category }) =>
-        assetEntry(asset, lockPlaced, () =>
-            menu && category ? selectAssetChain(menu, category, asset.entity) : placeDirectly(asset.entity)
-        )
-    );
-
-// Favorites are never disabled for being placed.
-const favoriteEntries = (favorites: Favorite[]) => assetElsewhereEntries(favorites, false);
-
-// Wheel entries for search results, memoized. `neverLockPlaced` for the
-// Favorites level, whose results are all favorites.
-function useResultEntries(results: SearchResult[], neverLockPlaced = false): WheelEntry[] {
-    const lockPlaced = useValue(lockPlacedUnique$) && !neverLockPlaced;
-    return useMemo(() => results.map((r) => resultEntry(r, lockPlaced)), [results, lockPlaced]);
-}
-
-// Wheel entries per search result, reused across keystrokes: results are the
-// search index's own objects (stable until its data changes), and a broad
-// query can match thousands of them, too many to rebuild per keystroke.
-const resultEntryCache = new WeakMap<SearchResult, { lockPlaced: boolean; entry: WheelEntry }>();
-
-function resultEntry(result: SearchResult, lockPlaced: boolean): WheelEntry {
-    const cached = resultEntryCache.get(result);
-    if (cached && cached.lockPlaced === lockPlaced) return cached.entry;
-    const entry = assetElsewhereEntries([result], lockPlaced)[0];
-    resultEntryCache.set(result, { lockPlaced, entry });
-    return entry;
-}
-
-// The top ring's entry for the Favorites level.
-const FAVORITES_KEY = "radialMenu.favorites";
-// For entries and hub labels that aren't prefabs (Entity.Null).
-const NO_ENTITY: Entity = { index: 0, version: 0 };
-
 // The typed query, coloured per token and fitted to the hub by layoutQuery:
 // largest font and as many lines as fit first, then smaller, and only then cut
 // from the front (the end is where the user is typing).
@@ -256,10 +147,10 @@ const QueryDisplay = ({ tokens, shrink }: { tokens: DisplayToken[]; shrink: numb
 };
 
 interface WheelProps extends SearchProps {
-    entries: WheelEntry[];
+    entries: MenuItem[];
     grouped?: boolean;
     // What the hub shows when nothing is hovered.
-    current?: HubLabel;
+    current?: Label;
     // Shown in the hub instead of the search hints while there are no entries
     // (and nothing is typed), e.g. an empty Favorites level. One line each.
     emptyMessage?: string[];
@@ -284,14 +175,14 @@ const Wheel = ({
     emptyMessage,
     onBack,
 }: WheelProps) => {
-    const [hovered, setHovered] = useState<WheelEntry | null>(null);
+    const [hovered, setHovered] = useState<MenuItem | null>(null);
     const hubRef = useRef<HTMLDivElement>(null);
     const hubContentRef = useRef<HTMLDivElement>(null);
     // How far QueryDisplay has been made more compact to fit (see the layout
     // effect below); belongs to the query it was measured for.
     const [shrinkState, setShrinkState] = useState({ query, shrink: 0 });
     const shrink = shrinkState.query === query ? shrinkState.shrink : 0;
-    const secondaryClick = useSecondaryClick(entryKey, openContext);
+    const secondaryClick = useSecondaryClick(itemKey, openContext);
     const scale = useValue(menuScale$);
     const anchor = useContext(WheelAnchorContext);
     const geo = useWheelGeometry();
@@ -322,7 +213,7 @@ const Wheel = ({
 
     // Entries are rebuilt as results change; drop a hover that no longer exists.
     // While a context menu is open, the hub stays on the item it belongs to.
-    const contextEntry = contextKey !== null ? visible.find((e) => entryKey(e) === contextKey) ?? null : null;
+    const contextEntry = contextKey !== null ? visible.find((e) => itemKey(e) === contextKey) ?? null : null;
     const hoveredEntry = contextEntry ?? (hovered && visible.includes(hovered) ? hovered : null);
 
     // Close the context menu when its item leaves the wheel (results changed).
@@ -442,7 +333,7 @@ const Wheel = ({
             </div>
             {slots.map(({ entry, x, y }) => (
                 <button
-                    key={entryKey(entry)}
+                    key={itemKey(entry)}
                     className={classNames(styles.item, entry.disabled && styles.disabled)}
                     style={{ left: `${x}rem`, top: `${y}rem` }}
                     onMouseEnter={() => setHovered(entry)}
@@ -482,7 +373,7 @@ const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenFindIt, ...searchProps }
             groups.flatMap((group, groupIndex) =>
                 group.children
                     .filter((item) => bulldozerInRadial || !isBulldozer(item))
-                    .map<WheelEntry>((item) => ({
+                    .map<MenuItem>((item) => ({
                     entity: item.entity,
                     name: item.name,
                     icon: item.icon,
@@ -524,7 +415,7 @@ const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenFindIt, ...searchProps }
             ),
         [groups, bulldozerInRadial, onOpenMenu, onOpenFavorites, onOpenFindIt, findItActive]
     );
-    const resultEntries = useResultEntries(search.results);
+    const resultEntries = useResultItems(search.results);
 
     if (search.active) return <Wheel entries={resultEntries} search={search} {...searchProps} />;
     return <Wheel entries={entries} grouped search={search} {...searchProps} />;
@@ -543,7 +434,7 @@ const MenuLevel = ({ menu, onOpenCategory, onBack, ...searchProps }: MenuLevelPr
     const search = useAssetSearch(categories.length === 1 ? "" : searchProps.query, useLocalization(), EMPTY, scope);
     const entries = useMemo(
         () =>
-            categories.map<WheelEntry>((category) => ({
+            categories.map<MenuItem>((category) => ({
                 entity: category.entity,
                 name: category.name,
                 icon: category.icon,
@@ -555,7 +446,7 @@ const MenuLevel = ({ menu, onOpenCategory, onBack, ...searchProps }: MenuLevelPr
             })),
         [categories, onOpenCategory]
     );
-    const resultEntries = useResultEntries(search.results);
+    const resultEntries = useResultItems(search.results);
 
     if (categories.length === 1) {
         return <CategoryLevel menu={menu} category={categories[0]} current={menu} onBack={onBack} {...searchProps} />;
@@ -581,8 +472,8 @@ const FavoritesLevel = ({ onBack, ...searchProps }: FavoritesLevelProps) => {
     const favorites = useValue(favorites$);
     const groups = useValue(toolbar.toolbarGroups$);
     const search = useAssetSearch(searchProps.query, useLocalization(), groups, "all", true);
-    const entries = useMemo(() => favoriteEntries(favorites), [favorites]);
-    const resultEntries = useResultEntries(search.results, true);
+    const entries = useMemo(() => favoriteItems(favorites), [favorites]);
+    const resultEntries = useResultItems(search.results, true);
 
     return (
         <Wheel
@@ -595,10 +486,6 @@ const FavoritesLevel = ({ onBack, ...searchProps }: FavoritesLevelProps) => {
         />
     );
 };
-
-const FAVORITES_LABEL: HubLabel = { entity: NO_ENTITY, name: FAVORITES_TITLE, title: FAVORITES_TITLE };
-
-const FIND_IT_KEY = "radialMenu.findIt";
 
 interface FindItLevelProps extends SearchProps {
     category?: FindItCategory;
@@ -635,10 +522,10 @@ const FindItLevel = ({ category, sub, onOpen, onBack, ...searchProps }: FindItLe
         [sub, category, categories]
     );
     const search = useAssetSearch(searchProps.query, loc, EMPTY, EMPTY, false, searchSubs);
-    const resultEntries = useResultEntries(search.results);
+    const resultEntries = useResultItems(search.results);
 
-    const entries = useMemo<WheelEntry[]>(() => {
-        if (sub) return assets.map((asset) => assetEntry(asset, lockPlaced, () => placeDirectly(asset.entity)));
+    const entries = useMemo<MenuItem[]>(() => {
+        if (sub) return assets.map((asset) => assetItem(asset, lockPlaced, () => placeDirectly(asset.entity)));
         if (category) {
             return category.subCategories.map((s) => ({
                 key: `findIt.sub.${s.id}`,
@@ -665,7 +552,7 @@ const FindItLevel = ({ category, sub, onOpen, onBack, ...searchProps }: FindItLe
     }, [sub, category, categories, assets, lockPlaced, loc, onOpen, firstThumbnail]);
 
     const deepest = sub ?? category;
-    const current: HubLabel = deepest
+    const current: Label = deepest
         ? { entity: NO_ENTITY, name: deepest.name, title: findItTitle(loc, deepest.name) }
         : { entity: NO_ENTITY, name: FIND_IT_TITLE, title: FIND_IT_TITLE };
 
@@ -697,14 +584,14 @@ const CategoryLevel = ({ menu, category, current, onBack, ...searchProps }: Cate
     const entries = useMemo(
         () =>
             assets.map((asset) =>
-                assetEntry(asset, lockPlaced, () => {
+                assetItem(asset, lockPlaced, () => {
                     selectAsset(asset.entity, true);
                     close();
                 })
             ),
         [assets, lockPlaced]
     );
-    const resultEntries = useResultEntries(search.results);
+    const resultEntries = useResultItems(search.results);
 
     return (
         <Wheel
@@ -780,13 +667,13 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     contextOpen.current = context !== null;
     const contextActions = useContextActions();
     const openContext = useCallback(
-        (entry: WheelEntry, x: number, y: number) => {
+        (entry: MenuItem, x: number, y: number) => {
             // Items without actions get no menu, but still close another one.
             if (!entry.context || contextActions(entry.context).length === 0) {
                 setContext(null);
                 return;
             }
-            setContext({ entryKey: entryKey(entry), target: entry.context, x, y });
+            setContext({ entryKey: itemKey(entry), target: entry.context, x, y });
         },
         [contextActions]
     );

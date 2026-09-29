@@ -29,7 +29,7 @@ export interface ContextAction {
 }
 
 export interface OpenContextMenu {
-    // Key of the wheel item it was opened on (see entryKey in radial-menu.tsx).
+    // Key of the item it was opened on (see itemKey in model.ts).
     entryKey: string;
     target: ContextTarget;
     // Cursor position when opened, in view pixels.
