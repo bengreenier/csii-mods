@@ -76,3 +76,6 @@ export interface SearchProps {
     openContext: (item: MenuItem, x: number, y: number) => void;
     closeContext: () => void;
 }
+
+// What a level hands to the view that draws it.
+export type LevelViewProps = { level: LevelModel } & SearchProps;

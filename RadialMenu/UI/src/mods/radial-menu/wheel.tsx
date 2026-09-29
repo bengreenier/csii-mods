@@ -21,8 +21,7 @@ import { layoutWheel, searchPageSize, wheelGeometry } from "./layout";
 import { layoutQuery, MAX_QUERY_SHRINK } from "./query-layout";
 import { DisplayToken } from "./query/parser";
 import { TOKEN_CLASS } from "./query-tokens";
-import { SearchResults } from "./search";
-import { itemKey, Label, MenuItem, SearchProps } from "./model";
+import { itemKey, LevelViewProps, MenuItem } from "./model";
 import { getLastMouse } from "./mouse";
 import styles from "./radial-menu.module.scss";
 
@@ -76,24 +75,11 @@ const QueryDisplay = ({ tokens, shrink }: { tokens: DisplayToken[]; shrink: numb
     );
 };
 
-interface WheelProps extends SearchProps {
-    entries: MenuItem[];
-    grouped?: boolean;
-    // What the hub shows when nothing is hovered.
-    current?: Label;
-    // Shown in the hub instead of the search hints while there are no entries
-    // (and nothing is typed), e.g. an empty Favorites level. One line each.
-    emptyMessage?: string[];
-    // Present while a query is typed; `entries` are the results if it's active.
-    search?: SearchResults;
-    onBack?: () => void;
-}
-
+// Draws one level. Levels build a new LevelModel object whenever anything in
+// it changes, so the wheel depends on its fields (items, search, ...), never on
+// `level` itself.
 export const Wheel = ({
-    entries,
-    grouped,
-    current,
-    search,
+    level,
     query,
     submitRef,
     completionRef,
@@ -102,9 +88,8 @@ export const Wheel = ({
     contextKey,
     openContext,
     closeContext,
-    emptyMessage,
-    onBack,
-}: WheelProps) => {
+}: LevelViewProps) => {
+    const { items: entries, grouped, current, search, emptyMessage, onBack } = level;
     const [hovered, setHovered] = useState<MenuItem | null>(null);
     const hubRef = useRef<HTMLDivElement>(null);
     const hubContentRef = useRef<HTMLDivElement>(null);
@@ -127,7 +112,7 @@ export const Wheel = ({
     // page at a time. The page belongs to the query it was picked for, so
     // typing starts over at the first page; it's clamped in case the entries
     // shrink (e.g. as fx: details load, or a favorite is removed).
-    const paged = !!search?.active || entries.length > pageSize;
+    const paged = search.active || entries.length > pageSize;
     const pageCount = paged ? Math.max(1, Math.ceil(entries.length / pageSize)) : 1;
     const [pageState, setPageState] = useState({ query, page: 0 });
     const page = pageState.query === query ? Math.min(pageState.page, pageCount - 1) : 0;
@@ -151,13 +136,13 @@ export const Wheel = ({
         if (contextKey !== null && !contextEntry) closeContext();
     }, [contextKey, contextEntry, closeContext]);
 
-    const showingQuery = !!query && !!search;
+    const showingQuery = !!query;
     const completion = showingQuery ? search.parsed.hint?.completion ?? null : null;
     useEffect(() => {
         // Picks only when exactly one placeable result is left (all pages), so
         // a double Enter (complete, then submit) can't place the top one of
         // many by surprise.
-        const placeable = search?.active ? entries.filter((e) => !e.disabled) : EMPTY;
+        const placeable = search.active ? entries.filter((e) => !e.disabled) : EMPTY;
         submitRef.current = placeable.length === 1 ? () => placeable[0].onSelect() : null;
         completionRef.current = completion;
         pageRef.current =

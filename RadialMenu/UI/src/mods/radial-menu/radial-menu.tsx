@@ -1,55 +1,39 @@
-import { KeyboardEvent, MouseEvent, MutableRefObject, WheelEvent, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useValue, useMapValue } from "cs2/api";
+import { KeyboardEvent, MouseEvent, MutableRefObject, WheelEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useValue } from "cs2/api";
 import { toolbar } from "cs2/bindings";
-import { Entity, entityKey, useCssLength } from "cs2/utils";
+import { entityKey, useCssLength } from "cs2/utils";
 import {
     acceptSuggestion$,
-    allAssets$,
-    browseAllThemes$,
     close,
     dataRefreshed$,
     FindItCategory,
     findItActive$,
-    findItCategories$,
     FindItSubCategory,
-    favorites$,
     isOpen$,
     isolateInput$,
-    lockPlacedUnique$,
     resetVanillaThemes$,
     menuScale$,
     openAtCursor$,
 } from "./bindings";
-import {
-    activateToolbarItem,
-    placeDirectly,
-    selectAsset,
-    selectAssetCategory,
-    TOOLBAR_ITEM_TYPE_MENU,
-} from "./actions";
-import { isBulldozer, useBulldozerPlacement } from "./bulldozer";
 import { useModalInput } from "./modal-input";
 import { useContextActions } from "./context-actions";
 import { useAssetChips } from "./asset-chips";
 import { usePrefabTitle } from "./asset-data";
 import { appendToQuery, Chip, chipQuery } from "./query/chips";
 import { useLocalization } from "./localization";
-import { FIND_IT_ICON, FIND_IT_TITLE, findItTitle } from "./find-it";
-import { FAVORITE_COLOR, FAVORITE_ICON, FAVORITES_EMPTY_MESSAGE, FAVORITES_TITLE } from "./favorites";
 import { MOUSE_SECONDARY } from "./use-secondary-click";
 import { ContextMenu, OpenContextMenu } from "./context-menu";
 import { wheelFitRadius } from "./layout";
 import { FILTER_EXAMPLES } from "./query/filters";
-import {
-    clearSearchSessionCaches,
-    SearchScope,
-    useAssetSearch,
-    usePrewarmFindItSearch,
-} from "./search";
+import { clearSearchSessionCaches, usePrewarmFindItSearch } from "./search";
 import { FindItCatalogueContext, useFindItCatalogueRoot } from "./find-it-catalogue";
-import { itemKey, Label, MenuItem, NO_ENTITY, SearchProps } from "./model";
-import { assetItem, FAVORITES_KEY, FAVORITES_LABEL, favoriteItems, FIND_IT_KEY, useResultItems } from "./levels/items";
-import { anchorAtCursor, useWheelGeometry, Wheel, WheelAnchorContext } from "./wheel";
+import { itemKey, MenuItem, SearchProps } from "./model";
+import { anchorAtCursor, useWheelGeometry, WheelAnchorContext } from "./wheel";
+import { CategoryLevel } from "./levels/category-level";
+import { FavoritesLevel } from "./levels/favorites-level";
+import { FindItLevel } from "./levels/find-it-level";
+import { MenuLevel } from "./levels/menu-level";
+import { RootLevel } from "./levels/root-level";
 import shared from "./shared.module.scss";
 
 const BACK_DEBOUNCE_MS = 100;
@@ -77,253 +61,6 @@ interface Path {
     // then a subcategory's assets (RadialMenuUISystem.FindIt.cs).
     findIt?: { category?: FindItCategory; sub?: FindItSubCategory };
 }
-
-interface RootLevelProps extends SearchProps {
-    onOpenMenu: (menu: toolbar.ToolbarItem) => void;
-    onOpenFavorites: () => void;
-    onOpenFindIt: () => void;
-}
-
-const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenFindIt, ...searchProps }: RootLevelProps) => {
-    const findItActive = useValue(findItActive$);
-    const groups = useValue(toolbar.toolbarGroups$);
-    const { inRadial: bulldozerInRadial } = useBulldozerPlacement();
-    const search = useAssetSearch(searchProps.query, useLocalization(), groups, "all");
-    const entries = useMemo(
-        () =>
-            groups.flatMap((group, groupIndex) =>
-                group.children
-                    .filter((item) => bulldozerInRadial || !isBulldozer(item))
-                    .map<MenuItem>((item) => ({
-                    entity: item.entity,
-                    name: item.name,
-                    icon: item.icon,
-                    disabled: item.locked,
-                    group: groupIndex,
-                    onSelect: () => {
-                        activateToolbarItem(item);
-                        if (item.type === TOOLBAR_ITEM_TYPE_MENU) onOpenMenu(item);
-                        else close();
-                    },
-                }))
-            ).concat({
-                // The mod's own level, in a group of its own after vanilla's.
-                key: FAVORITES_KEY,
-                entity: NO_ENTITY,
-                name: FAVORITES_TITLE,
-                title: FAVORITES_TITLE,
-                icon: FAVORITE_ICON,
-                iconColor: FAVORITE_COLOR,
-                disabled: false,
-                group: groups.length,
-                onSelect: onOpenFavorites,
-            }).concat(
-                // With the Find It catalogue in use, its browser, next to Favorites.
-                findItActive
-                    ? [
-                          {
-                              key: FIND_IT_KEY,
-                              entity: NO_ENTITY,
-                              name: FIND_IT_TITLE,
-                              title: FIND_IT_TITLE,
-                              icon: FIND_IT_ICON,
-                              disabled: false,
-                              group: groups.length,
-                              onSelect: onOpenFindIt,
-                          },
-                      ]
-                    : []
-            ),
-        [groups, bulldozerInRadial, onOpenMenu, onOpenFavorites, onOpenFindIt, findItActive]
-    );
-    const resultEntries = useResultItems(search.results);
-
-    if (search.active) return <Wheel entries={resultEntries} search={search} {...searchProps} />;
-    return <Wheel entries={entries} grouped search={search} {...searchProps} />;
-};
-
-interface MenuLevelProps extends SearchProps {
-    menu: toolbar.ToolbarItem;
-    onOpenCategory: (category: toolbar.AssetCategory) => void;
-    onBack: () => void;
-}
-
-const MenuLevel = ({ menu, onOpenCategory, onBack, ...searchProps }: MenuLevelProps) => {
-    const categories = useMapValue(toolbar.assetCategories$, menu.entity) ?? EMPTY;
-    const scope = useMemo(() => categories.map<SearchScope>((category) => ({ menu, category })), [categories, menu]);
-    // A single-category menu renders CategoryLevel, which searches instead.
-    const search = useAssetSearch(categories.length === 1 ? "" : searchProps.query, useLocalization(), EMPTY, scope);
-    const entries = useMemo(
-        () =>
-            categories.map<MenuItem>((category) => ({
-                entity: category.entity,
-                name: category.name,
-                icon: category.icon,
-                disabled: category.locked,
-                onSelect: () => {
-                    selectAssetCategory(category.entity);
-                    onOpenCategory(category);
-                },
-            })),
-        [categories, onOpenCategory]
-    );
-    const resultEntries = useResultItems(search.results);
-
-    if (categories.length === 1) {
-        return <CategoryLevel menu={menu} category={categories[0]} current={menu} onBack={onBack} {...searchProps} />;
-    }
-    return (
-        <Wheel
-            entries={search.active ? resultEntries : entries}
-            search={search}
-            current={menu}
-            onBack={onBack}
-            {...searchProps}
-        />
-    );
-};
-
-interface FavoritesLevelProps extends SearchProps {
-    onBack: () => void;
-}
-
-// This city's favorites (per save; FavoritesSystem.cs). Typing searches only
-// the favorites, among the assets search covers.
-const FavoritesLevel = ({ onBack, ...searchProps }: FavoritesLevelProps) => {
-    const favorites = useValue(favorites$);
-    const groups = useValue(toolbar.toolbarGroups$);
-    const search = useAssetSearch(searchProps.query, useLocalization(), groups, "all", true);
-    const entries = useMemo(() => favoriteItems(favorites), [favorites]);
-    const resultEntries = useResultItems(search.results, true);
-
-    return (
-        <Wheel
-            entries={search.active ? resultEntries : entries}
-            search={search}
-            current={FAVORITES_LABEL}
-            emptyMessage={FAVORITES_EMPTY_MESSAGE}
-            onBack={onBack}
-            {...searchProps}
-        />
-    );
-};
-
-interface FindItLevelProps extends SearchProps {
-    category?: FindItCategory;
-    sub?: FindItSubCategory;
-    onOpen: (place: { category?: FindItCategory; sub?: FindItSubCategory }) => void;
-    onBack: () => void;
-}
-
-// The Find It catalogue: categories, then subcategories, then assets. A
-// category with one subcategory goes straight to its assets (as vanilla hides
-// the tab bar then). Assets are placed directly (placeDirectly). Typing
-// searches what's in view: everything, a category, or a subcategory.
-const FindItLevel = ({ category, sub, onOpen, onBack, ...searchProps }: FindItLevelProps) => {
-    const loc = useLocalization();
-    const categories = useValue(findItCategories$);
-    const catalogue = useContext(FindItCatalogueContext);
-    const assets = (sub && catalogue.bySub.get(sub.id)) || EMPTY;
-    // Some of Find It's category icons need an icon library mod
-    // (coui://uil); if one doesn't load, show a thumbnail from inside instead.
-    const firstThumbnail = useCallback(
-        (subs: FindItSubCategory[]) => {
-            for (const s of subs) {
-                const icon = catalogue.bySub.get(s.id)?.[0]?.icon;
-                if (icon) return icon;
-            }
-            return FIND_IT_ICON;
-        },
-        [catalogue]
-    );
-    const lockPlaced = useValue(lockPlacedUnique$);
-
-    const searchSubs = useMemo(
-        () => (sub ? [sub.id] : (category ? [category] : categories).flatMap((c) => c.subCategories.map((s) => s.id))),
-        [sub, category, categories]
-    );
-    const search = useAssetSearch(searchProps.query, loc, EMPTY, EMPTY, false, searchSubs);
-    const resultEntries = useResultItems(search.results);
-
-    const entries = useMemo<MenuItem[]>(() => {
-        if (sub) return assets.map((asset) => assetItem(asset, lockPlaced, () => placeDirectly(asset.entity)));
-        if (category) {
-            return category.subCategories.map((s) => ({
-                key: `findIt.sub.${s.id}`,
-                entity: NO_ENTITY,
-                name: s.name,
-                title: findItTitle(loc, s.name),
-                icon: s.icon ?? category.icon ?? FIND_IT_ICON,
-                fallbackIcon: firstThumbnail([s]),
-                disabled: false,
-                onSelect: () => onOpen({ category, sub: s }),
-            }));
-        }
-        return categories.map((c) => ({
-            key: `findIt.category.${c.id}`,
-            entity: NO_ENTITY,
-            name: c.name,
-            title: findItTitle(loc, c.name),
-            icon: c.icon ?? FIND_IT_ICON,
-            fallbackIcon: firstThumbnail(c.subCategories),
-            disabled: false,
-            onSelect: () =>
-                onOpen(c.subCategories.length === 1 ? { category: c, sub: c.subCategories[0] } : { category: c }),
-        }));
-    }, [sub, category, categories, assets, lockPlaced, loc, onOpen, firstThumbnail]);
-
-    const deepest = sub ?? category;
-    const current: Label = deepest
-        ? { entity: NO_ENTITY, name: deepest.name, title: findItTitle(loc, deepest.name) }
-        : { entity: NO_ENTITY, name: FIND_IT_TITLE, title: FIND_IT_TITLE };
-
-    return (
-        <Wheel
-            entries={search.active ? resultEntries : entries}
-            search={search}
-            current={current}
-            onBack={onBack}
-            {...searchProps}
-        />
-    );
-};
-
-interface CategoryLevelProps extends SearchProps {
-    menu: toolbar.ToolbarItem;
-    category: toolbar.AssetCategory;
-    current: { entity: Entity; name: string };
-    onBack: () => void;
-}
-
-const CategoryLevel = ({ menu, category, current, onBack, ...searchProps }: CategoryLevelProps) => {
-    // useMapValue re-subscribes when the binding changes.
-    const browseAllThemes = useValue(browseAllThemes$);
-    const assets = useMapValue(browseAllThemes ? allAssets$ : toolbar.assets$, category.entity) ?? EMPTY;
-    const scope = useMemo<SearchScope[]>(() => [{ menu, category }], [menu, category]);
-    const search = useAssetSearch(searchProps.query, useLocalization(), EMPTY, scope);
-    const lockPlaced = useValue(lockPlacedUnique$);
-    const entries = useMemo(
-        () =>
-            assets.map((asset) =>
-                assetItem(asset, lockPlaced, () => {
-                    selectAsset(asset.entity, true);
-                    close();
-                })
-            ),
-        [assets, lockPlaced]
-    );
-    const resultEntries = useResultItems(search.results);
-
-    return (
-        <Wheel
-            entries={search.active ? resultEntries : entries}
-            search={search}
-            current={current}
-            onBack={onBack}
-            {...searchProps}
-        />
-    );
-};
 
 export const RadialMenu = () => {
     const isOpen = useValue(isOpen$);

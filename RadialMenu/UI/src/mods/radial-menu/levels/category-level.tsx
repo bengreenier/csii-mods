@@ -1,0 +1,46 @@
+import { useMemo } from "react";
+import { useMapValue, useValue } from "cs2/api";
+import { toolbar } from "cs2/bindings";
+import { selectAsset } from "../actions";
+import { allAssets$, browseAllThemes$, close, lockPlacedUnique$ } from "../bindings";
+import { useLocalization } from "../localization";
+import { Label, LevelModel, SearchProps } from "../model";
+import { SearchScope, useAssetSearch } from "../search";
+import { Wheel } from "../wheel";
+import { assetItem, useResultItems } from "./items";
+
+const EMPTY: never[] = [];
+
+interface CategoryLevelProps extends SearchProps {
+    menu: toolbar.ToolbarItem;
+    category: toolbar.AssetCategory;
+    // The category, or its menu when the menu has only this one.
+    current: Label;
+    onBack: () => void;
+}
+
+export const CategoryLevel = ({ menu, category, current, onBack, ...searchProps }: CategoryLevelProps) => {
+    // useMapValue re-subscribes when the binding changes.
+    const browseAllThemes = useValue(browseAllThemes$);
+    const assets = useMapValue(browseAllThemes ? allAssets$ : toolbar.assets$, category.entity) ?? EMPTY;
+    const scope = useMemo<SearchScope[]>(() => [{ menu, category }], [menu, category]);
+    const search = useAssetSearch(searchProps.query, useLocalization(), EMPTY, scope);
+    const lockPlaced = useValue(lockPlacedUnique$);
+    const items = useMemo(
+        () =>
+            assets.map((asset) =>
+                assetItem(asset, lockPlaced, () => {
+                    selectAsset(asset.entity, true);
+                    close();
+                })
+            ),
+        [assets, lockPlaced]
+    );
+    const resultItems = useResultItems(search.results);
+    const level = useMemo<LevelModel>(
+        () => ({ items: search.active ? resultItems : items, grouped: false, search, current, onBack }),
+        [search, resultItems, items, current, onBack]
+    );
+
+    return <Wheel level={level} {...searchProps} />;
+};

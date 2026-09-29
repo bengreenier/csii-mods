@@ -577,7 +577,7 @@ data"** button (Utilities, needs a city; `RadialMenuUISystem.Refresh.cs`).
 | `fx:` effect terms | UI `FX_CACHE` (search.ts) | on Refresh (the `dataRefreshed` event) |
 | assetMeta lookup, themes, favorite keys | UI (asset-data.ts, favorites.ts) | whenever the data they come from changes |
 | Record factory, Find It search records | UI (search.ts) | whenever themes, assetMeta, favorites, the locale or the catalogue change |
-| Wheel entries for results | UI (radial-menu.tsx) | whenever their results change |
+| Menu items for results | UI (levels/items.ts) | whenever their results change |
 
 When adding a cache, either key it on data C# resends, or clear it in
 `HandleDataRefresh` / the UI's `dataRefreshed` handler.

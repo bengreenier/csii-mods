@@ -485,7 +485,7 @@ steps back a level; Escape and clicking the hub do.
   - Browsing a category in the wheel uses `toolbar.assets$`, so it follows
     vanilla's filters, unless "Show every theme and asset pack" is on (off by
     default). Then it reads `allAssets` too (`CategoryLevel` in
-    `radial-menu.tsx`).
+    `levels/category-level.tsx`).
   - Picking a result from another theme goes through `toolbar.selectAsset`.
     Vanilla's `SelectAsset` then switches its theme selection to that asset's
     theme (`FilterThemesByAsset`), so browsing follows the last pick. The
