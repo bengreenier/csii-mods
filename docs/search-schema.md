@@ -177,6 +177,10 @@ results, the hub shows which page you're on ("62-122 of 214 matches"). Scroll th
 press PageUp/PageDown, to flip pages. Changing the query starts again at the
 first page.
 
+The pane ("Menu style: Pane", `views/pane/`) doesn't page: every result is one
+row in a list that scrolls (only the visible rows are mounted), and the
+footer shows the plain count ("214 matches"). See "The pane" below.
+
 ## Hub display and keys
 
 When text is typed and nothing is hovered, the hub shows:
@@ -208,7 +212,7 @@ When text is typed and nothing is hovered, the hub shows:
    - or `unknown filter "foo"`.
 
 Hovering a result shows its picture and title instead. The picture follows the
-"Center image" setting: "Preview" (default) uses the prefab's dedicated preview
+"Preview image" setting: "Preview" (default) uses the prefab's dedicated preview
 when it has one (`prefabDetails.preview`, e.g. signature buildings) and its
 thumbnail otherwise; "Button icon" always uses the button's thumbnail.
 
@@ -264,7 +268,7 @@ menu" (default Tab), only opens it.
 Picking only a single remaining match means a double Enter (complete, then
 submit) can't place the top one of many results by surprise.
 
-The accept key is a mod key binding ("Accept suggestion / pick the only match",
+The accept key is a mod key binding ("Accept suggestion / pick result",
 Options > Radial Menu > Key bindings). It uses its own input usage and is only
 read on the C# side while the menu is open, when the game's keyboard shortcuts
 are paused by the focused search field. So it can't collide with other game
@@ -295,6 +299,34 @@ tools, Key bindings, and Utilities.
 
 Everything shown in-game writes filters in the spaced `key: value` form, and
 uses plain ASCII only.
+
+## The pane
+
+With "Menu style: Pane" the same levels, search and context menu are drawn as
+a list (`views/pane/`): a visible search field, rows (icon, title, and where
+the asset lives, or `>` for something that opens a level), the highlighted
+row's details beside them (picture, title, chips, why it's disabled), and a
+footer with the breadcrumb and count.
+
+- **Highlight**: the first row starts highlighted, and typing goes back to it.
+  It's kept by item key (`highlight.ts`), so the same row stays highlighted
+  while results reorder as `fx:` details load. Up/Down move it (clamped);
+  PageUp/PageDown move it by the visible row count; moving the mouse over a
+  row highlights it (`onMouseMove`, not `onMouseEnter`).
+- **Accept key (Enter)**: a completion hint first, as in the wheel, then the
+  highlighted row (opening a level, or picking an asset). A disabled
+  highlighted row does nothing. The wheel's "only placeable match" rule
+  doesn't apply (`ViewCommands.accept`, `session-context.ts`).
+- **Tab** accepts the completion hint. **Right** opens the highlighted
+  menu or category, and **Left** goes back a level, only while nothing is
+  typed (or, for Right, with the caret at the end), so they still move the
+  caret while typing.
+- **Mouse wheel** over the list scrolls it and closes an open context menu.
+  Clicks inside the pane never close the menu; a click outside does.
+- **Chips** in the detail side add their filter like the context menu's.
+- Where a result lives comes from its search `Location` (menu and category
+  titles), or from prefab titles for favorites; Find It's catalogue shows
+  "Find It".
 
 ## Favorites
 
@@ -370,7 +402,7 @@ steps back a level; Escape and clicking the hub do.
   `useSecondaryClick` pattern, not the DOM `contextmenu` event). Right-clicking
   another item moves the menu there.
 - **Position:** at the cursor, flipped or shifted to stay inside the view.
-  It's drawn outside the scaled wheel, so "Menu size" doesn't affect it.
+  It's drawn outside the scaled wheel or pane, so "Wheel size" and "Pane size" don't affect it.
 - **While open:**
 
 | Input | Result |

@@ -235,10 +235,11 @@ What to check:
 - `RadialMenuUISystem` therefore reads bound keys directly while the menu is
   open: `InputSystem.FindControl(binding.path)` on `ProxyAction.bindings`,
   including modifiers.
-  - "Open radial menu" (action `OpenRadialMenu`) only opens, so it's only
+  - "Open menu" (action `OpenRadialMenu`; the label was "Open radial menu"
+    and the action id is kept, since saved bindings are keyed by it) only opens, so it's only
     needed while the menu is closed, when the field isn't focused: it's read
     as a normal action.
-  - The "Accept suggestion / pick first result" action is **only** read this
+  - The "Accept suggestion / pick result" action is **only** read this
     way. It stays disabled (its binding is just data) and has its own usage,
     `RadialMenuSearch`, so it never conflicts with game shortcuts. It fires the
     `acceptSuggestion` UI event.
@@ -586,6 +587,20 @@ When adding a cache, either key it on data C# resends, or clear it in
 ## Other runtime quirks
 
 - **rem** is about 1px at 1080p. Size UI in hundreds of rem.
+- **The pane (not yet checked in game).** The pane relies on these; confirm
+  them and update this note:
+  - A **visible** `<input>` shows its caret, placeholder and typed text
+    (the wheel's field is invisible, so this was never exercised).
+  - `keydown` `preventDefault` on Up/Down keeps the caret where it is, and
+    `selectionStart` reports the caret (Right only opens a level with the
+    caret at the end).
+  - The list doesn't use Gameface's overflow scrolling or vanilla's
+    `Scrollable`: rows are absolutely positioned from a scroll offset that
+    `onWheel` changes, and only the visible ones are mounted
+    (`views/pane/highlight.ts`). This only needs `onWheel` (confirmed above)
+    and `position: absolute`.
+  - `onMouseMove` on a row doesn't fire for rows scrolled under a still
+    cursor, so scrolling doesn't move the highlight.
 - **Right mouse button bindings** (from the game's input asset in
   `Cities2_Data/resources.assets`, found by searching for `<Mouse>/rightButton`):
   the UI "Secondary Action" and the tool actions "Cancel" and "Secondary

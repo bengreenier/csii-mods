@@ -1,8 +1,9 @@
 # UI architecture
 
 How the menu's UI module (`RadialMenu/UI/src/mods/menu/`) is split, so that
-another way of drawing it (a "view", e.g. a Raycast-style pane) can be added
-as one folder. Today the wheel (`views/radial/`) is the only view.
+another way of drawing it (a "view") can be added as one folder. There are
+two: the wheel (`views/radial/`) and the pane (`views/pane/`, a Raycast-style
+list), picked by the "Menu style" setting.
 
 ## Layers
 
@@ -17,12 +18,12 @@ MenuShell        shell.tsx          always mounted (index.tsx)
 
 | Layer | Owns |
 |---|---|
-| Shell | Input isolation (`useModalInput`, `modal-input.ts`), which must outlive the open menu; the settings' utility events; Find It's catalogue; which view is used (`MenuViewContext`) |
-| Session | Where the menu is (`Path`), the query, the right-click menu, keys (Escape, the accept event, PgUp/PgDn, arrows), the backdrop, and **the search field**. Shares its state with levels and views through `MenuSessionContext` (`session-context.ts`) |
+| Shell | Input isolation (`useModalInput`, `modal-input.ts`), which must outlive the open menu; the settings' utility events; Find It's catalogue; which view is used (`MenuViewContext`, fixed when the menu opens: `useViewOnOpen`) |
+| Session | Where the menu is (`Path`, and its breadcrumb `trail`), the query, the right-click menu, keys (Escape, the accept event, PgUp/PgDn, arrows, Tab), the backdrop, and **the search field** (its look comes from the view: `searchFieldClassName`, `placeholder`). Shares its state with levels and views through `MenuSessionContext` (`session-context.ts`) |
 | Level | What to show at one place: its items, or search results while a query is active, as a `LevelModel` (`model.ts`). Items come from `levels/items.ts` |
 | `LevelFrame` | Rules any view needs: what the accept key does (the hint's completion, or the only placeable match across all results), and closing the right-click menu when its item leaves the level |
 | View `Frame` | Places the search field; anything that must survive navigating between levels (the wheel's anchor) |
-| View `Level` | Drawing: layout, hover, paging, the hub. Registers paging and arrow-key handling in the session's `commandsRef` (`ViewCommands`) |
+| View `Level` | Drawing: layout, hover or highlight, paging or scrolling. Registers what it handles in the session's `commandsRef` (`ViewCommands`: `page`, `pageKeys`, `onKey`, `accept`) |
 
 Also shared by any view: `actions.ts` (selecting and placing), `navigation.ts`,
 `menu-text.ts` (hint and summary wording), `item-icon.tsx`, `item-details.tsx`,
@@ -41,8 +42,16 @@ Also shared by any view: `actions.ts` (selecting and placing), `navigation.ts`,
   `{ Frame, Level }` inline, or picking a view per render, gives `Frame` a new
   identity each time: React remounts it, and the search field with it.
 - **Views register, the session calls.** Paging and keys go through
-  `commandsRef.current` (`page`, `onKey`). A view clears what it set on
-  unmount, so the next level never sees a stale handler.
+  `commandsRef.current`. A view clears what it set on unmount, so the next
+  level never sees a stale handler.
+  - `page`: the mouse wheel and PgUp/PgDn (the wheel's pages).
+  - `pageKeys`: PgUp/PgDn only, instead of `page` (the pane scrolls with the
+    mouse wheel itself).
+  - `onKey`: arrows and Tab, with the field (for its caret).
+  - `accept`: the accept key after a completion hint had its turn; unset or
+    false falls back to `LevelFrame`'s "only placeable match".
+- **One view never imports from another.** Shared pieces live in `menu/`
+  (e.g. `clampToView` in `mouse.ts`, used by both to open at the cursor).
 - **Levels never render a view directly**; they render `LevelFrame`.
 - **Views depend on `LevelModel` fields**, not the object: levels rebuild it
   whenever a field changes.
@@ -66,13 +75,20 @@ out:
 
 ## Adding a view
 
-1. Add `views/<name>/` exporting a `MenuView` (`view.ts`): a `Frame` and a
-   `Level`. `views/radial/index.ts` is the example.
+1. Add `views/<name>/` exporting a `MenuView` (`view.ts`): a `Frame`, a
+   `Level` and the search field's class. `views/radial/index.ts` and
+   `views/pane/index.ts` are the examples.
 2. Put view-only styles, bindings and layout in that folder, as
    `views/radial/` does (`radial.module.scss`, `bindings.ts`, `layout.ts`).
-3. Choose the view in the shell (`MenuViewContext.Provider`). How the player
-   picks one (a setting, or a second key) isn't decided yet.
+3. Add a value to `Setting.MenuStyleMode` (C#) and pick the view for it in
+   `useViewOnOpen` (`shell.tsx`).
+
+`MenuItem` carries what a list-like view needs beyond the wheel: `opens`
+(selecting it opens a level) and `place` (where an asset shown outside its
+category lives).
 
 Behaviour tests (`RadialMenu/UI/test/menu/`) drive the menu through its public
-surface. `test/menu/driver.tsx` finds elements by DOM position: the field,
-then the wheel, then the context menu, as children of the backdrop.
+surface. `test/menu/driver.tsx` finds the backdrop as the field's ancestor
+under the render container, the view as the field's next sibling (the wheel)
+or the backdrop child holding the field (the pane), and the context menu
+after the view. `start({ style: "pane" })` opens the pane.
