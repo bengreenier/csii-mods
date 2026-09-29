@@ -42,7 +42,7 @@ group) is still in the sections below.
 
 | Module path | Export | Used in | If it breaks |
 |---|---|---|---|
-| `game-ui/common/input-events/input-controller.ts` | `useInputController` | `radial-menu.tsx` (`useModalInput`), driven by `isolateInput` from `RadialMenuUISystem` | Guarded. Logs `useInputController not found` to `UI.log`; the menu works, but see the [pause-menu bug](#escape-back-and-the-pause-menu-input-isolation) |
+| `game-ui/common/input-events/input-controller.ts` | `useInputController` | `modal-input.ts` (`useModalInput`), driven by `isolateInput` from `RadialMenuUISystem` | Guarded. Logs `useInputController not found` to `UI.log`; the menu works, but see the [pause-menu bug](#escape-back-and-the-pause-menu-input-isolation) |
 | `game-ui/game/components/toolbar/top/toolbar-button-strip/toolbar-button-strip.tsx` | `ToolbarButtonStrip` | `hide-vanilla.tsx` (`trimStrip`) | Guarded (try/catch). The vanilla tab strip is no longer hidden |
 | `game-ui/game/components/asset-menu/asset-menu.tsx` | `AssetMenu` | `hide-vanilla.tsx` | Same; the vanilla asset panel shows again |
 | `game-ui/game/components/asset-menu/console-asset-menu.tsx` | `ConsoleAssetMenu` | `hide-vanilla.tsx` | Same, for the gamepad UI |
@@ -93,7 +93,8 @@ Localization keys:
 ## Escape, "Back" and the pause menu (input isolation)
 
 **Code:**
-- `useModalInput`, `RadialMenu` and `OpenRadialMenu` in `radial-menu.tsx`;
+- `useModalInput` in `modal-input.ts`; `RadialMenu` and `OpenRadialMenu` in
+  `radial-menu.tsx`;
 - the `isolateInput` binding in `RadialMenuUISystem.cs`.
 
 C# sources below were read by decompiling `Game.dll` with ILSpy
@@ -276,7 +277,7 @@ What the mod does:
     `ToolSystem.ActivatePrefabTool`) change the active tool **synchronously**
     inside the trigger handler, and UI triggers are handled in order.
   - Every selection the radial menu makes goes through wrappers in
-    `radial-menu.tsx`. These call the vanilla select, then the mod's
+    `actions.ts`. These call the vanilla select, then the mod's
     `radialSelect` trigger, so `RadialSelection.Mark()` records exactly the
     resulting active tool and `GetPrefab()`.
   - `RadialSelection.Update` runs each frame in the `ToolUpdate` phase. It drops
@@ -628,7 +629,7 @@ When adding a cache, either key it on data C# resends, or clear it in
   `mousemove` / `mousedown` on `window` fire **over the city too**, not just
   over UI elements (confirmed in game). `clientX` / `clientY` are view pixels,
   matching CSS `px`.
-  - "Open at mouse cursor" relies on this: `lastMouse` in `radial-menu.tsx`.
+  - "Open at mouse cursor" relies on this: `lastMouse` in `mouse.ts`.
   - If a game update stops delivering these events, the menu opens centred
     instead. The fallback would be reading `Mouse.current.position` in C#
     (bottom-left origin, screen pixels) and converting to view coordinates.

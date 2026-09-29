@@ -1,15 +1,13 @@
 import { createContext, KeyboardEvent, MouseEvent, MutableRefObject, WheelEvent, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useValue, useMapValue } from "cs2/api";
-import { map, prefab, selectedInfo, toolbar } from "cs2/bindings";
+import { prefab, toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
-import { getModule } from "cs2/modding";
 import { Entity, entityKey, useCssLength } from "cs2/utils";
 import classNames from "classnames";
 import {
     acceptSuggestion$,
     allAssets$,
     browseAllThemes$,
-    activatePrefab,
     close,
     dataRefreshed$,
     Favorite,
@@ -24,12 +22,21 @@ import {
     lockPlacedUnique$,
     resetVanillaThemes$,
     itemSpacing$,
-    markRadialSelection,
     menuScale$,
     openAtCursor$,
     ringDistance$,
 } from "./bindings";
+import {
+    activateToolbarItem,
+    placeDirectly,
+    selectAsset,
+    selectAssetCategory,
+    selectAssetChain,
+    TOOLBAR_ITEM_TYPE_MENU,
+} from "./actions";
 import { isBulldozer, useBulldozerPlacement } from "./bulldozer";
+import { useModalInput } from "./modal-input";
+import { getLastMouse } from "./mouse";
 import { useContextActions } from "./context-actions";
 import { HubChips, useAssetChips } from "./asset-chips";
 import { usePrefabTitle } from "./asset-data";
@@ -58,63 +65,6 @@ import {
 import { FindItCatalogueContext, useFindItCatalogueRoot } from "./find-it-catalogue";
 import styles from "./radial-menu.module.scss";
 
-// ToolbarItemType.menu. Compared numerically because the ambient enum from
-// cs2/bindings is a type declaration and may not exist at runtime.
-const TOOLBAR_ITEM_TYPE_MENU = 1;
-
-
-// The game's UI input stack (not in the public typings). Each controller's
-// transformer edits the list of active UI actions; the list is synced to C#,
-// which enables the matching input actions. See useModalInput below.
-interface InputStack {
-    push(action: string, context: string, callback: (value: unknown) => boolean | void): void;
-    removeWhere(predicate: (action: string) => boolean): void;
-}
-const useInputController: (state: number, transformer: ((stack: InputStack) => void) | null) => unknown = getModule(
-    "game-ui/common/input-events/input-controller.ts",
-    "useInputController"
-);
-// InputControllerState values (compared numerically; the enum may not exist at runtime).
-const INPUT_DISABLED = 0;
-const INPUT_ALWAYS_ACTIVE = 2;
-// Kept while isolated, like vanilla InputActionBarrier's default.
-const PASSTHROUGH_ACTIONS = ["Debug UI"];
-
-// Makes the menu modal for UI input, like vanilla's InputActionBarrier: while
-// `active`, every other UI action is removed and only "Back" (Escape) remains,
-// routed to `backRef` - so Escape can't reach "Pause Menu".
-//
-// `active` comes from the C# side (isolateInput) and deliberately stays true
-// for a few frames after the menu closes: when isolation ends, the restored
-// priorities make the game re-resolve its UI actions, and that must happen
-// after the keyboard is back in the game's input mask (it's excluded while the
-// search field is focused) - otherwise keyboard-only actions like "Pause Menu"
-// are resolved as disabled and stay that way. Details: docs/game-internals.md.
-//
-// Internal game API. If a game update removes it, fall back to a no-op (picked
-// once at load, so hook order is stable): the menu keeps working, but Escape
-// may also open the pause menu, which may then stay disabled after closing.
-const useModalInput: (active: boolean, backRef: MutableRefObject<(() => void) | null>) => void =
-    typeof useInputController === "function"
-        ? (active, backRef) => {
-              const transformer = useCallback(
-                  (stack: InputStack) => {
-                      stack.removeWhere((action) => !PASSTHROUGH_ACTIONS.includes(action));
-                      // Not consumed (false) once the menu has closed.
-                      stack.push("Back", "", () => (backRef.current ? backRef.current() : false));
-                  },
-                  [backRef]
-              );
-              useInputController(active ? INPUT_ALWAYS_ACTIVE : INPUT_DISABLED, transformer);
-          }
-        : (() => {
-              console.warn(
-                  "[RadialMenu] game-ui/common/input-events/input-controller.ts#useInputController not found; " +
-                      "menu input isolation disabled (see docs/game-internals.md)"
-              );
-              return () => {};
-          })();
-
 const BACK_DEBOUNCE_MS = 100;
 
 // A mouse wheel notch is one event, but trackpads send a burst; flip at most
@@ -129,16 +79,6 @@ const KEY_PAGE_DOWN = 34;
 
 const EMPTY: never[] = [];
 
-// Last known mouse position (view pixels), for "Open at mouse cursor". Tracked
-// all the time because the DOM has no "where is the cursor now" query; the
-// game UI covers the whole screen, so these fire over the city as well.
-let lastMouse: { x: number; y: number } | null = null;
-const trackMouse = (e: { clientX: number; clientY: number }) => {
-    lastMouse = { x: e.clientX, y: e.clientY };
-};
-window.addEventListener("mousemove", trackMouse);
-window.addEventListener("mousedown", trackMouse);
-
 // Ring and item spacing, from the "Distance from center" / "Item spacing" settings.
 function useWheelGeometry() {
     const ringDistance = useValue(ringDistance$);
@@ -152,6 +92,7 @@ const WheelAnchorContext = createContext<{ x: number; y: number } | null>(null);
 // Center on the cursor, nudged in from the edges so the main ring (scaled)
 // stays on screen. Falls back to the middle if the view is too small for it.
 function anchorAtCursor(fitRadiusPx: number) {
+    const lastMouse = getLastMouse();
     if (!lastMouse) return null;
     const clamp = (value: number, size: number) =>
         size < 2 * fitRadiusPx ? size / 2 : Math.min(Math.max(value, fitRadiusPx), size - fitRadiusPx);
@@ -223,38 +164,6 @@ interface SearchProps {
     closeContext: () => void;
 }
 
-// Selections made by the radial menu go through these. After the vanilla
-// select (whose C# handler activates the tool synchronously, and triggers are
-// handled in order), they tell C# to record the resulting selection as the
-// radial menu's. Mod settings that change vanilla behaviour (e.g. "Show info
-// views for radial menu selections") apply only to that selection; see
-// RadialSelection in ToolInfoviewSystem.cs.
-const selectAssetMenu = (menu: Entity) => {
-    toolbar.selectAssetMenu(menu);
-    markRadialSelection();
-};
-const selectAssetCategory = (category: Entity) => {
-    toolbar.selectAssetCategory(category);
-    markRadialSelection();
-};
-const selectAsset = (asset: Entity, updateTool: boolean) => {
-    toolbar.selectAsset(asset, updateTool);
-    markRadialSelection();
-};
-
-// Mirrors what the vanilla toolbar button does on select
-// (see toolbar-button-strip.tsx in the game's UI bundle).
-function activateToolbarItem(item: toolbar.ToolbarItem) {
-    selectedInfo.clearSelection();
-    toolbar.clearAssetSelection();
-    map.disableMapTileView();
-    if (item.type === TOOLBAR_ITEM_TYPE_MENU) {
-        selectAssetMenu(item.entity);
-    } else {
-        selectAsset(item.entity, true);
-    }
-}
-
 // `lockPlaced`: dim and block unique buildings already placed (the "Disable
 // placed unique buildings" setting; vanilla's asset grid always does).
 function assetEntry(asset: toolbar.Asset, lockPlaced: boolean, onSelect: () => void): WheelEntry {
@@ -270,29 +179,6 @@ function assetEntry(asset: toolbar.Asset, lockPlaced: boolean, onSelect: () => v
         context: { kind: "asset", asset },
         onSelect,
     };
-}
-
-// Selects an asset along with its menu and category, as a manual drill-down
-// would, keeping the (hidden) vanilla panel in sync. For assets reached
-// outside their own category (search results, favorites).
-function selectAssetChain(menu: Entity, category: Entity, asset: Entity) {
-    selectedInfo.clearSelection();
-    toolbar.clearAssetSelection();
-    map.disableMapTileView();
-    selectAssetMenu(menu);
-    selectAssetCategory(category);
-    selectAsset(asset, true);
-    close();
-}
-
-// Places an asset that isn't in the vanilla toolbar (Find It's catalogue)
-// directly, as Find It does. Vanilla's toolbar notices the new active prefab
-// by itself (ToolbarUISystem.OnUpdate), so no toolbar selects are needed.
-function placeDirectly(asset: Entity) {
-    selectedInfo.clearSelection();
-    map.disableMapTileView();
-    activatePrefab(asset);
-    close();
 }
 
 // An asset shown outside its own category: search results and favorites.
