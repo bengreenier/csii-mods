@@ -16,4 +16,7 @@
       "mod.json": ["../mod.json"]
     }
   },
-} 
+  // Tests and scripts are type-checked separately (tsconfig.test.json), not by
+  // the mod's webpack build.
+  "exclude": ["node_modules", "test", "scripts", "vitest.config.ts"],
+}

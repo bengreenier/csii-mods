@@ -1,0 +1,10 @@
+{
+  // Type-checks the tests alongside the source they import. The mod's build
+  // (tsconfig.json) excludes test/.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src", "test", "types"],
+  "exclude": ["node_modules"]
+}
