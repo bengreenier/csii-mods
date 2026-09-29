@@ -1,5 +1,5 @@
 // Where the menu is, and where Back goes from there: pure decisions over plain
-// data. OpenRadialMenu applies them (state, vanilla toolbar calls, closing).
+// data. MenuSession (session.tsx) applies them (state, vanilla toolbar calls, closing).
 import { toolbar } from "cs2/bindings";
 import { entityKey } from "cs2/utils";
 import { FindItCategory, FindItSubCategory } from "./bindings";

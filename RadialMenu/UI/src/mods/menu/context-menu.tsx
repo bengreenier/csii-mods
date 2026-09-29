@@ -1,5 +1,5 @@
 // Right-click context menu for wheel items. The open menu's state lives in
-// OpenRadialMenu (radial-menu.tsx), which also closes it on every input that
+// MenuSession (session.tsx), which also closes it on every input that
 // changes what's under it; see docs/search-schema.md, "Context menu".
 import { useLayoutEffect, useRef, useState } from "react";
 import { toolbar } from "cs2/bindings";

@@ -1,5 +1,5 @@
 // The open menu's state that levels and views share, provided by
-// OpenRadialMenu around the current level.
+// MenuSession (session.tsx) around the view and the current level.
 import { createContext, MutableRefObject, useContext } from "react";
 import { MenuItem } from "./model";
 
@@ -18,7 +18,7 @@ export interface MenuSessionState {
     query: string;
     // Example query for the idle hint; picked once per menu open.
     example: string;
-    // The right-click menu (context-menu.tsx), owned by OpenRadialMenu: the key
+    // The right-click menu (context-menu.tsx), owned by MenuSession: the key
     // of the item it's open on (null while closed), a request to open it on an
     // item, and a request to close it.
     contextKey: string | null;

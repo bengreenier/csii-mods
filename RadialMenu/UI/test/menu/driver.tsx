@@ -1,11 +1,11 @@
 // Renders the real menu against the fake game and acts like a player. Tests
 // only use the menu's public surface: bindings in, triggers out, the DOM and
-// keys. This is the one file that imports the menu itself, so moving it (the
-// refactor's phase 5) changes one line here.
+// keys. This is the one file that imports the menu itself, so moving it
+// changes one line here.
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { ErrorBoundary } from "mods/error-boundary";
-import { RadialMenu } from "mods/menu/radial-menu";
+import { MenuShell } from "mods/menu/shell";
 import { clearSearchSessionCaches } from "mods/menu/search";
 import { runTransformer } from "../fakes/cs2-modding";
 import { emit, MOD, resetGame, triggers } from "../fakes/game";
@@ -45,7 +45,7 @@ export function start(options: { city?: City; open?: boolean } = {}): City {
     const city = loadCity(options.city ?? buildCity());
     render(
         <ErrorBoundary>
-            <RadialMenu />
+            <MenuShell />
         </ErrorBoundary>
     );
     if (options.open !== false) openMenu();

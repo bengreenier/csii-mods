@@ -1,26 +1,14 @@
 import { KeyboardEvent, MouseEvent, MutableRefObject, WheelEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useValue } from "cs2/api";
 import { toolbar } from "cs2/bindings";
-import {
-    acceptSuggestion$,
-    close,
-    dataRefreshed$,
-    findItActive$,
-    isOpen$,
-    isolateInput$,
-    resetVanillaThemes$,
-} from "./bindings";
-import { useModalInput } from "./modal-input";
+import { acceptSuggestion$, close, findItActive$ } from "./bindings";
 import { useContextActions } from "./context-actions";
 import { useAssetChips } from "./asset-chips";
 import { usePrefabTitle } from "./asset-data";
 import { appendToQuery, Chip, chipQuery } from "./query/chips";
-import { useLocalization } from "./localization";
 import { MOUSE_SECONDARY } from "./use-secondary-click";
 import { ContextMenu, OpenContextMenu } from "./context-menu";
 import { FILTER_EXAMPLES } from "./query/filters";
-import { clearSearchSessionCaches, usePrewarmFindItSearch } from "./search";
-import { FindItCatalogueContext, useFindItCatalogueRoot } from "./find-it-catalogue";
 import { itemKey, MenuItem } from "./model";
 import {
     backStep,
@@ -35,8 +23,7 @@ import {
     withoutFindIt,
 } from "./navigation";
 import { MenuSessionContext, MenuSessionState, ViewCommands } from "./session-context";
-import { MenuViewContext, useMenuView } from "./view";
-import { radialView } from "./views/radial";
+import { useMenuView } from "./view";
 import { CategoryLevel } from "./levels/category-level";
 import { FavoritesLevel } from "./levels/favorites-level";
 import { FindItLevel } from "./levels/find-it-level";
@@ -60,52 +47,9 @@ const KEY_DOWN = 40;
 
 const EMPTY: never[] = [];
 
-
-export const RadialMenu = () => {
-    const isOpen = useValue(isOpen$);
-    // Input isolation lives here (always mounted) because it must outlive the
-    // open menu briefly; the open menu plugs its back() into backRef.
-    const backRef = useRef<(() => void) | null>(null);
-    useModalInput(useValue(isolateInput$), backRef);
-    useResetVanillaThemes();
-    useDataRefreshed();
-    // Find It's catalogue: subscribed and indexed here, once, not per search.
-    const findItCatalogue = useFindItCatalogueRoot();
-    usePrewarmFindItSearch(findItCatalogue, useLocalization());
-    // Mounted only while open, so navigation and search reset on every open.
-    return (
-        <FindItCatalogueContext.Provider value={findItCatalogue}>
-            {/* One view for now; how a view gets chosen is open (README, decision 3). */}
-            <MenuViewContext.Provider value={radialView}>
-                {isOpen ? <OpenRadialMenu backRef={backRef} /> : null}
-            </MenuViewContext.Provider>
-        </FindItCatalogueContext.Provider>
-    );
-};
-
-// "Refresh radial menu data" (settings): C# has resent everything; drop the
-// UI's own session caches too.
-function useDataRefreshed() {
-    useEffect(() => {
-        const subscription = dataRefreshed$.subscribe(() => clearSearchSessionCaches());
-        return () => subscription.dispose();
-    }, []);
-}
-
-// "Reset vanilla theme filter" (settings). Clears the asset selection first:
-// vanilla's setSelectedThemes would otherwise switch the active tool to the
-// closest asset in the new theme.
-function useResetVanillaThemes() {
-    useEffect(() => {
-        const subscription = resetVanillaThemes$.subscribe((theme) => {
-            toolbar.clearAssetSelection();
-            toolbar.setSelectedThemes([theme]);
-        });
-        return () => subscription.dispose();
-    }, []);
-}
-
-const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | null> }) => {
+// The open menu: where it is (path), the query, the right-click menu, keys and
+// the search field. Mounted only while open, so all of it resets on every open.
+export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void) | null> }) => {
     const [path, setPath] = useState<Path>(ROOT);
     const [query, setQuery] = useState("");
     const submitRef = useRef<(() => void) | null>(null);
@@ -258,7 +202,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         page(e.deltaY > 0 ? 1 : -1);
     };
 
-    // "Back" via the game's input system (see RadialMenu's useModalInput), for
+    // "Back" via the game's input system (see MenuShell's useModalInput), for
     // when the field isn't focused (e.g. mid-click); with it focused, onKeyDown
     // above handles Escape.
     useEffect(() => {

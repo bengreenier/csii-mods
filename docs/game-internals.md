@@ -50,7 +50,7 @@ group) is still in the sections below.
 Runtime exports that differ from the typings:
 
 - `cs2/l10n` exports **`useLocalization`**, while the typings say
-  `useCachedLocalization`. Handled in `radial-menu.tsx`.
+  `useCachedLocalization`. Handled in `localization.ts`.
 - Enums in `cs2/bindings` (e.g. `ToolbarItemType`) are type-only and may not
   exist at runtime. The mod compares their numeric or string values instead.
 
@@ -93,8 +93,9 @@ Localization keys:
 ## Escape, "Back" and the pause menu (input isolation)
 
 **Code:**
-- `useModalInput` in `modal-input.ts`; `RadialMenu` and `OpenRadialMenu` in
-  `radial-menu.tsx`;
+- `useModalInput` in `modal-input.ts`; `MenuShell` (`shell.tsx`, always
+  mounted, owns the isolation) and `MenuSession` (`session.tsx`, the open
+  menu: its search field, focus and blur on close);
 - the `isolateInput` binding in `RadialMenuUISystem.cs`.
 
 C# sources below were read by decompiling `Game.dll` with ILSpy
@@ -522,7 +523,7 @@ compile-time reference, since it's optional.
     `coui://uil/...` ones only load with a separate icon library mod
     installed (Find It registers only the `findit` host); without it,
     `UI.log` shows `ResourceHandler: Invalid host locations map` for each.
-    Wheel entries fall back via `<img onError>` (as vanilla's
+    Menu items fall back via `<img onError>` (as vanilla's
     `missing-icon-handler.ts` does) to a thumbnail from inside the
     category (`fallbackIcon`).
 - **Titles:** Find It's own locale keys, `Tooltip.LABEL[FindIt.<enum name>]`.
@@ -636,7 +637,7 @@ When adding a cache, either key it on data C# resends, or clear it in
 - **Mouse wheel:** React `onWheel` works, and `deltaY` is populated (vanilla
   scroll views read it too). Wheel events over the menu's full-screen
   backdrop don't zoom the camera (confirmed in game), so result paging needs
-  no input-stack handling. `onWheel` in `radial-menu.tsx`.
+  no input-stack handling. `onWheel` in `session.tsx`.
 - **Cursor:** it only re-evaluates on mouse move. The wheel forces
   `cursor: default` everywhere, so elements swapped under a still mouse don't
   leave a stale cursor.

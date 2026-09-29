@@ -1,4 +1,4 @@
-// Shared bits of the favorites UI: the Favorites level (radial-menu.tsx), the
+// Shared bits of the favorites UI: the Favorites level (levels/favorites-level.tsx), the
 // "Add to / Remove from favorites" actions (context-actions.ts) and
 // is:favorite (search.ts). Storage is C# (FavoritesSystem.cs).
 import { useValue } from "cs2/api";
