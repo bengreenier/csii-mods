@@ -1,7 +1,7 @@
 // Small pure helpers: store links and Find It titles.
 import { describe, expect, it } from "vitest";
-import { dlcStoreUrl, modPageUrl } from "mods/radial-menu/store-links";
-import { findItCategoryText, findItTitle } from "mods/radial-menu/find-it";
+import { dlcStoreUrl, modPageUrl } from "mods/menu/store-links";
+import { findItCategoryText, findItTitle } from "mods/menu/find-it";
 
 describe("store links", () => {
     const apps = new Map([["sanfrancisco", 2427730]]);

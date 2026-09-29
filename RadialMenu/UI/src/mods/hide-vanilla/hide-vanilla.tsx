@@ -4,8 +4,8 @@ import { ModuleRegistry } from "cs2/modding";
 import classNames from "classnames";
 import mod from "mod.json";
 import { ErrorBoundary } from "mods/error-boundary";
-import { hideVanillaToolbar$ } from "mods/radial-menu/bindings";
-import { bulldozerHost, useBulldozerPlacement, useMarkBulldozerHostMounted } from "mods/radial-menu/bulldozer";
+import { hideVanillaToolbar$ } from "mods/menu/bindings";
+import { bulldozerHost, useBulldozerPlacement, useMarkBulldozerHostMounted } from "mods/menu/bulldozer";
 import styles from "./hide-vanilla.module.scss";
 
 // The tab buttons in the middle of the bottom toolbar, bulldozer included.

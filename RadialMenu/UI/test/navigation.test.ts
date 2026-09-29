@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { toolbar } from "cs2/bindings";
-import { FindItCategory } from "mods/radial-menu/bindings";
+import { FindItCategory } from "mods/menu/bindings";
 import {
     backStep,
     categoryPath,
@@ -11,7 +11,7 @@ import {
     Path,
     ROOT,
     withoutFindIt,
-} from "mods/radial-menu/navigation";
+} from "mods/menu/navigation";
 
 const menu = { entity: { index: 3, version: 1 }, name: "Roads" } as toolbar.ToolbarItem;
 const category = { entity: { index: 7, version: 2 }, name: "Streets" } as toolbar.AssetCategory;

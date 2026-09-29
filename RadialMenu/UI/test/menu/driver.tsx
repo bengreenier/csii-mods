@@ -5,8 +5,8 @@
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import { ErrorBoundary } from "mods/error-boundary";
-import { RadialMenu } from "mods/radial-menu/radial-menu";
-import { clearSearchSessionCaches } from "mods/radial-menu/search";
+import { RadialMenu } from "mods/menu/radial-menu";
+import { clearSearchSessionCaches } from "mods/menu/search";
 import { runTransformer } from "../fakes/cs2-modding";
 import { emit, MOD, resetGame, triggers } from "../fakes/game";
 import { buildCity, City, loadCity, openMenu } from "../fixtures/city";

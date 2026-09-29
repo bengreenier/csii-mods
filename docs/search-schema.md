@@ -3,7 +3,7 @@
 When the radial menu is open, typing filters the menu to matching assets. Plain
 typing searches by name. A small set of `key:value` filters narrows results
 further. This document is the specification. The implementation lives in
-`RadialMenu/UI/src/mods/radial-menu/query/` and `search.ts`.
+`RadialMenu/UI/src/mods/menu/query/` and `search.ts`.
 
 ## Design principles
 

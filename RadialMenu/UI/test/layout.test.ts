@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ITEM_SIZE, layoutWheel, searchPageSize, wheelFitRadius, wheelGeometry } from "mods/radial-menu/layout";
+import { ITEM_SIZE, layoutWheel, searchPageSize, wheelFitRadius, wheelGeometry } from "mods/menu/layout";
 
 const DEFAULT = wheelGeometry(1, 1);
 const radius = (s: { x: number; y: number }) => Math.round(Math.hypot(s.x, s.y));

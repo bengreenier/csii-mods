@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { evaluate, MAX_DETAIL_CANDIDATES } from "mods/radial-menu/query/evaluate";
-import { AssetRecord } from "mods/radial-menu/query/record";
+import { evaluate, MAX_DETAIL_CANDIDATES } from "mods/menu/query/evaluate";
+import { AssetRecord } from "mods/menu/query/record";
 import { parseQ, record } from "./helpers";
 
 const NO_DETAILS = () => undefined;

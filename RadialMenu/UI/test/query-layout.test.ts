@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { layoutQuery, MAX_QUERY_SHRINK, QUERY_FONT_STEPS } from "mods/radial-menu/query-layout";
+import { layoutQuery, MAX_QUERY_SHRINK, QUERY_FONT_STEPS } from "mods/menu/query-layout";
 
 const words = (text: string) => text.split(" ").map((w) => ({ text: w, data: null }));
 const lines = (layout: ReturnType<typeof layoutQuery>) => layout.lines.map((line) => line.map((w) => w.text).join(" "));
