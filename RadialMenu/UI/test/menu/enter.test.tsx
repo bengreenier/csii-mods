@@ -2,7 +2,24 @@
 // The accept key: complete the hint, or pick the only placeable match (checklist 3).
 import { describe, expect, it } from "vitest";
 import { MOD } from "../fakes/game";
-import { accept, call, calls, clearCalls, contextMenu, input, isOpen, item, rightClick, start, type, useMenuTest } from "./driver";
+import { buildCity } from "../fixtures/city";
+import {
+    accept,
+    call,
+    calls,
+    clearCalls,
+    contextMenu,
+    input,
+    isOpen,
+    item,
+    itemIcons,
+    key,
+    KEY,
+    rightClick,
+    start,
+    type,
+    useMenuTest,
+} from "./driver";
 
 const RADIAL_SELECT = call(`${MOD}.radialSelect`);
 
@@ -51,13 +68,28 @@ describe("accept key", () => {
         expect(calls()).toContain(call("toolbar.selectAsset", city.assets.avenue.entity, true));
     });
 
-    it("counts matches on every page, not just the one shown", () => {
-        start();
-        // 80 trees, several pages: never "the only match".
+    it("counts placeable matches on every page, not just the one shown", () => {
+        // Trees 36-80 locked: 35 placeable, ranked first. A page holds 34
+        // (paging.test.tsx), so page 2 shows Tree35 as its only placeable one.
+        const city = buildCity();
+        city.assets.trees.slice(35).forEach((tree) => (tree.locked = true));
+        start({ city });
         type("tree");
+        key(KEY.PAGE_DOWN);
+        expect(itemIcons()[0]).toBe("icon/Tree35.svg");
         clearCalls();
         accept();
         expect(calls()).toEqual([]);
+    });
+
+    it("picks the only placeable match even when locked ones fill the page", () => {
+        const city = buildCity();
+        city.assets.trees.slice(1).forEach((tree) => (tree.locked = true));
+        start({ city });
+        type("tree");
+        clearCalls();
+        accept();
+        expect(calls()).toContain(call("toolbar.selectAsset", city.assets.trees[0].entity, true));
     });
 
     it("accepts the hint's completion first, then picks on a second press", () => {
