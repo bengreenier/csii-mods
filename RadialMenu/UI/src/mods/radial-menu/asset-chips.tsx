@@ -12,6 +12,7 @@ import { findItTitle } from "./find-it";
 import { useLocalization } from "./localization";
 import { assetChips, Chip, spaced } from "./query/chips";
 import { dlcSlug, effectTypes, iconName, MOD_DLC_SLUG } from "./query/record";
+import { MOUSE_SECONDARY } from "./use-secondary-click";
 import classNames from "classnames";
 import styles from "./radial-menu.module.scss";
 
@@ -65,8 +66,6 @@ export function useAssetChips(asset: toolbar.Asset | null): Chip[] {
 
 const chipText = (chip: Chip, maxChars = Infinity) =>
     `${chip.key}: ${chip.value.length > maxChars ? `${chip.value.slice(0, maxChars - 3)}...` : chip.value}`;
-
-const MOUSE_SECONDARY = 2;
 
 /**
  * Every chip in `chips`, wrapping as needed (the context menu has room). With

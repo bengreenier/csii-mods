@@ -22,7 +22,7 @@ export const itemSpacing$ = bindValue<number>(GROUP, "itemSpacing", 1);
 export const openAtCursor$ = bindValue<boolean>(GROUP, "openAtCursor", false);
 
 // "Center image": which picture the hub shows for a hovered asset
-// (Setting.HubImageMode; see HUB_IMAGE_* in radial-menu.tsx).
+// (Setting.HubImageMode; see HUB_IMAGE_* in item-details.tsx).
 export const hubImage$ = bindValue<number>(GROUP, "hubImage", 0);
 
 export const hideVanillaToolbar$ = bindValue<boolean>(GROUP, "hideVanillaToolbar", false);

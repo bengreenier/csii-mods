@@ -1,6 +1,6 @@
 import { createContext, KeyboardEvent, MouseEvent, MutableRefObject, WheelEvent, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useValue, useMapValue } from "cs2/api";
-import { prefab, toolbar } from "cs2/bindings";
+import { toolbar } from "cs2/bindings";
 import * as l10n from "cs2/l10n";
 import { Entity, entityKey, useCssLength } from "cs2/utils";
 import classNames from "classnames";
@@ -17,7 +17,6 @@ import {
     FindItSubCategory,
     favorites$,
     isOpen$,
-    hubImage$,
     isolateInput$,
     lockPlacedUnique$,
     resetVanillaThemes$,
@@ -44,7 +43,18 @@ import { appendToQuery, Chip, chipQuery } from "./query/chips";
 import { useLocalization } from "./localization";
 import { FIND_IT_ICON, FIND_IT_TITLE, findItTitle } from "./find-it";
 import { FAVORITE_COLOR, FAVORITE_ICON, FAVORITES_EMPTY_MESSAGE, FAVORITES_TITLE } from "./favorites";
-import { TintedIcon } from "./tinted-icon";
+import { ItemIcon } from "./item-icon";
+import { ItemPreview, ItemTitle } from "./item-details";
+import {
+    BACK_HINT,
+    exampleHint,
+    IDLE_EXCLUDE_HINT,
+    IDLE_TYPE_HINT,
+    matchSummary,
+    PAGING_HINT,
+    pageSummary,
+} from "./menu-text";
+import { MOUSE_SECONDARY, useSecondaryClick } from "./use-secondary-click";
 import { ContextMenu, ContextTarget, OpenContextMenu } from "./context-menu";
 import { layoutWheel, searchPageSize, wheelFitRadius, wheelGeometry } from "./layout";
 import { layoutQuery, MAX_QUERY_SHRINK } from "./query-layout";
@@ -142,8 +152,6 @@ interface WheelEntry extends HubLabel {
 
 const entryKey = (entry: WheelEntry) => entry.key ?? entityKey(entry.entity);
 
-const MOUSE_SECONDARY = 2;
-
 // Shared by every level: the typed query, plus slots the wheel fills for the
 // accept key (Enter by default): the hint's completed query, or else
 // "select the first match".
@@ -221,41 +229,6 @@ const FAVORITES_KEY = "radialMenu.favorites";
 // For entries and hub labels that aren't prefabs (Entity.Null).
 const NO_ENTITY: Entity = { index: 0, version: 0 };
 
-const HubTitle = ({ label }: { label: HubLabel }) =>
-    label.title !== undefined ? <>{label.title}</> : <PrefabTitle entity={label.entity} fallback={label.name} />;
-
-const PrefabTitle = ({ entity, fallback }: { entity: Entity; fallback: string }) => (
-    <>{usePrefabTitle(entity, fallback)}</>
-);
-
-// Setting.HubImageMode values ("Center image").
-const HUB_IMAGE_BUTTON_ICON = 1;
-
-// Uses the prefab's dedicated preview when it has one (e.g. signature buildings),
-// otherwise its thumbnail, as the vanilla asset detail panel does.
-const PrefabPreview = ({ entity, fallbackIcon }: { entity: Entity; fallbackIcon: string }) => {
-    const details = useMapValue(prefab.prefabDetails$, entity);
-    const src = details?.preview || details?.icon || fallbackIcon;
-    return <img className={styles.hubPreview} src={src} />;
-};
-
-function matchSummary({ active, results, pending }: SearchResults, page: number, pageSize: number) {
-    if (!active) return "Keep typing...";
-    const total = results.length;
-    const checking = pending > 0 ? ` (checking ${pending}...)` : "";
-    if (total === 0) return pending > 0 ? `Checking ${pending}...` : "No matches";
-    if (total > pageSize) {
-        const first = page * pageSize + 1;
-        const last = Math.min(total, (page + 1) * pageSize);
-        return `${first}-${last} of ${total} matches${checking}`;
-    }
-    return (total === 1 ? "1 match" : `${total} matches`) + checking;
-}
-
-// "1-61 of 214", for a paged level (not a search).
-const pageSummary = (page: number, pageSize: number, total: number) =>
-    `${page * pageSize + 1}-${Math.min(total, (page + 1) * pageSize)} of ${total}`;
-
 const TOKEN_CLASS: Record<TokenStatus, string | undefined> = {
     text: undefined,
     filter: styles.tokenFilter,
@@ -325,17 +298,7 @@ const Wheel = ({
     // effect below); belongs to the query it was measured for.
     const [shrinkState, setShrinkState] = useState({ query, shrink: 0 });
     const shrink = shrinkState.query === query ? shrinkState.shrink : 0;
-    const hubImage = useValue(hubImage$);
-    // A right-click is a right-button press and release on the same item (as
-    // vanilla's useSecondaryClick in game-ui/common/hooks/use-secondary-click.tsx).
-    const secondaryPressed = useRef<string | null>(null);
-    useEffect(() => {
-        const release = (e: globalThis.MouseEvent) => {
-            if (e.button === MOUSE_SECONDARY) secondaryPressed.current = null;
-        };
-        window.addEventListener("mouseup", release);
-        return () => window.removeEventListener("mouseup", release);
-    }, []);
+    const secondaryClick = useSecondaryClick(entryKey, openContext);
     const scale = useValue(menuScale$);
     const anchor = useContext(WheelAnchorContext);
     const geo = useWheelGeometry();
@@ -395,20 +358,16 @@ const Wheel = ({
         const label = hoveredEntry ?? current;
         hubContent = (
             <>
-                {hoveredEntry?.showPreview &&
-                    (hubImage === HUB_IMAGE_BUTTON_ICON ? (
-                        // The button's own image.
-                        <img className={styles.hubPreview} src={hoveredEntry.icon} />
-                    ) : (
-                        <PrefabPreview entity={hoveredEntry.entity} fallbackIcon={hoveredEntry.icon} />
-                    ))}
+                {hoveredEntry?.showPreview && (
+                    <ItemPreview className={styles.hubPreview} entity={hoveredEntry.entity} icon={hoveredEntry.icon} />
+                )}
                 {label && (
                     <div className={classNames(styles.hubTitle, hoveredEntry?.showPreview && styles.hubTitleSmall)}>
-                        <HubTitle label={label} />
+                        <ItemTitle label={label} />
                     </div>
                 )}
                 {hoveredEntry?.asset && <HubChips asset={hoveredEntry.asset} />}
-                {onBack && !hoveredEntry && <div className={styles.hubHint}>Back</div>}
+                {onBack && !hoveredEntry && <div className={styles.hubHint}>{BACK_HINT}</div>}
                 {!hoveredEntry && entries.length === 0 && emptyMessage ? (
                     emptyMessage.map((line, i) => (
                         <div key={i} className={i === 0 ? styles.hubTypeHint : styles.hubFilterHints}>
@@ -418,15 +377,14 @@ const Wheel = ({
                 ) : !hoveredEntry && pageCount > 1 ? (
                     <>
                         <div className={styles.hubTypeHint}>{pageSummary(page, pageSize, entries.length)}</div>
-                        <div className={styles.hubFilterHints}>Scroll or PgUp/PgDn for more</div>
+                        <div className={styles.hubFilterHints}>{PAGING_HINT}</div>
                     </>
                 ) : (
                     !hoveredEntry && (
                         <>
-                            <div className={styles.hubTypeHint}>Type to search</div>
-                            <div className={styles.hubFilterHints}>Use '-word' to exclude</div>
-                            {/* One string: Gameface lays out adjacent JSX text nodes as separate lines. */}
-                            <div className={styles.hubFilterHints}>{`Hint: try "${example}"`}</div>
+                            <div className={styles.hubTypeHint}>{IDLE_TYPE_HINT}</div>
+                            <div className={styles.hubFilterHints}>{IDLE_EXCLUDE_HINT}</div>
+                            <div className={styles.hubFilterHints}>{exampleHint(example)}</div>
                         </>
                     )
                 )}
@@ -443,9 +401,7 @@ const Wheel = ({
                 </div>
                 {hint && <div className={classNames(styles.hubTypeHint, styles.hubSearchLine)}>{hint.text}</div>}
                 {pageCount > 1 && (
-                    <div className={classNames(styles.hubFilterHints, styles.hubSearchLine)}>
-                        Scroll or PgUp/PgDn for more
-                    </div>
+                    <div className={classNames(styles.hubFilterHints, styles.hubSearchLine)}>{PAGING_HINT}</div>
                 )}
             </>
         );
@@ -503,34 +459,14 @@ const Wheel = ({
                         if (contextKey !== null) closeContext();
                         else if (!entry.disabled) entry.onSelect();
                     }}
-                    onMouseDown={(e) => {
-                        if (e.button === MOUSE_SECONDARY) secondaryPressed.current = entryKey(entry);
-                    }}
-                    onMouseUp={(e) => {
-                        if (e.button !== MOUSE_SECONDARY) return;
-                        // Handled here: the backdrop closes the context menu on
-                        // right-clicks that miss every item.
-                        e.stopPropagation();
-                        const pressedHere = secondaryPressed.current === entryKey(entry);
-                        secondaryPressed.current = null;
-                        if (pressedHere) openContext(entry, e.clientX, e.clientY);
-                    }}
+                    {...secondaryClick(entry)}
                 >
-                    {entry.iconColor ? (
-                        <TintedIcon className={styles.icon} src={entry.icon} color={entry.iconColor} />
-                    ) : (
-                        <img
-                            className={styles.icon}
-                            src={entry.icon}
-                            // As vanilla's missing-icon-handler: swap in the
-                            // fallback once, if the icon can't be loaded.
-                            onError={(e) => {
-                                const fallback = entry.fallbackIcon;
-                                if (fallback && e.currentTarget.getAttribute("src") !== fallback)
-                                    e.currentTarget.src = fallback;
-                            }}
-                        />
-                    )}
+                    <ItemIcon
+                        className={styles.icon}
+                        icon={entry.icon}
+                        fallbackIcon={entry.fallbackIcon}
+                        iconColor={entry.iconColor}
+                    />
                 </button>
             ))}
         </div>
