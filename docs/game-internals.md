@@ -9,6 +9,16 @@ notice.
 **After a game update, check this list first.** Each entry says where it's
 used, what breaks if it changes, and how to re-find it.
 
+Start with `npm run check-game` (in `RadialMenu/UI`; needs `ilspycmd`). It
+confirms that the UI modules, `cs2/bindings` members and vanilla bindings the UI
+uses still exist in the game's bundle, and that the private `Game.dll` members
+the C# reads by reflection are still there. It also fingerprints the vanilla
+methods the mod copies or depends on (`ToolbarUISystem.BindAssets` and the
+filters, `ToolSystem`'s info view path): `CHANGED` names what to compare. After
+comparing, `npm run check-game -- --update-baseline` records the new
+fingerprints. What it can't check (behaviour, input timing, the bulldozer's
+group) is still in the sections below.
+
 > Tip: searching `index.js` works best with a small Node script
 > (`s.indexOf(...)` and print a slice). Regex over the 2 MB single line is very
 > slow. Module paths appear as `Q.add("<path>", { get Export(){...} })`.
