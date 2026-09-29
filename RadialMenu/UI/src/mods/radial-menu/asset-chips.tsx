@@ -15,6 +15,7 @@ import { dlcSlug, effectTypes, iconName, MOD_DLC_SLUG } from "./query/record";
 import { MOUSE_SECONDARY } from "./use-secondary-click";
 import classNames from "classnames";
 import styles from "./radial-menu.module.scss";
+import shared from "./shared.module.scss";
 
 // The hub is a circle, so space runs out fast: chips are limited to this many
 // rows (measured), and the rest are summed up as "+N".
@@ -81,12 +82,12 @@ export const ChipList = ({
 }) => {
     if (chips.length === 0) return null;
     return (
-        <div className={styles.contextChips}>
+        <div className={shared.contextChips}>
             {chips.map((chip, i) => (
                 // One string per element: Gameface splits adjacent text nodes.
                 <div
                     key={i}
-                    className={classNames(styles.chip, onChipClick && styles.chipClickable)}
+                    className={classNames(shared.chip, onChipClick && shared.chipClickable)}
                     onClick={onChipClick && (() => onChipClick(chip, false))}
                     onMouseUp={
                         onChipClick &&
@@ -140,11 +141,11 @@ export const HubChips = ({ asset }: { asset: toolbar.Asset }) => {
         <div ref={ref} className={styles.hubChips}>
             {shown.map((chip, i) => (
                 // One string per element: Gameface splits adjacent text nodes.
-                <div key={i} className={styles.chip}>
+                <div key={i} className={shared.chip}>
                     {chipText(chip, MAX_VALUE_CHARS)}
                 </div>
             ))}
-            {more > 0 && <div className={styles.chip}>{`+${more}`}</div>}
+            {more > 0 && <div className={shared.chip}>{`+${more}`}</div>}
         </div>
     );
 };

@@ -63,7 +63,8 @@ import { layoutQuery, MAX_QUERY_SHRINK } from "./query-layout";
 // since the circle narrows toward the top and bottom.
 const HUB_CONTENT_MAX_HEIGHT = 0.9;
 import { FILTER_EXAMPLES } from "./query/filters";
-import { DisplayToken, TokenStatus } from "./query/parser";
+import { DisplayToken } from "./query/parser";
+import { TOKEN_CLASS } from "./query-tokens";
 import {
     clearSearchSessionCaches,
     SearchResult,
@@ -74,6 +75,7 @@ import {
 } from "./search";
 import { FindItCatalogueContext, useFindItCatalogueRoot } from "./find-it-catalogue";
 import styles from "./radial-menu.module.scss";
+import shared from "./shared.module.scss";
 
 const BACK_DEBOUNCE_MS = 100;
 
@@ -228,15 +230,6 @@ function resultEntry(result: SearchResult, lockPlaced: boolean): WheelEntry {
 const FAVORITES_KEY = "radialMenu.favorites";
 // For entries and hub labels that aren't prefabs (Entity.Null).
 const NO_ENTITY: Entity = { index: 0, version: 0 };
-
-const TOKEN_CLASS: Record<TokenStatus, string | undefined> = {
-    text: undefined,
-    filter: styles.tokenFilter,
-    incomplete: styles.tokenIncomplete,
-    invalid: styles.tokenInvalid,
-    unknown: styles.tokenInvalid,
-    ignored: styles.tokenIncomplete,
-};
 
 // The typed query, coloured per token and fitted to the hub by layoutQuery:
 // largest font and as many lines as fit first, then smaller, and only then cut
@@ -1020,10 +1013,10 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     }
 
     return (
-        <div className={styles.backdrop} onClick={onBackdropClick} onMouseUp={onBackdropMouseUp} onWheel={onWheel}>
+        <div className={shared.backdrop} onClick={onBackdropClick} onMouseUp={onBackdropMouseUp} onWheel={onWheel}>
             <input
                 ref={inputRef}
-                className={styles.searchInput}
+                className={shared.searchInput}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={onKeyDown}

@@ -1,25 +1,6 @@
 $item-size: 72rem;
 $hub-size: 240rem;
 
-.backdrop {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.35);
-    pointer-events: auto;
-}
-
-// One cursor for the whole wheel (vanilla gives buttons `cursor: pointer`).
-// Navigating swaps elements under a stationary mouse, and the game only
-// re-evaluates the cursor on mouse move, so any per-element cursor would
-// show stale until the mouse moved.
-.backdrop,
-.backdrop * {
-    cursor: default;
-}
-
 // Zero-size anchor at screen centre; items are positioned relative to it.
 .wheel {
     position: absolute;
@@ -90,17 +71,6 @@ $hub-size: 240rem;
     overflow: hidden;
 }
 
-// One metadata chip, in the hub (.hubChips) or a context menu (.contextChips).
-.chip {
-    margin: 2rem;
-    padding: 1rem 6rem;
-    border-radius: 8rem;
-    background-color: rgba(255, 255, 255, 0.14);
-    font-size: 11rem;
-    white-space: nowrap;
-    opacity: 0.85;
-}
-
 .hubQuery {
     max-width: 100%;
     // Overridden inline by layoutQuery's chosen size (query-layout.ts).
@@ -108,31 +78,6 @@ $hub-size: 240rem;
     font-weight: bold;
     // Lines are wrapped by layoutQuery, not here.
     white-space: nowrap;
-}
-
-// Query token states (see query/parser.ts TokenStatus).
-.tokenFilter {
-    color: rgba(110, 175, 255, 1);
-}
-
-.tokenIncomplete {
-    opacity: 0.5;
-}
-
-.tokenInvalid {
-    color: rgba(230, 110, 110, 1);
-    text-decoration: line-through;
-}
-
-// Receives typing; the query is displayed in the hub instead.
-.searchInput {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 1rem;
-    height: 1rem;
-    opacity: 0;
-    pointer-events: none;
 }
 
 // Discoverability hint for type-to-filter, shown when idle.
@@ -197,79 +142,4 @@ $hub-size: 240rem;
 .icon {
     width: 100%;
     height: 100%;
-}
-
-// TintedIcon (tinted-icon.tsx): the glyph is a mask over the background colour.
-.tintedIcon {
-    mask-size: contain;
-    mask-position: center;
-    mask-repeat: no-repeat;
-}
-
-// Right-click menu on wheel items (context-menu.tsx). Positioned in view
-// pixels on the backdrop, outside the scaled wheel.
-.contextMenu {
-    position: absolute;
-    min-width: 200rem;
-    padding: 6rem 0;
-    border: 2rem solid rgba(255, 255, 255, 0.25);
-    border-radius: 6rem;
-    background-color: rgba(24, 33, 51, 0.97);
-    color: white;
-}
-
-// The target's full metadata, above the actions.
-.contextDetails {
-    padding: 4rem 10rem 8rem 10rem;
-    margin-bottom: 4rem;
-    border-bottom: 2rem solid rgba(255, 255, 255, 0.15);
-}
-
-.contextTitle {
-    margin: 2rem 2rem 4rem 2rem;
-    max-width: 300rem;
-    font-size: 16rem;
-    font-weight: bold;
-}
-
-.chipClickable:hover {
-    background-color: rgba(64, 128, 224, 0.95);
-    opacity: 1;
-}
-
-.contextChips {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    max-width: 300rem;
-}
-
-.contextAction {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    padding: 8rem 16rem;
-    font-size: 16rem;
-
-    &:hover {
-        background-color: rgba(64, 128, 224, 0.95);
-    }
-}
-
-.contextActionDisabled {
-    opacity: 0.4;
-
-    &:hover {
-        background-color: transparent;
-    }
-}
-
-.contextActionIcon {
-    width: 20rem;
-    height: 20rem;
-    margin-right: 10rem;
-}
-
-.contextActionLabel {
-    white-space: nowrap;
 }

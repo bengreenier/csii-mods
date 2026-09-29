@@ -6,7 +6,7 @@ import { toolbar } from "cs2/bindings";
 import classNames from "classnames";
 import { ChipList } from "./asset-chips";
 import { Chip } from "./query/chips";
-import styles from "./radial-menu.module.scss";
+import styles from "./shared.module.scss";
 import { TintedIcon } from "./tinted-icon";
 
 // What was right-clicked. Only assets have actions so far; add a kind here and
