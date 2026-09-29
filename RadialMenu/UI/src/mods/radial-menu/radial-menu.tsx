@@ -1,14 +1,12 @@
 import { KeyboardEvent, MouseEvent, MutableRefObject, WheelEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useValue } from "cs2/api";
 import { toolbar } from "cs2/bindings";
-import { entityKey, useCssLength } from "cs2/utils";
+import { useCssLength } from "cs2/utils";
 import {
     acceptSuggestion$,
     close,
     dataRefreshed$,
-    FindItCategory,
     findItActive$,
-    FindItSubCategory,
     isOpen$,
     isolateInput$,
     resetVanillaThemes$,
@@ -28,6 +26,18 @@ import { FILTER_EXAMPLES } from "./query/filters";
 import { clearSearchSessionCaches, usePrewarmFindItSearch } from "./search";
 import { FindItCatalogueContext, useFindItCatalogueRoot } from "./find-it-catalogue";
 import { itemKey, MenuItem } from "./model";
+import {
+    backStep,
+    categoryPath,
+    favoritesPath,
+    FindItPlace,
+    findItPath,
+    levelKey,
+    menuPath,
+    Path,
+    ROOT,
+    withoutFindIt,
+} from "./navigation";
 import { MenuSessionContext, MenuSessionState, ViewCommands } from "./session-context";
 import { anchorAtCursor, useWheelGeometry, WheelAnchorContext } from "./wheel";
 import { CategoryLevel } from "./levels/category-level";
@@ -53,17 +63,6 @@ const KEY_DOWN = 40;
 
 const EMPTY: never[] = [];
 
-// Where the user has drilled to. A menu with a single category skips straight
-// to its assets (as vanilla hides the tab bar then), so `category` stays unset.
-// `favorites` is the mod's own Favorites level (no vanilla menu behind it).
-interface Path {
-    menu?: toolbar.ToolbarItem;
-    category?: toolbar.AssetCategory;
-    favorites?: boolean;
-    // The Find It level: its categories, then a category's subcategories,
-    // then a subcategory's assets (RadialMenuUISystem.FindIt.cs).
-    findIt?: { category?: FindItCategory; sub?: FindItSubCategory };
-}
 
 export const RadialMenu = () => {
     const isOpen = useValue(isOpen$);
@@ -107,7 +106,7 @@ function useResetVanillaThemes() {
 }
 
 const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | null> }) => {
-    const [path, setPath] = useState<Path>({});
+    const [path, setPath] = useState<Path>(ROOT);
     const [query, setQuery] = useState("");
     const submitRef = useRef<(() => void) | null>(null);
     const completionRef = useRef<string | null>(null);
@@ -157,25 +156,20 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         if (context && !hasOpenActions) setContext(null);
     }, [context, hasOpenActions]);
 
-    const openMenu = useCallback((menu: toolbar.ToolbarItem) => setPath({ menu }), []);
-    const openFavorites = useCallback(() => setPath({ favorites: true }), []);
-    const openFindIt = useCallback(
-        (place: { category?: FindItCategory; sub?: FindItSubCategory } = {}) => setPath({ findIt: place }),
-        []
-    );
+    const openMenu = useCallback((menu: toolbar.ToolbarItem) => setPath(menuPath(menu)), []);
+    const openFavorites = useCallback(() => setPath(favoritesPath()), []);
+    const openFindIt = useCallback((place: FindItPlace = {}) => setPath(findItPath(place)), []);
     // Leave the Find It level if the integration is switched off meanwhile.
     const findItActive = useValue(findItActive$);
     useEffect(() => {
-        if (!findItActive && path.findIt) setPath({});
-    }, [findItActive, path.findIt]);
+        const next = withoutFindIt(path, findItActive);
+        if (next !== path) setPath(next);
+    }, [findItActive, path]);
     const openCategory = useCallback(
-        (category: toolbar.AssetCategory) => setPath((p) => ({ ...p, category })),
+        (category: toolbar.AssetCategory) => setPath((p) => categoryPath(p, category)),
         []
     );
-    // Steps back one level (Escape or the hub). Typed text is
-    // cleared first. Leaving a menu for the root closes the vanilla asset panel
-    // and drops the active tool, same as the panel's own close button; backing
-    // out of the root also resets it (in case a tool was active) and closes.
+    // Steps back one level (Escape or the hub); see backStep for where to.
     const lastBackAt = useRef(0);
     const back = useCallback(() => {
         // One physical input can arrive through more than one route (Escape via
@@ -184,35 +178,23 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         if (now - lastBackAt.current < BACK_DEBOUNCE_MS) return;
         lastBackAt.current = now;
 
-        if (contextOpen.current) {
-            setContext(null);
-            return;
+        const step = backStep({ path, query, contextOpen: contextOpen.current });
+        switch (step.kind) {
+            case "closeContext":
+                setContext(null);
+                break;
+            case "clearQuery":
+                setQuery("");
+                break;
+            case "goTo":
+                setPath(step.path);
+                break;
+            case "leaveMenu":
+                toolbar.clearAssetSelection();
+                if (step.close) close();
+                else setPath(ROOT);
+                break;
         }
-        if (query) {
-            setQuery("");
-            return;
-        }
-        if (path.category) {
-            setPath({ menu: path.menu });
-            return;
-        }
-        // Favorites never opened a vanilla menu, so there's nothing to reset.
-        if (path.favorites) {
-            setPath({});
-            return;
-        }
-        // Find It: up one step (a single-subcategory category was skipped on
-        // the way in, so skip it on the way out too); nothing vanilla to reset.
-        if (path.findIt) {
-            const { category, sub } = path.findIt;
-            if (sub && category && category.subCategories.length > 1) setPath({ findIt: { category } });
-            else if (sub || category) setPath({ findIt: {} });
-            else setPath({});
-            return;
-        }
-        toolbar.clearAssetSelection();
-        if (path.menu) setPath({});
-        else close();
     }, [path, query]);
 
     // The search field keeps keyboard focus while the menu is open. A focused
@@ -312,24 +294,17 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         [query, example, contextKey, openContext, closeContext]
     );
     // Keyed per place, so each level starts on its first page.
+    const key = levelKey(path);
     let level;
     if (path.favorites) {
-        level = <FavoritesLevel key="favorites" onBack={back} />;
+        level = <FavoritesLevel key={key} onBack={back} />;
     } else if (path.findIt) {
         const { category, sub } = path.findIt;
-        level = (
-            <FindItLevel
-                key={`findIt:${category?.id ?? ""}:${sub?.id ?? ""}`}
-                category={category}
-                sub={sub}
-                onOpen={openFindIt}
-                onBack={back}
-            />
-        );
+        level = <FindItLevel key={key} category={category} sub={sub} onOpen={openFindIt} onBack={back} />;
     } else if (path.menu && path.category) {
         level = (
             <CategoryLevel
-                key={`category:${entityKey(path.category.entity)}`}
+                key={key}
                 menu={path.menu}
                 category={path.category}
                 current={path.category}
@@ -337,22 +312,10 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
             />
         );
     } else if (path.menu) {
-        level = (
-            <MenuLevel
-                key={`menu:${entityKey(path.menu.entity)}`}
-                menu={path.menu}
-                onOpenCategory={openCategory}
-                onBack={back}
-            />
-        );
+        level = <MenuLevel key={key} menu={path.menu} onOpenCategory={openCategory} onBack={back} />;
     } else {
         level = (
-            <RootLevel
-                key="root"
-                onOpenMenu={openMenu}
-                onOpenFavorites={openFavorites}
-                onOpenFindIt={openFindIt}
-            />
+            <RootLevel key={key} onOpenMenu={openMenu} onOpenFavorites={openFavorites} onOpenFindIt={openFindIt} />
         );
     }
 

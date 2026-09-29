@@ -45,7 +45,7 @@ export const MenuLevel = ({ menu, onOpenCategory, onBack }: MenuLevelProps) => {
     );
 
     // Skips straight to the assets (as vanilla hides the tab bar then), with
-    // path.category left unset: back() relies on that (navigation).
+    // path.category left unset: backStep (navigation.ts) relies on that.
     if (categories.length === 1) {
         return <CategoryLevel menu={menu} category={categories[0]} current={menu} onBack={onBack} />;
     }
