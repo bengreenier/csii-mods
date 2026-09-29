@@ -3,11 +3,9 @@ import { defineConfig } from "vitest/config";
 
 // Tests run outside the game: see test/README.md. Module resolution mirrors
 // webpack.config.js (and tsconfig's baseUrl "src").
-const r = (p: string) => path.resolve(__dirname, p);
+const r = (p: string) => path.resolve(import.meta.dirname, p);
 
 export default defineConfig({
-    // JSX without importing React, like tsconfig's "jsx": "react-jsx".
-    esbuild: { jsx: "automatic" },
     resolve: {
         alias: [
             { find: /^mod\.json$/, replacement: r("mod.json") },
