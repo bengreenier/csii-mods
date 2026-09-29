@@ -1,7 +1,7 @@
 // Where the menu is, and where Back goes from there: pure decisions over plain
 // data. MenuSession (session.tsx) applies them (state, vanilla toolbar calls, closing).
 import { toolbar } from "cs2/bindings";
-import { entityKey } from "cs2/utils";
+import { Entity, entityKey } from "cs2/utils";
 import { FindItCategory, FindItSubCategory } from "./bindings";
 
 // Where the user has drilled to. A menu with a single category skips straight
@@ -71,3 +71,28 @@ export function backStep({ path, query, contextOpen }: { path: Path; query: stri
 // The place to show when Find It stops being available, or the same path.
 export const withoutFindIt = (path: Path, findItActive: boolean): Path =>
     !findItActive && path.findIt ? ROOT : path;
+
+// One step of where the menu is, for a breadcrumb. Views resolve the titles:
+// prefabs (menus, categories) by entity, Find It's by name.
+export type Crumb =
+    | { kind: "prefab"; entity: Entity; name: string }
+    | { kind: "favorites" }
+    | { kind: "findIt"; name?: string };
+
+// Where `path` is, outermost first; empty at the root. Levels skipped on the
+// way in (see backStep) are left out: a single-subcategory Find It category
+// shows as its subcategory only.
+export function trail(path: Path): Crumb[] {
+    if (path.favorites) return [{ kind: "favorites" }];
+    if (path.findIt) {
+        const { category, sub } = path.findIt;
+        const crumbs: Crumb[] = [{ kind: "findIt" }];
+        if (category && !(sub && category.subCategories.length === 1)) crumbs.push({ kind: "findIt", name: category.name });
+        if (sub) crumbs.push({ kind: "findIt", name: sub.name });
+        return crumbs;
+    }
+    const crumbs: Crumb[] = [];
+    if (path.menu) crumbs.push({ kind: "prefab", entity: path.menu.entity, name: path.menu.name });
+    if (path.category) crumbs.push({ kind: "prefab", entity: path.category.entity, name: path.category.name });
+    return crumbs;
+}

@@ -31,11 +31,16 @@ export function assetItem(asset: toolbar.Asset, lockPlaced: boolean, onSelect: (
 type AssetElsewhere = SearchResult;
 
 export const assetElsewhereItems = (items: AssetElsewhere[], lockPlaced: boolean): MenuItem[] =>
-    items.map(({ asset, menu, category }) =>
-        assetItem(asset, lockPlaced, () =>
+    items.map(({ asset, menu, category, location }) => ({
+        ...assetItem(asset, lockPlaced, () =>
             menu && category ? selectAssetChain(menu, category, asset.entity) : placeDirectly(asset.entity)
-        )
-    );
+        ),
+        place: {
+            menu: menu ?? null,
+            category: category ?? null,
+            titles: location && { menu: location.menuTitle, category: location.categoryTitle },
+        },
+    }));
 
 // Favorites are never disabled for being placed.
 export const favoriteItems = (favorites: Favorite[]) => assetElsewhereItems(favorites, false);

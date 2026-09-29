@@ -62,6 +62,7 @@ export const FindItLevel = ({ category, sub, onOpen, onBack }: FindItLevelProps)
                 icon: s.icon ?? category.icon ?? FIND_IT_ICON,
                 fallbackIcon: firstThumbnail([s]),
                 disabled: false,
+                opens: true,
                 onSelect: () => onOpen({ category, sub: s }),
             }));
         }
@@ -73,6 +74,7 @@ export const FindItLevel = ({ category, sub, onOpen, onBack }: FindItLevelProps)
             icon: c.icon ?? FIND_IT_ICON,
             fallbackIcon: firstThumbnail(c.subCategories),
             disabled: false,
+            opens: true,
             onSelect: () =>
                 onOpen(c.subCategories.length === 1 ? { category: c, sub: c.subCategories[0] } : { category: c }),
         }));

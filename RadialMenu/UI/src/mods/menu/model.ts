@@ -31,6 +31,14 @@ export interface MenuItem extends Label {
     context?: ContextTarget;
     // The asset behind a leaf item: its metadata chips show on hover.
     asset?: toolbar.Asset;
+    // Selecting it opens another level (a menu, category, Favorites, Find It)
+    // instead of picking something to build.
+    opens?: boolean;
+    // Where an asset shown outside its own category lives (search results,
+    // favorites): its menu and category, or neither for one from Find It's
+    // catalogue.
+    // `titles` when known (search results), else looked up by entity.
+    place?: { menu: Entity | null; category: Entity | null; titles?: { menu: string; category: string } };
     onSelect: () => void;
 }
 

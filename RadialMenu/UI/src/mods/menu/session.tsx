@@ -20,6 +20,7 @@ import {
     menuPath,
     Path,
     ROOT,
+    trail,
     withoutFindIt,
 } from "./navigation";
 import { MenuSessionContext, MenuSessionState, ViewCommands } from "./session-context";
@@ -57,7 +58,7 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
     const commandsRef = useRef<ViewCommands>({});
     const [example] = useState(() => FILTER_EXAMPLES[Math.floor(Math.random() * FILTER_EXAMPLES.length)]);
     const inputRef = useRef<HTMLInputElement>(null);
-    const { Frame } = useMenuView();
+    const { Frame, searchFieldClassName, placeholder } = useMenuView();
 
     // The right-click menu. Only one is open at a time; every input that
     // changes what's under it closes it (see closeContext's callers).
@@ -142,20 +143,27 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
     const focusInput = useCallback(() => inputRef.current?.focus(), []);
     useEffect(focusInput, [focusInput]);
 
-    // The "Accept suggestion / pick the only match" key (rebindable, Enter by
+    // The "Accept suggestion / pick result" key (rebindable, Enter by
     // default) is read on the C# side, since the focused field blocks game
     // actions. One key, one path: accept the hint's completion if there is one,
-    // otherwise pick the result if exactly one placeable one is left.
+    // otherwise let the view pick (the pane: its highlighted row), otherwise
+    // pick the result if exactly one placeable one is left.
+    const complete = useCallback(() => {
+        if (completionRef.current === null) return false;
+        setQuery(completionRef.current);
+        return true;
+    }, []);
     useEffect(() => {
         const subscription = acceptSuggestion$.subscribe(() => {
             // Swallowed while a context menu is open: it must never pick the
             // result behind the menu.
             if (contextOpen.current) return;
-            if (completionRef.current !== null) setQuery(completionRef.current);
-            else submitRef.current?.();
+            if (complete()) return;
+            if (commandsRef.current.accept?.()) return;
+            submitRef.current?.();
         });
         return () => subscription.dispose();
-    }, []);
+    }, [complete]);
 
     // Release focus when the menu closes. The game only clears its "text field
     // focused" state (which blocks keyboard actions like the pause menu) on a
@@ -181,13 +189,15 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
             e.preventDefault();
         } else if (e.keyCode === KEY_TAB) {
             e.preventDefault(); // don't move focus out of the field
+            commandsRef.current.onKey?.(e.keyCode, e.currentTarget);
         } else if (e.keyCode === KEY_PAGE_UP || e.keyCode === KEY_PAGE_DOWN) {
             e.preventDefault();
             setContext(null);
-            commandsRef.current.page?.(e.keyCode === KEY_PAGE_DOWN ? 1 : -1);
+            const { pageKeys, page } = commandsRef.current;
+            (pageKeys ?? page)?.(e.keyCode === KEY_PAGE_DOWN ? 1 : -1);
         } else if (e.keyCode >= KEY_LEFT && e.keyCode <= KEY_DOWN) {
             // Arrow keys go to the view if it wants them (the wheel doesn't).
-            if (commandsRef.current.onKey?.(e.keyCode)) e.preventDefault();
+            if (commandsRef.current.onKey?.(e.keyCode, e.currentTarget)) e.preventDefault();
         }
     };
 
@@ -228,9 +238,22 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
 
     // Shared with the level and the view; changes only with its fields.
     const contextKey = context?.entryKey ?? null;
+    const crumbs = useMemo(() => trail(path), [path]);
     const session = useMemo<MenuSessionState>(
-        () => ({ query, example, contextKey, openContext, closeContext, submitRef, completionRef, commandsRef }),
-        [query, example, contextKey, openContext, closeContext]
+        () => ({
+            query,
+            example,
+            contextKey,
+            openContext,
+            closeContext,
+            submitRef,
+            completionRef,
+            commandsRef,
+            complete,
+            addFilter: addChipToQuery,
+            trail: crumbs,
+        }),
+        [query, example, contextKey, openContext, closeContext, complete, addChipToQuery, crumbs]
     );
     // Keyed per place, so each level starts on its first page.
     const key = levelKey(path);
@@ -263,7 +286,8 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
     const searchField = (
         <input
             ref={inputRef}
-            className={shared.searchInput}
+            className={searchFieldClassName}
+            placeholder={placeholder}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}

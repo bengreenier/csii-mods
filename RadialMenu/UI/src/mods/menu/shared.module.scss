@@ -42,17 +42,6 @@
     text-decoration: line-through;
 }
 
-// Receives typing; the query is displayed in the hub instead.
-.searchInput {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 1rem;
-    height: 1rem;
-    opacity: 0;
-    pointer-events: none;
-}
-
 // TintedIcon (tinted-icon.tsx): the glyph is a mask over the background colour.
 .tintedIcon {
     mask-size: contain;

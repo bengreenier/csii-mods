@@ -5,7 +5,7 @@ import { Entity } from "cs2/utils";
 import { usePrefabTitle } from "./asset-data";
 import { hubImage$ } from "./bindings";
 
-// Setting.HubImageMode values ("Center image").
+// Setting.HubImageMode values ("Preview image").
 export const HUB_IMAGE_BUTTON_ICON = 1;
 
 // `title` is shown as is; without it, the prefab's title from `entity`.
@@ -32,7 +32,7 @@ export const PrefabPreview = ({
     return <img className={className} src={src} />;
 };
 
-// A leaf item's large picture, as the "Center image" setting picks.
+// A leaf item's large picture, as the "Preview image" setting picks.
 export const ItemPreview = ({ entity, icon, className }: { entity: Entity; icon: string; className?: string }) => {
     const hubImage = useValue(hubImage$);
     return hubImage === HUB_IMAGE_BUTTON_ICON ? (
