@@ -28,7 +28,7 @@ import { FILTER_EXAMPLES } from "./query/filters";
 import { clearSearchSessionCaches, usePrewarmFindItSearch } from "./search";
 import { FindItCatalogueContext, useFindItCatalogueRoot } from "./find-it-catalogue";
 import { itemKey, MenuItem } from "./model";
-import { MenuSessionContext, MenuSessionState } from "./session-context";
+import { MenuSessionContext, MenuSessionState, ViewCommands } from "./session-context";
 import { anchorAtCursor, useWheelGeometry, WheelAnchorContext } from "./wheel";
 import { CategoryLevel } from "./levels/category-level";
 import { FavoritesLevel } from "./levels/favorites-level";
@@ -48,6 +48,8 @@ const KEY_ESCAPE = 27;
 const KEY_TAB = 9;
 const KEY_PAGE_UP = 33;
 const KEY_PAGE_DOWN = 34;
+const KEY_LEFT = 37;
+const KEY_DOWN = 40;
 
 const EMPTY: never[] = [];
 
@@ -109,7 +111,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     const [query, setQuery] = useState("");
     const submitRef = useRef<(() => void) | null>(null);
     const completionRef = useRef<string | null>(null);
-    const pageRef = useRef<((step: number) => void) | null>(null);
+    const commandsRef = useRef<ViewCommands>({});
     const [example] = useState(() => FILTER_EXAMPLES[Math.floor(Math.random() * FILTER_EXAMPLES.length)]);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -261,18 +263,22 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         } else if (e.keyCode === KEY_PAGE_UP || e.keyCode === KEY_PAGE_DOWN) {
             e.preventDefault();
             setContext(null);
-            pageRef.current?.(e.keyCode === KEY_PAGE_DOWN ? 1 : -1);
+            commandsRef.current.page?.(e.keyCode === KEY_PAGE_DOWN ? 1 : -1);
+        } else if (e.keyCode >= KEY_LEFT && e.keyCode <= KEY_DOWN) {
+            // Arrow keys go to the view if it wants them (the wheel doesn't).
+            if (commandsRef.current.onKey?.(e.keyCode)) e.preventDefault();
         }
     };
 
     const lastPageFlipAt = useRef(0);
     const onWheel = (e: WheelEvent) => {
-        if (!pageRef.current || e.deltaY === 0) return;
+        const page = commandsRef.current.page;
+        if (!page || e.deltaY === 0) return;
         const now = Date.now();
         if (now - lastPageFlipAt.current < PAGE_WHEEL_THROTTLE_MS) return;
         lastPageFlipAt.current = now;
         setContext(null);
-        pageRef.current(e.deltaY > 0 ? 1 : -1);
+        page(e.deltaY > 0 ? 1 : -1);
     };
 
     // "Back" via the game's input system (see RadialMenu's useModalInput), for
@@ -302,7 +308,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     // Shared with the level and the view; changes only with its fields.
     const contextKey = context?.entryKey ?? null;
     const session = useMemo<MenuSessionState>(
-        () => ({ query, example, contextKey, openContext, closeContext, submitRef, completionRef, pageRef }),
+        () => ({ query, example, contextKey, openContext, closeContext, submitRef, completionRef, commandsRef }),
         [query, example, contextKey, openContext, closeContext]
     );
     // Keyed per place, so each level starts on its first page.

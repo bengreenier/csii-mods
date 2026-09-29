@@ -79,7 +79,7 @@ const QueryDisplay = ({ tokens, shrink }: { tokens: DisplayToken[]; shrink: numb
 // `level` itself.
 export const Wheel = ({ level }: LevelViewProps) => {
     const { items: entries, grouped, current, search, emptyMessage, onBack } = level;
-    const { query, pageRef, example, contextKey, openContext, closeContext } = useMenuSession();
+    const { query, commandsRef, example, contextKey, openContext, closeContext } = useMenuSession();
     const [hovered, setHovered] = useState<MenuItem | null>(null);
     const hubRef = useRef<HTMLDivElement>(null);
     const hubContentRef = useRef<HTMLDivElement>(null);
@@ -129,12 +129,17 @@ export const Wheel = ({ level }: LevelViewProps) => {
 
     const showingQuery = !!query;
     useEffect(() => {
-        pageRef.current =
+        const commands = commandsRef.current;
+        commands.page =
             pageCount > 1
                 ? (step) =>
                       setPageState({ query, page: Math.min(Math.max(page + step, 0), pageCount - 1) })
-                : null;
-    }, [query, page, pageCount, pageRef]);
+                : undefined;
+        // Cleared on unmount too, so the next level never sees this pager.
+        return () => {
+            commands.page = undefined;
+        };
+    }, [query, page, pageCount, commandsRef]);
 
     let hubContent;
     if (hoveredEntry || !showingQuery) {
