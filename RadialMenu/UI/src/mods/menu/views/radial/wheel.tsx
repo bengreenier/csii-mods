@@ -1,12 +1,12 @@
-// The radial view: a wheel of items around a hub.
+// Draws one level as a wheel of items around a hub.
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useValue } from "cs2/api";
 import { useCssLength } from "cs2/utils";
 import classNames from "classnames";
 import { itemSpacing$, menuScale$, ringDistance$ } from "./bindings";
-import { HubChips } from "./asset-chips";
-import { ItemIcon } from "./item-icon";
-import { ItemPreview, ItemTitle } from "./item-details";
+import { HubChips } from "./hub-chips";
+import { ItemIcon } from "../../item-icon";
+import { ItemPreview, ItemTitle } from "../../item-details";
 import {
     BACK_HINT,
     exampleHint,
@@ -15,16 +15,16 @@ import {
     matchSummary,
     PAGING_HINT,
     pageSummary,
-} from "./menu-text";
-import { useSecondaryClick } from "./use-secondary-click";
+} from "../../menu-text";
+import { useSecondaryClick } from "../../use-secondary-click";
 import { layoutWheel, searchPageSize, wheelGeometry } from "./layout";
 import { layoutQuery, MAX_QUERY_SHRINK } from "./query-layout";
-import { DisplayToken } from "./query/parser";
-import { TOKEN_CLASS } from "./query-tokens";
-import { itemKey, LevelViewProps, MenuItem } from "./model";
-import { getLastMouse } from "./mouse";
-import { useMenuSession } from "./session-context";
-import styles from "./radial-menu.module.scss";
+import { DisplayToken } from "../../query/parser";
+import { TOKEN_CLASS } from "../../query-tokens";
+import { itemKey, LevelViewProps, MenuItem } from "../../model";
+import { getLastMouse } from "../../mouse";
+import { useMenuSession } from "../../session-context";
+import styles from "./radial.module.scss";
 
 // Most of the hub circle's height the content may use; less than all of it,
 // since the circle narrows toward the top and bottom.

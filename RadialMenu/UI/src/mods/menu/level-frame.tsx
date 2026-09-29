@@ -1,14 +1,15 @@
 // What every level renders: the rules any view of a level needs, then the
-// view itself.
+// view's Level.
 import { useEffect } from "react";
 import { itemKey, LevelModel } from "./model";
 import { useMenuSession } from "./session-context";
-import { Wheel } from "./wheel";
+import { useMenuView } from "./view";
 
 const EMPTY: never[] = [];
 
 export const LevelFrame = ({ level }: { level: LevelModel }) => {
     const { query, contextKey, closeContext, submitRef, completionRef } = useMenuSession();
+    const { Level } = useMenuView();
     const { items, search } = level;
 
     // The accept key: accept the hint's completion if there is one, otherwise
@@ -30,5 +31,5 @@ export const LevelFrame = ({ level }: { level: LevelModel }) => {
         if (contextKey !== null && !contextInLevel) closeContext();
     }, [contextKey, contextInLevel, closeContext]);
 
-    return <Wheel level={level} />;
+    return <Level level={level} />;
 };

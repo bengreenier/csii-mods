@@ -172,7 +172,7 @@ Filters are yes/no: they don't affect rank. Results are shown a page at a
 time: as many as fit in the first **three rings** (61 at the default "Distance
 from center" and "Item spacing"). Rings that would reach past the screen
 edge, e.g. at large menu sizes, are left out, so pages get smaller rather than
-leaving the screen (`searchPageSize` in `layout.ts`). When there are more
+leaving the screen (`searchPageSize` in `views/radial/layout.ts`). When there are more
 results, the hub shows which page you're on ("62-122 of 214 matches"). Scroll the mouse wheel anywhere over the menu, or
 press PageUp/PageDown, to flip pages. Changing the query starts again at the
 first page.
@@ -183,7 +183,7 @@ When text is typed and nothing is hovered, the hub shows:
 
 1. **The query**, coloured per token: text is white, recognized filters blue,
    incomplete or ignored ones dimmed, invalid or unknown ones red and struck
-   through. It's fitted by `layoutQuery` (`query-layout.ts`):
+   through. It's fitted by `layoutQuery` (`views/radial/query-layout.ts`):
    - each font size from 28 down to 17 is tried, wrapping whole tokens onto
      as many lines as that size allows (3 at the largest, 5 at the smallest);
    - only if nothing fits at the smallest size is it cut, from the front:
@@ -217,7 +217,7 @@ per filter value it matches, e.g. `is: favorite`, `theme: European`,
 `pack: ...`, `dlc: Office Evolution`, `zone: residential`, `zone: high`, `size: 2x3`,
 `level: 3`, `fx: crime accumulation`. The order is `is:` flags, then theme,
 pack, DLC, zone, size, level and effects. The hub is a circle, so chips are
-limited to two rows, 160 wide: `HubChips` measures where each one lands
+limited to two rows, 160 wide: `HubChips` (`views/radial/hub-chips.tsx`) measures where each one lands
 (before paint) and replaces whatever doesn't fit with `+N`. Values over 18
 characters are cut with `...`, and the chip area is also capped at two rows'
 height in CSS as a fallback. The right-click menu shows every chip, untruncated,
@@ -439,12 +439,12 @@ steps back a level; Escape and clicking the hub do.
 | `bindings.ts` / `RadialMenuUISystem.AssetMeta.cs` | `assetMeta`: static per-asset data from C# (packs, lot size, zone, level) | no |
 | `radial-menu.tsx` | Keys (accept event / Escape) | no |
 | `level-frame.tsx` | What the accept key does on a level (completion, or the only placeable match) | no |
-| `wheel.tsx` | Hub display | no |
+| `views/radial/wheel.tsx` | Hub display | no |
 | `context-menu.tsx` / `context-actions.ts` | Right-click menu on wheel items, and the actions each item offers | no |
 | `store-links.ts` | DLC store / Paradox Mods URLs for "Copy ... link" | yes |
 | `asset-data.ts` | Shared lookups: `useAssetMetaByKey` (cached per list), `useThemes`, `assetTitle` / `themeTitle` | no |
-| `query/chips.ts` / `asset-chips.tsx` | An asset's metadata chips: fitted in the hub, in full in the context menu | chips.ts yes |
-| `query-layout.ts` | `layoutQuery`: fits the typed query into the hub (font size, lines, front truncation) | yes |
+| `query/chips.ts` / `asset-chips.tsx` / `views/radial/hub-chips.tsx` | An asset's metadata chips: fitted in the hub, in full in the context menu | chips.ts yes |
+| `views/radial/query-layout.ts` | `layoutQuery`: fits the typed query into the hub (font size, lines, front truncation) | yes |
 | `localization.ts` | `useLocalization` (the runtime name of the typings' `useCachedLocalization`) | no |
 | `favorites.ts` | Shared favorites bits: `useFavoriteKeys`, icons, texts (Favorites level, context actions, `is:favorite`) | no |
 

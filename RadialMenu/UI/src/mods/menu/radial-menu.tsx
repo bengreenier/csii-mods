@@ -1,7 +1,6 @@
 import { KeyboardEvent, MouseEvent, MutableRefObject, WheelEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useValue } from "cs2/api";
 import { toolbar } from "cs2/bindings";
-import { useCssLength } from "cs2/utils";
 import {
     acceptSuggestion$,
     close,
@@ -10,8 +9,6 @@ import {
     isOpen$,
     isolateInput$,
     resetVanillaThemes$,
-    menuScale$,
-    openAtCursor$,
 } from "./bindings";
 import { useModalInput } from "./modal-input";
 import { useContextActions } from "./context-actions";
@@ -21,7 +18,6 @@ import { appendToQuery, Chip, chipQuery } from "./query/chips";
 import { useLocalization } from "./localization";
 import { MOUSE_SECONDARY } from "./use-secondary-click";
 import { ContextMenu, OpenContextMenu } from "./context-menu";
-import { wheelFitRadius } from "./layout";
 import { FILTER_EXAMPLES } from "./query/filters";
 import { clearSearchSessionCaches, usePrewarmFindItSearch } from "./search";
 import { FindItCatalogueContext, useFindItCatalogueRoot } from "./find-it-catalogue";
@@ -39,7 +35,8 @@ import {
     withoutFindIt,
 } from "./navigation";
 import { MenuSessionContext, MenuSessionState, ViewCommands } from "./session-context";
-import { anchorAtCursor, useWheelGeometry, WheelAnchorContext } from "./wheel";
+import { MenuViewContext, useMenuView } from "./view";
+import { radialView } from "./views/radial";
 import { CategoryLevel } from "./levels/category-level";
 import { FavoritesLevel } from "./levels/favorites-level";
 import { FindItLevel } from "./levels/find-it-level";
@@ -78,7 +75,10 @@ export const RadialMenu = () => {
     // Mounted only while open, so navigation and search reset on every open.
     return (
         <FindItCatalogueContext.Provider value={findItCatalogue}>
-            {isOpen ? <OpenRadialMenu backRef={backRef} /> : null}
+            {/* One view for now; how a view gets chosen is open (README, decision 3). */}
+            <MenuViewContext.Provider value={radialView}>
+                {isOpen ? <OpenRadialMenu backRef={backRef} /> : null}
+            </MenuViewContext.Provider>
         </FindItCatalogueContext.Provider>
     );
 };
@@ -113,12 +113,7 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
     const commandsRef = useRef<ViewCommands>({});
     const [example] = useState(() => FILTER_EXAMPLES[Math.floor(Math.random() * FILTER_EXAMPLES.length)]);
     const inputRef = useRef<HTMLInputElement>(null);
-
-    // Fixed for as long as the menu is open (captured on open only, so the
-    // buttons stay put while you move the mouse to them).
-    const openAtCursor = useValue(openAtCursor$);
-    const fitRadiusPx = useCssLength(`${wheelFitRadius(useWheelGeometry())}rem`) * useValue(menuScale$);
-    const [anchor] = useState(() => (openAtCursor ? anchorAtCursor(fitRadiusPx) : null));
+    const { Frame } = useMenuView();
 
     // The right-click menu. Only one is open at a time; every input that
     // changes what's under it closes it (see closeContext's callers).
@@ -319,21 +314,26 @@ const OpenRadialMenu = ({ backRef }: { backRef: MutableRefObject<(() => void) | 
         );
     }
 
+    // One element for the whole open menu (it holds focus); the view's Frame
+    // places it.
+    const searchField = (
+        <input
+            ref={inputRef}
+            className={shared.searchInput}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={onKeyDown}
+            // Clicking the wheel would otherwise steal focus (and hand
+            // the keyboard back to the game).
+            onBlur={() => requestAnimationFrame(focusInput)}
+        />
+    );
+
     return (
         <div className={shared.backdrop} onClick={onBackdropClick} onMouseUp={onBackdropMouseUp} onWheel={onWheel}>
-            <input
-                ref={inputRef}
-                className={shared.searchInput}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={onKeyDown}
-                // Clicking the wheel would otherwise steal focus (and hand
-                // the keyboard back to the game).
-                onBlur={() => requestAnimationFrame(focusInput)}
-            />
-            <WheelAnchorContext.Provider value={anchor}>
-                <MenuSessionContext.Provider value={session}>{level}</MenuSessionContext.Provider>
-            </WheelAnchorContext.Provider>
+            <MenuSessionContext.Provider value={session}>
+                <Frame searchField={searchField}>{level}</Frame>
+            </MenuSessionContext.Provider>
             {context && hasOpenActions && (
                 <ContextMenu
                     // Remounts (and re-measures) when opened on another item.

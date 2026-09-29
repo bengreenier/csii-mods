@@ -1,4 +1,4 @@
-// All sizes are in game rem (~1px at 1080p). Keep in sync with radial-menu.module.scss.
+// All sizes are in game rem (~1px at 1080p). Keep in sync with radial.module.scss.
 export const ITEM_SIZE = 72;
 
 // Radius of the center hub ($hub-size / 2 in the scss).
