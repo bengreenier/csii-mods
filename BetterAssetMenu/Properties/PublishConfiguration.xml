@@ -75,6 +75,7 @@ First release: radial and pane menus, type-to-search with filters, per-city favo
 	</ChangeLog>
 	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 	<ExternalLink Type="github" Url="https://github.com/bengreenier/csii-mods/tree/main/BetterAssetMenu" />
+	<ExternalLink Type="buymeacoffee" Url="https://buymeacoffee.com/bengreenier" />
 	<!--Supported values Public, Private, Unlisted-->
 	<AccessLevel Value="Public" />
 </Publish>
