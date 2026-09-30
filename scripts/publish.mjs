@@ -111,7 +111,9 @@ const changeLogPattern = /<ChangeLog\b[^>]*?(?:\/>|>[\s\S]*?<\/ChangeLog>)/g;
 if ((config.match(changeLogPattern) ?? []).length !== 1) fail(`expected exactly one <ChangeLog> in ${configRel}`);
 fs.writeFileSync(copyPath, config.replace(changeLogPattern, () => `<ChangeLog>\n${escapeXml(changeLog)}\n\t</ChangeLog>`));
 
-const dotnetArgs = ["publish", csproj, "/p:PublishProfile=PublishNewVersion", `/p:PublishConfigurationPath=${copyRel}`];
+// -tl:off: the terminal logger hides ModPublisher's messages (why an upload
+// failed), leaving only "exited with code -1".
+const dotnetArgs = ["publish", csproj, "/p:PublishProfile=PublishNewVersion", `/p:PublishConfigurationPath=${copyRel}`, "-tl:off", "-v:m"];
 console.log(`Publishing ${modDir} ${version} (${tag}) to Paradox Mods.\n\nChangeLog:\n${changeLog}\n`);
 console.log(`> dotnet ${dotnetArgs.join(" ")}`);
 

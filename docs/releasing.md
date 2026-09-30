@@ -54,13 +54,18 @@ version, edit `PublishConfiguration.xml` and run
 
 A mod's first upload creates it on Paradox Mods, which the script doesn't do:
 
-1. With the game closed, publish by hand:
+1. With the game closed, publish by hand from PowerShell (Git Bash rewrites
+   `/p:` arguments into paths):
    `dotnet publish <Mod>/<Mod>.csproj /p:PublishProfile=PublishNewMod`.
-2. ModPublisher writes the new `ModId` into `PublishConfiguration.xml`.
-   Commit it (`chore: ...`, so it doesn't trigger a release) and push.
-3. Create the GitHub release for that version at that commit, so
+   Add `-tl:off -v:m`, or it only says `exited with code -1` instead of
+   showing ModPublisher's message. Paradox Mods rejects unknown tags (there's no
+   general `UI` tag) and images over 2.1 MB.
+2. ModPublisher prints `Mod published with Id=<id>` but doesn't write it
+   back. Set `<ModId Value="<id>" />` in `PublishConfiguration.xml` by hand,
+   commit it (`chore: ...`, so it doesn't trigger a release) and push.
+3. Create the GitHub release for that version at that commit (full SHA), so
    release-please starts from it instead of the whole history:
-   `gh release create <component>-v<version> --target <sha> --title "<Mod> v<version>" --notes "First release."`
+   `gh release create <component>-v<version> --target <full sha> --title "<Mod> v<version>" --notes "First release."`
 4. The package's entry in `.release-please-manifest.json` must already be
    that version.
 

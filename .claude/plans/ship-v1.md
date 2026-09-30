@@ -76,3 +76,7 @@ merges first; `chore/release-please` is based on it.
 - `GameVersion`: `1.6.*` (the game in use is 1.6.2f1).
 - Screenshots: ten, in `Properties/Screenshots/` (radial, then pane, then the Usage Guide).
 - `ExternalLink`: github, `https://github.com/bengreenier/csii-mods/tree/main/BetterAssetMenu`.
+
+## Shipped (2026-09-29)
+
+1.0.0 is on Paradox Mods as ModId 161352 (https://mods.paradoxplaza.com/mods/161352/Windows), and the GitHub release `better-asset-menu-v1.0.0` is at the ModId commit. The first upload was rejected twice (a `UI` tag; images over 2.1 MB), and ModPublisher did not write the ModId back. The release-mod skill and docs/releasing.md now cover all three.

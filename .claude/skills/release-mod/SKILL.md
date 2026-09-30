@@ -74,25 +74,50 @@ the version being published (e.g. 1.0.0), and no GitHub release exists.
    manifest, and that the listing text, thumbnail and screenshots in
    `PublishConfiguration.xml` are final. After this, changing them takes
    `UpdatePublishedConfiguration`.
-2. Get the user's go-ahead, then run:
-   `dotnet publish <Mod>/<Mod>.csproj /p:PublishProfile=PublishNewMod`
-   Use the same long timeout.
-3. ModPublisher writes the new `ModId` into `PublishConfiguration.xml`.
-   **`git diff` it first.** ModPublisher may rewrite the whole file
-   (indentation, comments, the BOM, `LongDescription` whitespace, or the
-   `x-release-please-version` marker). If anything besides the `ModId` line
-   changed, restore the file and set only the `ModId` by hand.
+   - Check the listing against what Paradox Mods accepts (see "Paradox Mods
+     limits" below). Each rejection costs a full build before the upload
+     fails.
+2. Get the user's go-ahead, then run the publish from **PowerShell**, not
+   Git Bash, because MSYS rewrites `/p:...` into a path and MSBuild fails with
+   "Only one project can be specified":
+   `dotnet publish <Mod>/<Mod>.csproj /p:PublishProfile=PublishNewMod -tl:off -v:m`
+   Use the same long timeout. Keep `-tl:off`: the default terminal logger
+   hides ModPublisher's messages and shows only `exited with code -1`. Look
+   for `Could not publish mod:` on failure, or `Mod published with Id=` on
+   success.
+3. **ModPublisher does not write the `ModId` back** (the template's comment
+   suggests it does; it didn't for Better Asset Menu). Take the id from
+   `Mod published with Id=<id>` in the log and set `<ModId Value="<id>" />`
+   by hand. `git diff` should show only that line.
 4. Commit it as `chore: <Mod> ModId from the first Paradox Mods upload`. It
    must be `chore:`, so it doesn't trigger a release. Then push `main`, after
    asking if the user hasn't already approved pushing.
 5. Create the GitHub release at that commit, so release-please starts from
-   it instead of reading the whole history:
-   `gh release create <component>-v<version> --target <sha> --title "<Display name> v<version>" --notes "First release."`
+   it instead of reading the whole history. `--target` needs the **full**
+   SHA (`git rev-parse <sha>`); a short one fails with "tag_name is not a
+   valid tag":
+   `gh release create <component>-v<version> --target <full sha> --title "<Display name> v<version>" --notes "First release. On Paradox Mods: https://mods.paradoxplaza.com/mods/<id>/Windows"`
 6. If the release-please setup isn't on `main` yet, check it before it
    lands. Rebase its branch onto `main`, push it, and run:
    `npx release-please release-pr --repo-url=bengreenier/csii-mods --token=$(gh auth token) --target-branch=<branch> --dry-run`
    It should propose no release. If it proposes one, stop and investigate
    before merging.
+
+## Paradox Mods limits
+
+Learned from rejected uploads. The upload fails after the build, so check
+these first:
+
+- **Tags:** only Paradox's fixed list. `Code Mod` is the one for code mods.
+  There is no general `UI` tag: the `UI*` tags (`UIRoads`, `UIZones`, ...)
+  are asset categories. The rejection message lists every valid tag.
+- **Images:** the thumbnail and each screenshot must be **at most 2.1 MB**.
+  Keep them PNG (the toolchain expects PNG) and shrink by scaling. 1600 px
+  wide, lossless, fits a busy game screenshot. Crop the window frame out of
+  windowed-mode screenshots. `System.Drawing`'s PNG encoder makes files
+  larger; use `sharp` (`png({ compressionLevel: 9, adaptiveFiltering: true })`,
+  without `effort` or `quality`, which quietly switch to a 256-colour
+  palette).
 
 ## When something fails
 
