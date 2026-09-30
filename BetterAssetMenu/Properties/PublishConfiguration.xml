@@ -4,32 +4,67 @@
 	<!--Name of the mod to display to players-->
 	<DisplayName Value="Better Asset Menu" />
 	<!--Short description of the mod-->
-	<ShortDescription Value="Better Asset Menu" />
+	<ShortDescription Value="Find and place any building, road or prop in a few keystrokes: a radial or list menu with type-to-search, filters and per-city favorites." />
 	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
-	<!--LongDescription Value="Adds a Contextual Better Asset Menu to CSII" /-->
 	<LongDescription>
-Adds a Contextual Better Asset Menu to CSII
+Better Asset Menu replaces the bottom toolbar with a menu you open with a key (Tab, or the mouse's forward button, by default). Open it and start typing: the menu narrows to matching buildings, roads and props as you type, and Enter picks one, ready to place. Without typing, you can browse the same tabs and categories as the vanilla toolbar.
+
+## Two menu styles
+
+- **Radial:** a wheel of buttons around a center that shows the picture, name and details of whatever you point at.
+- **Pane:** a search field over a list you move through with the arrow keys, with details of the highlighted item beside it.
+
+Both search, browse and pick the same things. Choose one under Options > Better Asset Menu.
+
+## Search
+
+Type words to search by name, "quotes" for an exact phrase, and a minus to leave things out (road -highway). Filters narrow results by more than the name, and suggestions appear as you type them:
+
+- is: ok / new / unique / placed / locked / mod / favorite
+- theme: and pack: - building styles and asset packs, from every theme or only your city's
+- zone:, level:, size: (s:), width: (w:) and depth: (d:) - zoned buildings, lots and road widths, e.g. s: 2x3 or w: 2u
+- dlc: - base game, a DLC, or everything but the base game
+- in: - a toolbar tab or category, e.g. in: parks bench
+- fx: - what it does for your city, e.g. fx: crime
+
+Unfinished or unknown filters are simply ignored, so a search never comes up empty because of a typo in a filter. The in-game Usage Guide tab covers everything.
+
+## Favorites
+
+Right-click anything you can place and add it to your favorites. Each city keeps its own favorites, saved with the city.
+
+## Find It
+
+With the Find It mod enabled, the menu can also reach everything Find It lists (props, decals, trees, vehicles and more), with a cat: filter for Find It's categories.
+
+## Also
+
+- Open at the screen center or at the mouse cursor
+- Scale the wheel or pane, and adjust the wheel's spacing
+- Optionally keep the bulldozer, or the whole vanilla toolbar, visible
+- Optionally stop menu picks from switching on info views
 	</LongDescription>
 	<!--Thumbnail-->
 	<Thumbnail Value="Properties/Thumbnail.png" />
 	<!--Screenshot, can be set multiple times-->
 	<Screenshot Value="" />
 	<!--Tag, can be set multiple times-->
-	<Tag Value="" />
+	<Tag Value="Code Mod" />
+	<Tag Value="UI" />
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="" />
 	<!--Version of the mod-->
-	<ModVersion Value="0.1.0" />
+	<ModVersion Value="1.0.0" />
 	<!--Recommended version of the base game to use the mod-->
-	<GameVersion Value="1.0.*" />
+	<GameVersion Value="1.6.*" />
 	<!--Dependency for the mod, can be set multiple times-->
 	<Dependency Id="" />
 	<!--Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture"-->
 	<RequiredDLC Value="" />
 	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
-	<ChangeLog Value="" />
-	<!--<ChangeLog>
-	</ChangeLog>-->
+	<ChangeLog>
+First release: radial and pane menus, type-to-search with filters, per-city favorites and Find It support.
+	</ChangeLog>
 	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 	<ExternalLink Type="" Url="" />
 	<!--Supported values Public, Private, Unlisted-->
