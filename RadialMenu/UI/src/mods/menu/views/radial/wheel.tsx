@@ -5,7 +5,7 @@ import { useCssLength } from "cs2/utils";
 import classNames from "classnames";
 import { itemSpacing$, menuScale$, ringDistance$ } from "./bindings";
 import { HubChips } from "./hub-chips";
-import { ItemIcon } from "../../item-icon";
+import { MenuItemIcon } from "../../item-icon";
 import { ItemPreview, ItemTitle } from "../../item-details";
 import {
     BACK_HINT,
@@ -146,7 +146,7 @@ export const Wheel = ({ level }: LevelViewProps) => {
         hubContent = (
             <>
                 {hoveredEntry?.showPreview && (
-                    <ItemPreview className={styles.hubPreview} entity={hoveredEntry.entity} icon={hoveredEntry.icon} />
+                    <ItemPreview className={styles.hubPreview} item={hoveredEntry} />
                 )}
                 {label && (
                     <div className={classNames(styles.hubTitle, hoveredEntry?.showPreview && styles.hubTitleSmall)}>
@@ -248,12 +248,7 @@ export const Wheel = ({ level }: LevelViewProps) => {
                     }}
                     {...secondaryClick(entry)}
                 >
-                    <ItemIcon
-                        className={styles.icon}
-                        icon={entry.icon}
-                        fallbackIcon={entry.fallbackIcon}
-                        iconColor={entry.iconColor}
-                    />
+                    <MenuItemIcon className={styles.icon} item={entry} />
                 </button>
             ))}
         </div>

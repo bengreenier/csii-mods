@@ -99,6 +99,13 @@
 - **Greying out:** `[SettingsUIDisableByCondition(typeof(Setting), nameof(Check))]`.
   `Check` can be a private static method or property returning `bool`; it's
   re-evaluated while the options screen is open. Guard the setter too.
+- **Hiding:** `[SettingsUIHideByCondition(typeof(Setting), nameof(Check))]`
+  (`invert: true` flips it). `Check` may also be an instance method of your
+  `Setting` (`AutomaticSettings.TryGetAction` binds it to the instance). It's
+  re-checked live (`OptionsUISystem.Section.UpdateVisibility`), so e.g. a
+  dropdown can show only the options for its current value. A group whose
+  items are all hidden loses its header too. This mod shows only the chosen
+  menu style's layout group (`Setting.IsPaneStyle`).
 - **Dropdowns:** an `enum` property becomes one. Label each value with
   `GetEnumValueLocaleID(MyEnum.Value)`; send it to the UI as an `int`.
 - **Display-only properties:** `[Exclude]` (`using Colossal.Json;`, as vanilla

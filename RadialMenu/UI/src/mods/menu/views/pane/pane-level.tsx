@@ -6,7 +6,7 @@ import { exampleHint, matchSummary } from "../../menu-text";
 import { itemKey, LevelViewProps, MenuItem } from "../../model";
 import { useMenuSession } from "../../session-context";
 import { useSecondaryClick } from "../../use-secondary-click";
-import { ItemIcon } from "../../item-icon";
+import { MenuItemIcon } from "../../item-icon";
 import { ItemTitle } from "../../item-details";
 import { Detail, IdleDetail } from "./detail";
 import { PlaceLabel, Trail } from "./labels";
@@ -163,12 +163,7 @@ export const PaneLevel = ({ level }: LevelViewProps) => {
                                 }}
                                 {...secondaryClick(item)}
                             >
-                                <ItemIcon
-                                    className={styles.rowIcon}
-                                    icon={item.icon}
-                                    fallbackIcon={item.fallbackIcon}
-                                    iconColor={item.iconColor}
-                                />
+                                <MenuItemIcon className={styles.rowIcon} item={item} />
                                 <div className={styles.rowTitle}>
                                     <ItemTitle label={item} />
                                 </div>

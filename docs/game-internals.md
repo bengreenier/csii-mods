@@ -527,6 +527,17 @@ compile-time reference, since it's optional.
     Menu items fall back via `<img onError>` (as vanilla's
     `missing-icon-handler.ts` does) to a thumbnail from inside the
     category (`fallbackIcon`).
+- **Thumbnails:** an asset's `icon` (vanilla `BindAsset`) and its prefab
+  details' `icon` are both `ImageSystem.GetThumbnail`: the prefab's
+  `UIObject` icon if it has one (Asset Icon Library fills many in), otherwise
+  a thumbnail-camera URL (`<thumbnailUrl>?width=128&height=128`). For some
+  props (e.g. `Bicycle02Battery01`) that image doesn't load. Find It indexes
+  a `FallbackThumbnail`, its subcategory's `CategoryIconAttribute` icon, for
+  that (`PrefabIndexingSystem.AddPrefab`). We do the same:
+  `useFindItFallbackIcon` (`find-it.ts`) looks up the asset's subcategory
+  from `assetMeta.findItCategory`. Every item image falls back through the
+  item's icon, that, and vanilla's `Media/Placeholder.svg`
+  (`fallBackThrough`, `item-icon.tsx`).
 - **Titles:** Find It's own locale keys, `Tooltip.LABEL[FindIt.<enum name>]`.
 - **Sending it:** `findItCategories` (the tree), and `findItAssets` (a map
   by subcategory, each asset written by vanilla `ToolbarUISystem.BindAsset`,

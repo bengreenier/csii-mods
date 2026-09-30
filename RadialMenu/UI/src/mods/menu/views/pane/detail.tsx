@@ -1,7 +1,7 @@
 // The pane's detail side: the highlighted row in full, or hints when nothing
 // is highlighted.
 import { ChipList, useAssetChips } from "../../asset-chips";
-import { ItemIcon } from "../../item-icon";
+import { MenuItemIcon } from "../../item-icon";
 import { ItemPreview, ItemTitle } from "../../item-details";
 import { IDLE_EXCLUDE_HINT, IDLE_TYPE_HINT } from "../../menu-text";
 import { MenuItem } from "../../model";
@@ -23,14 +23,9 @@ export const Detail = ({ item }: { item: MenuItem }) => {
     return (
         <>
             {item.showPreview ? (
-                <ItemPreview className={styles.detailPreview} entity={item.entity} icon={item.icon} />
+                <ItemPreview className={styles.detailPreview} item={item} />
             ) : (
-                <ItemIcon
-                    className={styles.detailIcon}
-                    icon={item.icon}
-                    fallbackIcon={item.fallbackIcon}
-                    iconColor={item.iconColor}
-                />
+                <MenuItemIcon className={styles.detailIcon} item={item} />
             )}
             <div className={styles.detailTitle}>
                 <ItemTitle label={item} />
