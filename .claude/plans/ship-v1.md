@@ -59,3 +59,5 @@ and `npm run check` passes. Every feature branch is merged.
 - Access level: Public.
 - Display name "Better Asset Menu"; tags `Code Mod` and `UI`.
 - `GameVersion`: `1.6.*` (the game in use is 1.6.2f1).
+- Screenshots: nine, in `Properties/Screenshots/` (radial first, then pane).
+- `ExternalLink`: github, `https://github.com/bengreenier/csii-mods/tree/main/BetterAssetMenu`.

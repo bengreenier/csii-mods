@@ -47,7 +47,15 @@ With the Find It mod enabled, the menu can also reach everything Find It lists (
 	<!--Thumbnail-->
 	<Thumbnail Value="Properties/Thumbnail.png" />
 	<!--Screenshot, can be set multiple times-->
-	<Screenshot Value="" />
+	<Screenshot Value="Properties/Screenshots/01-radial-top.png" />
+	<Screenshot Value="Properties/Screenshots/02-radial-search-width.png" />
+	<Screenshot Value="Properties/Screenshots/03-radial-signature-buildings.png" />
+	<Screenshot Value="Properties/Screenshots/04-pane-top.png" />
+	<Screenshot Value="Properties/Screenshots/05-pane-signature-preview.png" />
+	<Screenshot Value="Properties/Screenshots/06-pane-search-width.png" />
+	<Screenshot Value="Properties/Screenshots/07-pane-search-size.png" />
+	<Screenshot Value="Properties/Screenshots/08-pane-add-favorite.png" />
+	<Screenshot Value="Properties/Screenshots/09-pane-favorites.png" />
 	<!--Tag, can be set multiple times-->
 	<Tag Value="Code Mod" />
 	<Tag Value="UI" />
@@ -66,7 +74,7 @@ With the Find It mod enabled, the menu can also reach everything Find It lists (
 First release: radial and pane menus, type-to-search with filters, per-city favorites and Find It support.
 	</ChangeLog>
 	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
-	<ExternalLink Type="" Url="" />
+	<ExternalLink Type="github" Url="https://github.com/bengreenier/csii-mods/tree/main/BetterAssetMenu" />
 	<!--Supported values Public, Private, Unlisted-->
 	<AccessLevel Value="Public" />
 </Publish>
