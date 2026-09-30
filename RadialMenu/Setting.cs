@@ -17,11 +17,11 @@ namespace RadialMenu
     // Main tab first (settings), then the Usage Guide, which reads top to bottom:
     // basics, then each filter.
     [SettingsUIGroupOrder(KLayoutGroup, KRadialLayoutGroup, KPaneLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
-        KSearchQuickStartGroup, KSearchKeysGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
+        KSearchQuickStartGroup, KSearchKeysGroup, KSearchRadialGroup, KSearchPaneGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
         KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
         KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
     [SettingsUIShowGroupName(KLayoutGroup, KRadialLayoutGroup, KPaneLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
-        KSearchQuickStartGroup, KSearchKeysGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
+        KSearchQuickStartGroup, KSearchKeysGroup, KSearchRadialGroup, KSearchPaneGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
         KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
         KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
     [SettingsUIKeyboardAction(Mod.KOpenActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
@@ -60,6 +60,8 @@ namespace RadialMenu
         public const string KSearchFxGroup = "SearchFx";
         public const string KSearchCombiningGroup = "SearchCombining";
         public const string KSearchKeysGroup = "SearchKeys";
+        public const string KSearchRadialGroup = "SearchRadial";
+        public const string KSearchPaneGroup = "SearchPane";
         public const string KSearchFavoritesGroup = "SearchFavorites";
         public const string KSearchFindItGroup = "SearchFindIt";
 
@@ -86,21 +88,30 @@ namespace RadialMenu
         [SettingsUISection(KSection, KLayoutGroup)]
         public bool OpenAtCursor { get; set; }
 
+        // Each style's layout settings show only while that style is chosen.
+        // Re-checked live, and a group with nothing visible drops its header
+        // (OptionsUISystem.Section.UpdateVisibility).
+        private bool IsPaneStyle() => MenuStyle == MenuStyleMode.Pane;
+        private bool IsRadialStyle() => MenuStyle != MenuStyleMode.Pane;
+
         // --- Radial menu layout ---
 
         // Scale factor for the whole wheel (1 = 100%), shown as a percentage like
         // the vanilla audio sliders.
         [SettingsUISlider(min = 50f, max = 200f, step = 5f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsPaneStyle))]
         [SettingsUISection(KSection, KRadialLayoutGroup)]
         public float MenuScale { get; set; }
 
         // Gap between the center and the first ring (1 = 100%; 0 = touching).
         [SettingsUISlider(min = 0f, max = 400f, step = 25f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsPaneStyle))]
         [SettingsUISection(KSection, KRadialLayoutGroup)]
         public float RingDistance { get; set; }
 
         // Gap between neighbouring buttons and between rings (1 = 100%; 0 = touching).
         [SettingsUISlider(min = 0f, max = 400f, step = 25f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsPaneStyle))]
         [SettingsUISection(KSection, KRadialLayoutGroup)]
         public float ItemSpacing { get; set; }
 
@@ -124,6 +135,7 @@ namespace RadialMenu
 
         // Scale factor for the whole pane (1 = 100%), like MenuScale for the wheel.
         [SettingsUISlider(min = 50f, max = 200f, step = 5f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsRadialStyle))]
         [SettingsUISection(KSection, KPaneLayoutGroup)]
         public float PaneScale { get; set; }
 
@@ -309,6 +321,14 @@ namespace RadialMenu
         public string SearchKeysText => string.Empty;
 
         [SettingsUIMultilineText]
+        [SettingsUISection(KGuideSection, KSearchRadialGroup)]
+        public string SearchRadialText => string.Empty;
+
+        [SettingsUIMultilineText]
+        [SettingsUISection(KGuideSection, KSearchPaneGroup)]
+        public string SearchPaneText => string.Empty;
+
+        [SettingsUIMultilineText]
         [SettingsUISection(KGuideSection, KSearchFavoritesGroup)]
         public string SearchFavoritesText => string.Empty;
 
@@ -444,6 +464,8 @@ namespace RadialMenu
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFxGroup), "fx: - what it does for your city" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchCombiningGroup), "Combining searches" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchKeysGroup), "Keys and mouse" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSearchRadialGroup), "Menu style: Radial" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSearchPaneGroup), "Menu style: Pane" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFavoritesGroup), "Favorites" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFindItGroup), "Find It" },
 
@@ -457,10 +479,12 @@ namespace RadialMenu
                 // Keep in sync with docs/search-schema.md and UI query/filters.ts.
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchQuickStartText)),
-                    "You don't need to click anything to search: open the radial menu and start typing. " +
-                    "The wheel narrows to matching buildings, roads and props as you type, " +
-                    "and once only one result is left, Enter picks it, ready to place.\n" +
-                    "When there are more results than fit on the wheel, scroll the mouse wheel (or press Page Up / Page Down) to see the rest.\n" +
+                    "You don't need to click anything to search: open the menu and start typing. " +
+                    "The menu narrows to matching buildings, roads and props as you type, and Enter picks one, ready to place. " +
+                    "Without typing, you can browse the same menus and categories as the vanilla toolbar.\n" +
+                    "The menu comes in two styles ('Menu style' on the Main tab): Radial, a wheel of buttons you point at, " +
+                    "and Pane, a list you move through with the arrow keys. Both search, browse and pick the same things; " +
+                    "their own keys are described below.\n" +
                     "\n" +
                     "Try it now: open the menu and type 'park'.\n" +
                     "Then try 'is: new' to see everything you have just unlocked.\n" +
@@ -571,31 +595,44 @@ namespace RadialMenu
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchKeysText)),
-                    "Enter - accept the suggestion shown in the middle of the wheel, or, if there is none, " +
-                    "pick the result if it's the only one left you can place. You can change this key on the Main tab.\n" +
-                    "Mouse wheel, Page Up or Page Down - show the next or previous page of results, when there are more than fit on the wheel\n" +
-                    "Escape or clicking the middle - clear what you typed; press again to go back a level\n" +
+                    "In both styles:\n" +
+                    "Enter - accept the search suggestion, if one is shown (what Enter does otherwise depends on the style, see below). You can change this key on the Main tab.\n" +
+                    "Escape - clear what you typed; press again to go back a level, and from the top level to close the menu\n" +
                     "Right-click an item - more actions, like adding it to your favorites or copying its DLC or mod link\n" +
-                    "Escape from the top ring, or a click outside the wheel - close the menu (picking something closes it too)\n" +
-                    "With 'Menu style' set to Pane (Main tab), the menu is a list instead:\n" +
-                    "Up or Down - move the highlight; Page Up or Page Down - move it a page; the mouse wheel scrolls the list\n" +
-                    "Enter - accept the suggestion if there is one, otherwise pick the highlighted item (or open it, for a menu or category)\n" +
+                    "Clicking outside the menu - close it (picking something closes it too)"
+                },
+                {
+                    _setting.GetOptionLabelLocaleID(nameof(Setting.SearchRadialText)),
+                    "A wheel of buttons around a center. Point at a button to see its picture, name and details in the center.\n" +
+                    "Enter - when there is no suggestion, pick the result if it's the only one left you can place\n" +
+                    "Mouse wheel, Page Up or Page Down - show the next or previous page of results, when there are more than fit on the wheel\n" +
+                    "Clicking the middle - go back a level\n" +
+                    "'Wheel size', 'Distance from center' and 'Item spacing' (Main tab, shown while this style is chosen) change its layout."
+                },
+                {
+                    _setting.GetOptionLabelLocaleID(nameof(Setting.SearchPaneText)),
+                    "A search field over a list, with details of the highlighted item beside it and where you are at the bottom.\n" +
+                    "Up or Down - move the highlight; Page Up or Page Down - move it a page\n" +
+                    "Enter - when there is no suggestion, pick the highlighted item, or open it if it's a menu or category\n" +
                     "Tab - accept the suggestion\n" +
-                    "Right - open the highlighted menu or category; Left - go back a level (both only while nothing is typed)"
+                    "Right - open the highlighted menu or category; Left - go back a level (both only while nothing is typed)\n" +
+                    "Mouse wheel - scroll the list; moving the mouse over an item highlights it, and clicking picks it\n" +
+                    "Click a detail under the picture, like 'theme: European', to add it to your search (right-click to exclude it).\n" +
+                    "'Pane size' (Main tab, shown while this style is chosen) scales it."
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchFavoritesText)),
-                    "Right-click anything you can place, in the radial menu or in search results, and choose 'Add to favorites'. " +
-                    "Your favorites are on the star button at the end of the top ring.\n" +
+                    "Right-click anything you can place, while browsing or in search results, and choose 'Add to favorites'. " +
+                    "Your favorites are under the star at the top level (at the end of the top ring in the wheel, at the bottom of the list in the pane).\n" +
                     "Each city keeps its own favorites, saved with the city. Typing while in Favorites searches only your favorites. " +
                     "To remove one, right-click it and choose 'Remove from favorites'."
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchFindItText)),
-                    "With the Find It mod enabled and 'Use Find It's catalogue' on (Main tab, on by default), the radial menu " +
+                    "With the Find It mod enabled and 'Use Find It's catalogue' on (Main tab, on by default), the menu " +
                     "can reach everything Find It lists: props, decals, trees, vehicles and more, not just the vanilla toolbar.\n" +
-                    "The Find It button at the end of the top ring browses Find It's categories. " +
-                    "Searching from the top ring includes the whole catalogue; between equally good matches, toolbar items come first.\n" +
+                    "The Find It entry at the top level, next to Favorites, browses Find It's categories. " +
+                    "Searching from the top level includes the whole catalogue; between equally good matches, toolbar items come first.\n" +
                     "'cat: decals' - things in a Find It category, e.g. 'cat: props', 'cat: trees' or 'cat: fences'. " +
                     "Combine them to narrow down: 'cat: props cat: residential'.\n" +
                     "Anything from Find It can be added to your favorites too."
