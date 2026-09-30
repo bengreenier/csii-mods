@@ -1,0 +1,97 @@
+name: "Better Asset Menu: bug report"
+description: Something in Better Asset Menu is broken or behaves unexpectedly.
+title: "[Better Asset Menu] "
+labels: ["better-asset-menu", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem with **Better Asset Menu**. The more detail you give, the faster it can be fixed.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the problem, and what you expected to happen instead.
+      placeholder: 'When I search for "is: new" in the pane, the list is empty even though I just unlocked new buildings.'
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What do you need to do to see the problem? Include what you typed into the search, if anything.
+      placeholder: |
+        1. Load a city
+        2. Press Tab to open the menu
+        3. Type ...
+        4. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: menu-style
+    attributes:
+      label: Menu style
+      description: Which menu style were you using? (Options > Better Asset Menu > Menu style)
+      options:
+        - Radial
+        - Pane
+        - Both
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: find-it
+    attributes:
+      label: Is the Find It mod enabled?
+      options:
+        - "Yes, with \"Use Find It's catalogue\" on"
+        - "Yes, with \"Use Find It's catalogue\" off"
+        - "No"
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: mod-version
+    attributes:
+      label: Better Asset Menu version
+      description: The version shown for the mod in Paradox Mods.
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: game-version
+    attributes:
+      label: Game version
+      placeholder: "1.6.2f1"
+    validations:
+      required: true
+
+  - type: textarea
+    id: other-mods
+    attributes:
+      label: Other mods
+      description: Which other code mods are you running? A playset export or a list of names is fine. Mods that change the toolbar, input or tools are the most useful to know about.
+      placeholder: Find It, Move It, Anarchy, ...
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Please attach these files from `%USERPROFILE%\AppData\LocalLow\Colossal Order\Cities Skylines II\Logs\`, taken right after the problem happened (before restarting the game):
+        - `BetterAssetMenu.Mod.log`
+        - `UI.log`
+
+        Drag the files into this box to attach them.
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or video
+      description: If the problem is visual, a screenshot or short clip helps a lot. Drag files into this box to attach them.

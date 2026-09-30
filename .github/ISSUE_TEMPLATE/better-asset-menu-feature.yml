@@ -1,0 +1,47 @@
+name: "Better Asset Menu: feature request"
+description: Suggest a new feature, search filter or improvement for Better Asset Menu.
+title: "[Better Asset Menu] "
+labels: ["better-asset-menu", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Got an idea for **Better Asset Menu**? Great! Tell us what you'd like to do and why.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe the situation or frustration behind the idea. Knowing the "why" helps find the best solution.
+      placeholder: I often want to find every building that fits on a narrow lot, but ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: How would you like it to work? For search ideas, an example of what you'd type and what it should find is perfect.
+      placeholder: 'A filter like "height: 3" that finds buildings by number of floors.'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of the mod is this about?
+      multiple: true
+      options:
+        - Search and filters
+        - Radial menu
+        - Pane menu
+        - Favorites
+        - Find It integration
+        - Settings and key bindings
+        - Something else
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Anything else?
+      description: Workarounds you use today, other mods that do something similar, mock-ups or screenshots.
