@@ -4,8 +4,11 @@ import { prefab } from "cs2/bindings";
 import { Entity } from "cs2/utils";
 import { usePrefabTitle } from "./asset-data";
 import { hubImage$ } from "./bindings";
+import { useFindItFallbackIcon } from "./find-it";
+import { fallBackThrough } from "./item-icon";
+import { MenuItem } from "./model";
 
-// Setting.HubImageMode values ("Center image").
+// Setting.HubImageMode values ("Preview image").
 export const HUB_IMAGE_BUTTON_ICON = 1;
 
 // `title` is shown as is; without it, the prefab's title from `entity`.
@@ -18,27 +21,32 @@ export const PrefabTitle = ({ entity, fallback }: { entity: Entity; fallback: st
 
 // Uses the prefab's dedicated preview when it has one (e.g. signature buildings),
 // otherwise its thumbnail, as the vanilla asset detail panel does.
+// Falls back through `fallbackIcons` if the picture doesn't load.
 export const PrefabPreview = ({
     entity,
-    fallbackIcon,
+    fallbackIcons,
     className,
 }: {
     entity: Entity;
-    fallbackIcon: string;
+    fallbackIcons: (string | undefined)[];
     className?: string;
 }) => {
     const details = useMapValue(prefab.prefabDetails$, entity);
-    const src = details?.preview || details?.icon || fallbackIcon;
-    return <img className={className} src={src} />;
+    const src = details?.preview || details?.icon || fallbackIcons.find((i) => i) || "";
+    return <img className={className} src={src} onError={fallBackThrough([src, ...fallbackIcons])} />;
 };
 
-// A leaf item's large picture, as the "Center image" setting picks.
-export const ItemPreview = ({ entity, icon, className }: { entity: Entity; icon: string; className?: string }) => {
+// A leaf item's large picture, as the "Preview image" setting picks. If it
+// doesn't load: the item's icon, a Find It asset's subcategory icon (as Find
+// It does), then vanilla's placeholder.
+export const ItemPreview = ({ item, className }: { item: MenuItem; className?: string }) => {
     const hubImage = useValue(hubImage$);
+    const findItIcon = useFindItFallbackIcon(item.asset?.entity);
+    const fallbacks = [item.icon, item.fallbackIcon ?? findItIcon];
     return hubImage === HUB_IMAGE_BUTTON_ICON ? (
         // The button's own image.
-        <img className={className} src={icon} />
+        <img className={className} src={item.icon} onError={fallBackThrough(fallbacks)} />
     ) : (
-        <PrefabPreview entity={entity} fallbackIcon={icon} className={className} />
+        <PrefabPreview entity={item.entity} fallbackIcons={fallbacks} className={className} />
     );
 };

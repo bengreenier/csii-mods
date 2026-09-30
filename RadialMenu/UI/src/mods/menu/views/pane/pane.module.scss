@@ -1,0 +1,211 @@
+// The pane (views/pane). Sizes shared with the code (highlight.ts) are set
+// inline; the header's height must match HEADER_HEIGHT there.
+$line: rgba(255, 255, 255, 0.15);
+$highlight: rgba(64, 128, 224, 0.55);
+
+// Zero-size, placed in view pixels by PaneFrame and scaled ("Pane size");
+// the pane hangs from it.
+.anchor {
+    position: absolute;
+    width: 0;
+    height: 0;
+}
+
+.pane {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    border: 2rem solid rgba(255, 255, 255, 0.25);
+    border-radius: 6rem;
+    background-color: rgba(24, 33, 51, 0.97);
+    color: white;
+}
+
+.header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 72rem;
+    padding: 0 16rem;
+}
+
+// The session's search field, visible here.
+.searchField {
+    flex: 1;
+    height: 48rem;
+    padding: 0 12rem;
+    border: 2rem solid rgba(255, 255, 255, 0.2);
+    border-radius: 4rem;
+    background-color: rgba(0, 0, 0, 0.3);
+    color: white;
+    font-size: 24rem;
+}
+
+// The completion hint, or an example query.
+.hint {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 18rem;
+    font-size: 14rem;
+    opacity: 0.7;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.body {
+    display: flex;
+    flex-direction: row;
+    border-top: 2rem solid $line;
+}
+
+// Rows are positioned absolutely (only the visible ones are mounted).
+.list {
+    position: relative;
+    overflow: hidden;
+}
+
+// Leaves room on the right for the scroll thumb: LIST_WIDTH - 10rem.
+.row {
+    position: absolute;
+    left: 0;
+    width: 530rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 12rem;
+    border: none;
+    background-color: transparent;
+    color: white;
+}
+
+.rowHighlighted {
+    background-color: $highlight;
+}
+
+.rowDisabled {
+    opacity: 0.4;
+}
+
+.rowGroupStart {
+    border-top: 2rem solid $line;
+}
+
+.rowIcon {
+    width: 32rem;
+    height: 32rem;
+    margin-right: 12rem;
+}
+
+.rowTitle {
+    flex: 1;
+    font-size: 18rem;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.rowAccessory {
+    margin-left: 12rem;
+    font-size: 14rem;
+    opacity: 0.6;
+    white-space: nowrap;
+}
+
+.scrollThumb {
+    position: absolute;
+    right: 2rem;
+    width: 6rem;
+    border-radius: 3rem;
+    background-color: rgba(255, 255, 255, 0.35);
+}
+
+.detail {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16rem;
+    border-left: 2rem solid $line;
+    overflow: hidden;
+    text-align: center;
+}
+
+.detailPreview {
+    width: 200rem;
+    height: 200rem;
+    margin-bottom: 12rem;
+}
+
+.detailIcon {
+    width: 96rem;
+    height: 96rem;
+    margin: 24rem 0 12rem 0;
+}
+
+.detailTitle {
+    font-size: 22rem;
+    font-weight: bold;
+}
+
+.detailPlace {
+    margin-top: 4rem;
+    font-size: 14rem;
+    opacity: 0.7;
+}
+
+.detailReason {
+    margin-top: 6rem;
+    font-size: 14rem;
+    color: rgba(240, 160, 96, 1);
+}
+
+.detailHints {
+    margin-top: 12rem;
+    font-size: 14rem;
+    opacity: 0.7;
+}
+
+.detailIdle {
+    margin-top: 48rem;
+    font-size: 16rem;
+    opacity: 0.7;
+}
+
+.detailIdleFirst {
+    font-size: 20rem;
+    opacity: 1;
+}
+
+.footer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 16rem;
+    border-top: 2rem solid $line;
+    font-size: 14rem;
+}
+
+.trail {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.crumb {
+    white-space: nowrap;
+}
+
+.crumbSeparator {
+    margin: 0 6rem;
+    opacity: 0.6;
+}
+
+.footerText {
+    margin-left: 16rem;
+    opacity: 0.7;
+    white-space: nowrap;
+}

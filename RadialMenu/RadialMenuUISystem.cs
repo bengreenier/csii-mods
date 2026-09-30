@@ -5,6 +5,7 @@ using Game.Input;
 using Game.SceneFlow;
 using Game.Tools;
 using Game.UI;
+using Game.UI.InGame;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 
@@ -21,6 +22,7 @@ namespace RadialMenu
 
         private ValueBinding<bool> _isOpen;
         private EventBinding _acceptSuggestion;
+        private GameScreenUISystem _gameScreenUISystem;
 
         // Declares which modes this system is active in (not the current mode).
         public override GameMode gameMode => GameMode.Game;
@@ -28,6 +30,7 @@ namespace RadialMenu
         protected override void OnCreate()
         {
             base.OnCreate();
+            _gameScreenUISystem = World.GetOrCreateSystemManaged<GameScreenUISystem>();
             AddBinding(_isOpen = new ValueBinding<bool>(kGroup, "isOpen", false));
             AddBinding(_isolateInput = new ValueBinding<bool>(kGroup, "isolateInput", false));
             AddBinding(new TriggerBinding(kGroup, "close", () => SetOpen(false)));
@@ -52,6 +55,10 @@ namespace RadialMenu
             AddUpdateBinding(new GetterValueBinding<float>(kGroup, "itemSpacing",
                 () => InRangeOrDefault(Mod.Settings?.ItemSpacing, 0f, 4f)));
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "openAtCursor", () => Mod.Settings?.OpenAtCursor ?? false));
+            AddUpdateBinding(new GetterValueBinding<int>(kGroup, "menuStyle",
+                () => (int)(Mod.Settings?.MenuStyle ?? Setting.MenuStyleMode.Radial)));
+            AddUpdateBinding(new GetterValueBinding<float>(kGroup, "paneScale",
+                () => InRangeOrDefault(Mod.Settings?.PaneScale, 0.5f, 2f)));
             AddUpdateBinding(new GetterValueBinding<int>(kGroup, "hubImage",
                 () => (int)(Mod.Settings?.HubImage ?? Setting.HubImageMode.Preview)));
             CreateAssetMetaBinding();
@@ -83,7 +90,13 @@ namespace RadialMenu
             HandleDataRefresh();
             UpdateFindIt();
 
-            if (GameManager.instance.gameMode != GameMode.Game)
+            // Only on the city's main screen. With the UI hidden (free camera,
+            // or photo mode's "Hide UI") the menu can't be seen, but its focused
+            // search field would still swallow the keyboard (WASD etc.); over
+            // the pause menu or options it has no business either. So close it,
+            // and don't open it, anywhere else (docs/game-internals.md, Hidden UI).
+            if (GameManager.instance.gameMode != GameMode.Game
+                || _gameScreenUISystem.activeScreen != GameScreenUISystem.GameScreen.Main)
             {
                 SetOpen(false);
                 return;
@@ -97,7 +110,7 @@ namespace RadialMenu
             if (_isOpen.value && Mod.AcceptSuggestionAction != null && WasBindingPressedThisFrame(Mod.AcceptSuggestionAction))
                 _acceptSuggestion.Trigger();
 
-            // "Open radial menu" only opens. The menu closes by picking
+            // "Open menu" only opens. The menu closes by picking
             // something, Escape (from the top ring) or a click outside the
             // wheel; all handled in the UI.
             if (!_isOpen.value && Mod.OpenAction.WasPerformedThisFrame())

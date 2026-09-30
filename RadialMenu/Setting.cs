@@ -16,12 +16,12 @@ namespace RadialMenu
     [SettingsUITabOrder(KSection, KGuideSection)]
     // Main tab first (settings), then the Usage Guide, which reads top to bottom:
     // basics, then each filter.
-    [SettingsUIGroupOrder(KLayoutGroup, KRadialLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
-        KSearchQuickStartGroup, KSearchKeysGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
+    [SettingsUIGroupOrder(KLayoutGroup, KRadialLayoutGroup, KPaneLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
+        KSearchQuickStartGroup, KSearchKeysGroup, KSearchRadialGroup, KSearchPaneGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
         KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
         KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
-    [SettingsUIShowGroupName(KLayoutGroup, KRadialLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
-        KSearchQuickStartGroup, KSearchKeysGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
+    [SettingsUIShowGroupName(KLayoutGroup, KRadialLayoutGroup, KPaneLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
+        KSearchQuickStartGroup, KSearchKeysGroup, KSearchRadialGroup, KSearchPaneGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
         KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
         KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
     [SettingsUIKeyboardAction(Mod.KOpenActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
@@ -38,6 +38,7 @@ namespace RadialMenu
         // KRadialLayoutGroup.
         public const string KLayoutGroup = "Layout";
         public const string KRadialLayoutGroup = "RadialLayout";
+        public const string KPaneLayoutGroup = "PaneLayout";
         public const string KAssetsGroup = "Assets";
         public const string KVanillaGroup = "Vanilla";
         public const string KKeybindingGroup = "KeyBinding";
@@ -59,6 +60,8 @@ namespace RadialMenu
         public const string KSearchFxGroup = "SearchFx";
         public const string KSearchCombiningGroup = "SearchCombining";
         public const string KSearchKeysGroup = "SearchKeys";
+        public const string KSearchRadialGroup = "SearchRadial";
+        public const string KSearchPaneGroup = "SearchPane";
         public const string KSearchFavoritesGroup = "SearchFavorites";
         public const string KSearchFindItGroup = "SearchFindIt";
 
@@ -69,28 +72,51 @@ namespace RadialMenu
 
         // --- Menu layout ---
 
+        // How the open menu is drawn. Sent to the UI as an int: keep the values
+        // in sync with MENU_STYLE_* in UI/src/mods/menu/bindings.ts.
+        public enum MenuStyleMode
+        {
+            // A wheel of items around a hub (views/radial).
+            Radial = 0,
+            // A search field over a list of rows and a detail side (views/pane).
+            Pane = 1,
+        }
+
+        [SettingsUISection(KSection, KLayoutGroup)]
+        public MenuStyleMode MenuStyle { get; set; }
+
         [SettingsUISection(KSection, KLayoutGroup)]
         public bool OpenAtCursor { get; set; }
+
+        // Each style's layout settings show only while that style is chosen.
+        // Re-checked live, and a group with nothing visible drops its header
+        // (OptionsUISystem.Section.UpdateVisibility).
+        private bool IsPaneStyle() => MenuStyle == MenuStyleMode.Pane;
+        private bool IsRadialStyle() => MenuStyle != MenuStyleMode.Pane;
 
         // --- Radial menu layout ---
 
         // Scale factor for the whole wheel (1 = 100%), shown as a percentage like
         // the vanilla audio sliders.
         [SettingsUISlider(min = 50f, max = 200f, step = 5f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsPaneStyle))]
         [SettingsUISection(KSection, KRadialLayoutGroup)]
         public float MenuScale { get; set; }
 
         // Gap between the center and the first ring (1 = 100%; 0 = touching).
         [SettingsUISlider(min = 0f, max = 400f, step = 25f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsPaneStyle))]
         [SettingsUISection(KSection, KRadialLayoutGroup)]
         public float RingDistance { get; set; }
 
         // Gap between neighbouring buttons and between rings (1 = 100%; 0 = touching).
         [SettingsUISlider(min = 0f, max = 400f, step = 25f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsPaneStyle))]
         [SettingsUISection(KSection, KRadialLayoutGroup)]
         public float ItemSpacing { get; set; }
 
-        // The image in the middle of the wheel while hovering an asset. Sent to
+        // The large image of the asset pointed at: in the middle of the wheel,
+        // or in the pane's detail side. Sent to
         // the UI as an int: keep the values in sync with HUB_IMAGE_* in
         // UI/src/mods/menu/item-details.tsx.
         public enum HubImageMode
@@ -102,8 +128,16 @@ namespace RadialMenu
             ButtonIcon = 1,
         }
 
-        [SettingsUISection(KSection, KRadialLayoutGroup)]
+        [SettingsUISection(KSection, KLayoutGroup)]
         public HubImageMode HubImage { get; set; }
+
+        // --- Pane layout ---
+
+        // Scale factor for the whole pane (1 = 100%), like MenuScale for the wheel.
+        [SettingsUISlider(min = 50f, max = 200f, step = 5f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsRadialStyle))]
+        [SettingsUISection(KSection, KPaneLayoutGroup)]
+        public float PaneScale { get; set; }
 
         // --- Assets ---
 
@@ -287,6 +321,14 @@ namespace RadialMenu
         public string SearchKeysText => string.Empty;
 
         [SettingsUIMultilineText]
+        [SettingsUISection(KGuideSection, KSearchRadialGroup)]
+        public string SearchRadialText => string.Empty;
+
+        [SettingsUIMultilineText]
+        [SettingsUISection(KGuideSection, KSearchPaneGroup)]
+        public string SearchPaneText => string.Empty;
+
+        [SettingsUIMultilineText]
         [SettingsUISection(KGuideSection, KSearchFavoritesGroup)]
         public string SearchFavoritesText => string.Empty;
 
@@ -302,7 +344,9 @@ namespace RadialMenu
             BrowseAllThemes = false;
             LockPlacedUnique = false;
             UseFindItWanted = true;
+            MenuStyle = MenuStyleMode.Radial;
             MenuScale = 1f;
+            PaneScale = 1f;
             RingDistance = 1f;
             ItemSpacing = 1f;
             OpenAtCursor = false;
@@ -329,6 +373,7 @@ namespace RadialMenu
 
                 { _setting.GetOptionGroupLocaleID(Setting.KLayoutGroup), "Menu layout" },
                 { _setting.GetOptionGroupLocaleID(Setting.KRadialLayoutGroup), "Radial menu layout" },
+                { _setting.GetOptionGroupLocaleID(Setting.KPaneLayoutGroup), "Pane layout" },
                 { _setting.GetOptionGroupLocaleID(Setting.KAssetsGroup), "Assets" },
                 { _setting.GetOptionGroupLocaleID(Setting.KVanillaGroup), "Vanilla toolbar and tools" },
                 { _setting.GetOptionGroupLocaleID(Setting.KKeybindingGroup), "Key bindings" },
@@ -362,18 +407,26 @@ namespace RadialMenu
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.BrowseAllThemes)), "Show every theme and asset pack" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.BrowseAllThemes)), "When browsing the radial menu without searching, show assets from every theme and asset pack, such as North American buildings in a European city. Turn off to only show what the vanilla asset menu's theme and pack filters show. Picking an asset from another theme switches the vanilla theme filter to it, as in the vanilla asset menu." },
 
-                { _setting.GetOptionLabelLocaleID(nameof(Setting.HubImage)), "Center image" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.HubImage)), "The picture shown in the middle of the wheel while you hover something to build. 'Preview' shows the larger preview image when there is one, as the vanilla asset panel does (for example, signature buildings), and the item's icon otherwise. 'Button icon' always shows the same image as the item's button." },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.MenuStyle)), "Menu style" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.MenuStyle)), "How the menu looks when you open it. 'Radial' shows a wheel of buttons around a center that describes what you point at. 'Pane' shows a search field over a list you move through with the arrow keys, with details of the highlighted item beside it. Both search, browse and pick the same things." },
+                { _setting.GetEnumValueLocaleID(Setting.MenuStyleMode.Radial), "Radial" },
+                { _setting.GetEnumValueLocaleID(Setting.MenuStyleMode.Pane), "Pane" },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.PaneScale)), "Pane size" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.PaneScale)), "Scale the whole pane - search field, list and details - up or down. Changes apply the next time the menu opens." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.HubImage)), "Preview image" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.HubImage)), "The picture shown for something to build: in the middle of the wheel while you hover it, or beside the list in the pane. 'Preview' shows the larger preview image when there is one, as the vanilla asset panel does (for example, signature buildings), and the item's icon otherwise. 'Button icon' always shows the same image as the item's button." },
                 { _setting.GetEnumValueLocaleID(Setting.HubImageMode.Preview), "Preview" },
                 { _setting.GetEnumValueLocaleID(Setting.HubImageMode.ButtonIcon), "Button icon" },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.OpenAtCursor)), "Open at mouse cursor" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.OpenAtCursor)), "Center the radial menu on the mouse cursor when it opens, instead of the middle of the screen. The menu stays where it opened while you use it, and is nudged away from the screen edges so it fits." },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.OpenAtCursor)), "Open the menu at the mouse cursor instead of the middle of the screen: the wheel is centered on the cursor, and the pane opens with its search field under the cursor. The menu stays where it opened while you use it, and is nudged away from the screen edges so it fits." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ShowToolInfoviews)), "Show info views for radial menu selections" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ShowToolInfoviews)), "When on (the game's default), selecting something to build from the radial menu switches on its related info view - for example, power lines show the electricity overlay. Turn off to keep the normal view. Only affects selections made through the radial menu: the vanilla toolbar, hotkeys and everything else keep the game's behaviour, and you can still open info views yourself." },
 
-                { _setting.GetOptionLabelLocaleID(nameof(Setting.MenuScale)), "Menu size" },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.MenuScale)), "Wheel size" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.MenuScale)), "Scale the whole radial menu - rings, buttons and the center - up or down. Changes apply immediately." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.RingDistance)), "Distance from center" },
@@ -382,16 +435,16 @@ namespace RadialMenu
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.ItemSpacing)), "Item spacing" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ItemSpacing)), "How much space is left between neighbouring buttons, and between rings when there are several. At 0% buttons touch. Wider spacing fits fewer search results on each page. Changes apply immediately." },
 
-                { _setting.GetOptionLabelLocaleID(nameof(Setting.OpenKeyboardBinding)), "Open radial menu" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.OpenKeyboardBinding)), "Keyboard key that opens the radial menu. It closes by itself when you pick something; Escape goes back a level and closes it from the top ring, and clicking outside the wheel closes it too." },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.OpenKeyboardBinding)), "Open menu" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.OpenKeyboardBinding)), "Keyboard key that opens the menu (the wheel or the pane, see 'Menu style'). It closes by itself when you pick something; Escape goes back a level and closes it from the top level, and clicking outside the menu closes it too." },
 
-                { _setting.GetOptionLabelLocaleID(nameof(Setting.OpenMouseBinding)), "Open radial menu (mouse)" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.OpenMouseBinding)), "Mouse button that opens the radial menu. It closes by itself when you pick something; Escape goes back a level and closes it from the top ring, and clicking outside the wheel closes it too." },
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.OpenMouseBinding)), "Open menu (mouse)" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.OpenMouseBinding)), "Mouse button that opens the menu (the wheel or the pane, see 'Menu style'). It closes by itself when you pick something; Escape goes back a level and closes it from the top level, and clicking outside the menu closes it too." },
 
-                { _setting.GetOptionLabelLocaleID(nameof(Setting.AcceptSuggestionBinding)), "Accept suggestion / pick the only match" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.AcceptSuggestionBinding)), "While searching in the radial menu, accepts the suggestion shown in the middle of the wheel, " +
-                    "or, when there is no suggestion and exactly one result you can place is left, picks it. " +
-                    "By design this key can't collide with other shortcuts: it's only read while you're typing in the radial menu, " +
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.AcceptSuggestionBinding)), "Accept suggestion / pick result" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.AcceptSuggestionBinding)), "While the menu is open, accepts the search suggestion if one is shown. " +
+                    "Otherwise, in the wheel it picks the result when exactly one you can place is left, and in the pane it picks the highlighted item. " +
+                    "By design this key can't collide with other shortcuts: it's only read while you're typing in the menu, " +
                     "when the game's own keyboard shortcuts are paused, so it can safely share a key with them (like the arrow-key camera controls). " +
                     "Just avoid keys that type a character." },
 
@@ -405,12 +458,14 @@ namespace RadialMenu
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchIsGroup), "is: - what you can build" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchThemeGroup), "theme: - building style" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchPackGroup), "pack: - asset packs" },
-                { _setting.GetOptionGroupLocaleID(Setting.KSearchZoneGroup), "zone:, size:, width:, depth:, level: - zones and lots" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSearchZoneGroup), "zone:, size: (s:), width: (w:), depth: (d:), level: - zones and lots" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchDlcGroup), "dlc: - base game or DLC" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchInGroup), "in: - which tab it lives in" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFxGroup), "fx: - what it does for your city" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchCombiningGroup), "Combining searches" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchKeysGroup), "Keys and mouse" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSearchRadialGroup), "Menu style: Radial" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSearchPaneGroup), "Menu style: Pane" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFavoritesGroup), "Favorites" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFindItGroup), "Find It" },
 
@@ -424,10 +479,12 @@ namespace RadialMenu
                 // Keep in sync with docs/search-schema.md and UI query/filters.ts.
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchQuickStartText)),
-                    "You don't need to click anything to search: open the radial menu and start typing. " +
-                    "The wheel narrows to matching buildings, roads and props as you type, " +
-                    "and once only one result is left, Enter picks it, ready to place.\n" +
-                    "When there are more results than fit on the wheel, scroll the mouse wheel (or press Page Up / Page Down) to see the rest.\n" +
+                    "You don't need to click anything to search: open the menu and start typing. " +
+                    "The menu narrows to matching buildings, roads and props as you type, and Enter picks one, ready to place. " +
+                    "Without typing, you can browse the same menus and categories as the vanilla toolbar.\n" +
+                    "The menu comes in two styles ('Menu style' on the Main tab): Radial, a wheel of buttons you point at, " +
+                    "and Pane, a list you move through with the arrow keys. Both search, browse and pick the same things; " +
+                    "their own keys are described below.\n" +
                     "\n" +
                     "Try it now: open the menu and type 'park'.\n" +
                     "Then try 'is: new' to see everything you have just unlocked.\n" +
@@ -456,8 +513,9 @@ namespace RadialMenu
                     "The space after the colon is optional.\n" +
                     "\n" +
                     "You don't need to remember the values: start typing a filter and suggestions appear " +
-                    "in the middle of the wheel. Press Enter to accept one. " +
-                    "Values can also be shortened, so 'is: u' means 'is: unique'.\n" +
+                    "(in the middle of the wheel, or under the search field in the pane). Press Enter to accept one. " +
+                    "Values can also be shortened, so 'is: u' means 'is: unique'. " +
+                    "Filter names must be typed in full, except for the short forms 's:', 'w:' and 'd:' (see zones and lots below).\n" +
                     "\n" +
                     "A filter you haven't finished, or one the menu doesn't recognise, is shown faded or " +
                     "crossed out and simply ignored - it never hides your results."
@@ -500,6 +558,7 @@ namespace RadialMenu
                     "'width: 2u' or 'width: 16m' - roads, tracks and paths by width, in units (cells, as in a '2u road') or metres. " +
                     "A unit is 8 metres, so 'width: 2', 'width: 2u' and 'width: 16m' all find both 16 metre roads and buildings 2 cells wide. " +
                     "'depth: 3u' works like 'depth: 3'.\n" +
+                    "Short forms: 's:' for 'size:', 'w:' for 'width:' and 'd:' for 'depth:', e.g. 's: 2x3', 'w: 2u' or 'w: 4 d: 4'.\n" +
                     "'level: 3' - zoned buildings of that level"
                 },
                 {
@@ -538,33 +597,51 @@ namespace RadialMenu
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchKeysText)),
-                    "Enter - accept the suggestion shown in the middle of the wheel, or, if there is none, " +
-                    "pick the result if it's the only one left you can place. You can change this key on the Main tab.\n" +
-                    "Mouse wheel, Page Up or Page Down - show the next or previous page of results, when there are more than fit on the wheel\n" +
-                    "Escape or clicking the middle - clear what you typed; press again to go back a level\n" +
+                    "In both styles:\n" +
+                    "Enter - accept the search suggestion, if one is shown (what Enter does otherwise depends on the style, see below). You can change this key on the Main tab.\n" +
+                    "Escape - clear what you typed; press again to go back a level, and from the top level to close the menu\n" +
                     "Right-click an item - more actions, like adding it to your favorites or copying its DLC or mod link\n" +
-                    "Escape from the top ring, or a click outside the wheel - close the menu (picking something closes it too)"
+                    "Clicking outside the menu - close it (picking something closes it too)"
+                },
+                {
+                    _setting.GetOptionLabelLocaleID(nameof(Setting.SearchRadialText)),
+                    "A wheel of buttons around a center. Point at a button to see its picture, name and details in the center.\n" +
+                    "Enter - when there is no suggestion, pick the result if it's the only one left you can place\n" +
+                    "Mouse wheel, Page Up or Page Down - show the next or previous page of results, when there are more than fit on the wheel\n" +
+                    "Clicking the middle - go back a level\n" +
+                    "'Wheel size', 'Distance from center' and 'Item spacing' (Main tab, shown while this style is chosen) change its layout."
+                },
+                {
+                    _setting.GetOptionLabelLocaleID(nameof(Setting.SearchPaneText)),
+                    "A search field over a list, with details of the highlighted item beside it and where you are at the bottom.\n" +
+                    "Up or Down - move the highlight; Page Up or Page Down - move it a page\n" +
+                    "Enter - when there is no suggestion, pick the highlighted item, or open it if it's a menu or category\n" +
+                    "Tab - accept the suggestion\n" +
+                    "Right - open the highlighted menu or category; Left - go back a level (both only while nothing is typed)\n" +
+                    "Mouse wheel - scroll the list; moving the mouse over an item highlights it, and clicking picks it\n" +
+                    "Click a detail under the picture, like 'theme: European', to add it to your search (right-click to exclude it).\n" +
+                    "'Pane size' (Main tab, shown while this style is chosen) scales it."
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchFavoritesText)),
-                    "Right-click anything you can place, in the radial menu or in search results, and choose 'Add to favorites'. " +
-                    "Your favorites are on the star button at the end of the top ring.\n" +
+                    "Right-click anything you can place, while browsing or in search results, and choose 'Add to favorites'. " +
+                    "Your favorites are under the star at the top level (at the end of the top ring in the wheel, at the bottom of the list in the pane).\n" +
                     "Each city keeps its own favorites, saved with the city. Typing while in Favorites searches only your favorites. " +
                     "To remove one, right-click it and choose 'Remove from favorites'."
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchFindItText)),
-                    "With the Find It mod enabled and 'Use Find It's catalogue' on (Main tab, on by default), the radial menu " +
+                    "With the Find It mod enabled and 'Use Find It's catalogue' on (Main tab, on by default), the menu " +
                     "can reach everything Find It lists: props, decals, trees, vehicles and more, not just the vanilla toolbar.\n" +
-                    "The Find It button at the end of the top ring browses Find It's categories. " +
-                    "Searching from the top ring includes the whole catalogue; between equally good matches, toolbar items come first.\n" +
+                    "The Find It entry at the top level, next to Favorites, browses Find It's categories. " +
+                    "Searching from the top level includes the whole catalogue; between equally good matches, toolbar items come first.\n" +
                     "'cat: decals' - things in a Find It category, e.g. 'cat: props', 'cat: trees' or 'cat: fences'. " +
                     "Combine them to narrow down: 'cat: props cat: residential'.\n" +
                     "Anything from Find It can be added to your favorites too."
                 },
 
-                { _setting.GetBindingKeyLocaleID(Mod.KOpenActionName), "Open radial menu" },
-                { _setting.GetBindingKeyLocaleID(Mod.KAcceptSuggestionActionName), "Accept suggestion / pick the only match" },
+                { _setting.GetBindingKeyLocaleID(Mod.KOpenActionName), "Open menu" },
+                { _setting.GetBindingKeyLocaleID(Mod.KAcceptSuggestionActionName), "Accept suggestion / pick result" },
 
                 { _setting.GetBindingMapLocaleID(), "Radial Menu" },
             };

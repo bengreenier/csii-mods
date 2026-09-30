@@ -29,6 +29,7 @@ group) is still in the sections below.
 - [Binding names](#binding-names)
 - [Escape, "Back" and the pause menu (input isolation)](#escape-back-and-the-pause-menu-input-isolation)
 - [Keyboard focus and hasInputFieldFocus](#keyboard-focus-and-hasinputfieldfocus)
+- [Hidden UI (free camera) and other screens](#hidden-ui-free-camera-and-other-screens)
 - [Tool info views ("Show info views for radial menu selections")](#tool-info-views-show-info-views-for-radial-menu-selections)
 - [The bulldozer ("Bulldozer in radial menu")](#the-bulldozer-bulldozer-in-radial-menu)
 - [Search filter data (assetMeta)](#search-filter-data-assetmeta)
@@ -235,15 +236,39 @@ What to check:
 - `RadialMenuUISystem` therefore reads bound keys directly while the menu is
   open: `InputSystem.FindControl(binding.path)` on `ProxyAction.bindings`,
   including modifiers.
-  - "Open radial menu" (action `OpenRadialMenu`) only opens, so it's only
+  - "Open menu" (action `OpenRadialMenu`; the label was "Open radial menu"
+    and the action id is kept, since saved bindings are keyed by it) only opens, so it's only
     needed while the menu is closed, when the field isn't focused: it's read
     as a normal action.
-  - The "Accept suggestion / pick first result" action is **only** read this
+  - The "Accept suggestion / pick result" action is **only** read this
     way. It stays disabled (its binding is just data) and has its own usage,
     `RadialMenuSearch`, so it never conflicts with game shortcuts. It fires the
     `acceptSuggestion` UI event.
 - The field is blurred in a layout-effect cleanup before it unmounts, matching
   vanilla, which blurs text fields on Escape/Enter.
+
+## Hidden UI (free camera) and other screens
+
+The game's "hide UI" is a screen, not a CSS toggle:
+`GameScreenUISystem.activeScreen` (binding `game.activeScreen`) becomes
+`GameScreen.FreeCamera` (1). The key for it, and photo mode's "Hide UI"
+button (`showFreeCameraScreen` / `setActiveScreen(freeCamera)` in the UI
+bundle), both go there. The in-game UI (`GameMainScreen`) isn't drawn then.
+The pause menu, save/load and options are screens 10-14.
+
+Our menu can't be seen with the UI hidden. But while it's open, its focused
+search field blocks every game keyboard action (see above). That would
+silently swallow WASD and every other key. So `RadialMenuUISystem.OnUpdate`
+closes the menu, and won't open it, unless `activeScreen` is
+`GameScreen.Main`, and `gameMode` is `Game` too. Closing goes through the
+normal path: the UI unmounts the field (blurring it first), and input
+isolation is released once the focus has been clear for a few frames.
+
+`GameScreenUISystem.SetScreen` is fingerprinted by `npm run check-game`.
+
+- **If a game update breaks this:** check that `GameScreen.Main` is still
+  the in-city screen and `FreeCamera` still means the UI is hidden
+  (decompile `Game.UI.InGame.GameScreenUISystem`).
 
 ## Tool info views ("Show info views for radial menu selections")
 
@@ -526,6 +551,17 @@ compile-time reference, since it's optional.
     Menu items fall back via `<img onError>` (as vanilla's
     `missing-icon-handler.ts` does) to a thumbnail from inside the
     category (`fallbackIcon`).
+- **Thumbnails:** an asset's `icon` (vanilla `BindAsset`) and its prefab
+  details' `icon` are both `ImageSystem.GetThumbnail`: the prefab's
+  `UIObject` icon if it has one (Asset Icon Library fills many in), otherwise
+  a thumbnail-camera URL (`<thumbnailUrl>?width=128&height=128`). For some
+  props (e.g. `Bicycle02Battery01`) that image doesn't load. Find It indexes
+  a `FallbackThumbnail`, its subcategory's `CategoryIconAttribute` icon, for
+  that (`PrefabIndexingSystem.AddPrefab`). We do the same:
+  `useFindItFallbackIcon` (`find-it.ts`) looks up the asset's subcategory
+  from `assetMeta.findItCategory`. Every item image falls back through the
+  item's icon, that, and vanilla's `Media/Placeholder.svg`
+  (`fallBackThrough`, `item-icon.tsx`).
 - **Titles:** Find It's own locale keys, `Tooltip.LABEL[FindIt.<enum name>]`.
 - **Sending it:** `findItCategories` (the tree), and `findItAssets` (a map
   by subcategory, each asset written by vanilla `ToolbarUISystem.BindAsset`,
@@ -586,6 +622,20 @@ When adding a cache, either key it on data C# resends, or clear it in
 ## Other runtime quirks
 
 - **rem** is about 1px at 1080p. Size UI in hundreds of rem.
+- **The pane (not yet checked in game).** The pane relies on these; confirm
+  them and update this note:
+  - A **visible** `<input>` shows its caret, placeholder and typed text
+    (the wheel's field is invisible, so this was never exercised).
+  - `keydown` `preventDefault` on Up/Down keeps the caret where it is, and
+    `selectionStart` reports the caret (Right only opens a level with the
+    caret at the end).
+  - The list doesn't use Gameface's overflow scrolling or vanilla's
+    `Scrollable`: rows are absolutely positioned from a scroll offset that
+    `onWheel` changes, and only the visible ones are mounted
+    (`views/pane/highlight.ts`). This only needs `onWheel` (confirmed above)
+    and `position: absolute`.
+  - `onMouseMove` on a row doesn't fire for rows scrolled under a still
+    cursor, so scrolling doesn't move the highlight.
 - **Right mouse button bindings** (from the game's input asset in
   `Cities2_Data/resources.assets`, found by searching for `<Mouse>/rightButton`):
   the UI "Secondary Action" and the tool actions "Cancel" and "Secondary

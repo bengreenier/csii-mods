@@ -45,7 +45,7 @@ describe("hovering", () => {
         expect(hub().querySelector("img")?.getAttribute("src")).toBe("preview/ParkA.png");
     });
 
-    it("shows the button's own image with 'Center image: Button icon'", () => {
+    it("shows the button's own image with 'Preview image: Button icon'", () => {
         const city = openParks();
         setValue(MOD, "hubImage", 1);
         setMap("prefab", "prefabDetails", [

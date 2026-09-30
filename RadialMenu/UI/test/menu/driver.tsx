@@ -8,10 +8,13 @@ import { ErrorBoundary } from "mods/error-boundary";
 import { MenuShell } from "mods/menu/shell";
 import { clearSearchSessionCaches } from "mods/menu/search";
 import { runTransformer } from "../fakes/cs2-modding";
-import { emit, MOD, resetGame, triggers } from "../fakes/game";
+import { emit, MOD, resetGame, setValue, triggers } from "../fakes/game";
 import { buildCity, City, loadCity, openMenu } from "../fixtures/city";
 
-export const KEY = { TAB: 9, ENTER: 13, ESCAPE: 27, PAGE_UP: 33, PAGE_DOWN: 34 };
+export const KEY = { TAB: 9, ENTER: 13, ESCAPE: 27, PAGE_UP: 33, PAGE_DOWN: 34, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40 };
+
+// Setting.MenuStyleMode values ("Menu style").
+export const STYLE = { radial: 0, pane: 1 } as const;
 const MOUSE_SECONDARY = 2;
 
 let consoleErrors: unknown[][] = [];
@@ -40,9 +43,13 @@ export function useMenuTest() {
     });
 }
 
-/** Loads the city, renders the menu (always mounted, as in the game) and opens it. */
-export function start(options: { city?: City; open?: boolean } = {}): City {
+/**
+ * Loads the city, renders the menu (always mounted, as in the game) and opens
+ * it, drawn as the wheel unless `style` says otherwise.
+ */
+export function start(options: { city?: City; open?: boolean; style?: keyof typeof STYLE } = {}): City {
     const city = loadCity(options.city ?? buildCity());
+    if (options.style) setValue(MOD, "menuStyle", STYLE[options.style]);
     render(
         <ErrorBoundary>
             <MenuShell />
@@ -52,7 +59,7 @@ export function start(options: { city?: City; open?: boolean } = {}): City {
     return city;
 }
 
-/** The search field (hidden in the wheel, but focused and typed into). */
+/** The search field (hidden in the wheel, visible in the pane; focused and typed into). */
 export function input(): HTMLInputElement {
     const el = document.querySelector("input");
     if (!el) throw new Error("the menu isn't open (no search field)");
@@ -66,8 +73,9 @@ export function type(text: string) {
     fireEvent.change(input(), { target: { value: text } });
 }
 
-export function key(keyCode: number) {
-    fireEvent.keyDown(input(), { keyCode });
+/** A key press in the search field; false if the menu prevented its default. */
+export function key(keyCode: number): boolean {
+    return fireEvent.keyDown(input(), { keyCode });
 }
 
 /** Lets time pass (the fake clock): past the menu's Escape and wheel debounces by default. */
@@ -116,12 +124,15 @@ const buttons = () => Array.from(document.querySelectorAll<HTMLElement>("button"
 
 /** The icons of every item on the wheel, in order. */
 export function itemIcons(): string[] {
-    return buttons().map((b) => {
-        const img = b.querySelector("img");
-        if (img) return img.getAttribute("src") ?? "";
-        const mask = b.querySelector<HTMLElement>("div[style]")?.style.maskImage ?? "";
-        return mask.replace(/^url\("?|"?\)$/g, "");
-    });
+    return buttons().map(iconOf);
+}
+
+// An item's icon: its <img>, or its tinted glyph's mask.
+function iconOf(button: Element): string {
+    const img = button.querySelector("img");
+    if (img) return img.getAttribute("src") ?? "";
+    const mask = button.querySelector<HTMLElement>("div[style]")?.style.maskImage ?? "";
+    return mask.replace(/^url\("?|"?\)$/g, "");
 }
 
 export const click = (el: Element) => fireEvent.click(el);
@@ -140,9 +151,19 @@ export function wheel(deltaY: number) {
 
 /** The menu's outermost element (dims the screen; clicks close the menu). */
 export function backdrop(): HTMLElement {
-    const el = input().parentElement;
-    if (!el) throw new Error("no backdrop");
+    // The field's ancestor right under the render container.
+    let el: HTMLElement = input();
+    while (el.parentElement && el.parentElement.parentElement !== document.body) el = el.parentElement;
+    if (el === input()) throw new Error("no backdrop");
     return el;
+}
+
+/** The view's element under the backdrop: the wheel, or the pane (which holds the field). */
+function viewElement(): Element | null {
+    const field = input();
+    const root = backdrop();
+    if (field.parentElement === root) return field.nextElementSibling;
+    return Array.from(root.children).find((c) => c.contains(field)) ?? null;
 }
 
 /** The hub: the one wheel element that isn't a button, holding the hub's text. */
@@ -170,10 +191,9 @@ export function hubLines(): string[] {
     return lines;
 }
 
-/** The open right-click menu, if any: after the wheel, inside the backdrop. */
+/** The open right-click menu, if any: after the wheel or pane, inside the backdrop. */
 export function contextMenu(): HTMLElement | null {
-    const el = input().nextElementSibling?.nextElementSibling as HTMLElement | null | undefined;
-    return el ?? null;
+    return (viewElement()?.nextElementSibling as HTMLElement | null | undefined) ?? null;
 }
 
 /** Text of the context menu's rows and chips. */
@@ -191,6 +211,47 @@ export function contextEntry(text: string): HTMLElement {
     const found = menu && Array.from(menu.querySelectorAll<HTMLElement>("div")).find((d) => d.textContent === text && d.children.length === 0);
     if (!found) throw new Error(`no context menu entry "${text}"; has: ${contextMenuTexts().join(" | ")}`);
     return found;
+}
+
+// ---- The pane ---------------------------------------------------------------
+
+/** The pane (the view's box, holding the field). */
+export function pane(): HTMLElement {
+    const el = viewElement();
+    if (!el || !el.contains(input())) throw new Error("no pane (is the menu drawn as the wheel?)");
+    return el as HTMLElement;
+}
+
+/** The highlighted row's icon, or null. */
+export function highlightedIcon(): string | null {
+    const row = pane().querySelector("[data-highlighted]");
+    return row ? iconOf(row) : null;
+}
+
+/** Every line of text in the pane: each element holding only text. */
+export function paneLines(): string[] {
+    const lines: string[] = [];
+    const walk = (el: Element) => {
+        if (el.children.length === 0) {
+            const text = el.textContent?.trim();
+            if (text) lines.push(text);
+        } else Array.from(el.children).forEach(walk);
+    };
+    walk(pane());
+    return lines;
+}
+
+/** The scrolling list of rows. */
+export function rowList(): HTMLElement {
+    const row = pane().querySelector("button");
+    if (!row?.parentElement) throw new Error("no rows");
+    return row.parentElement;
+}
+
+export const moveMouse = (el: Element) => fireEvent.mouseMove(el);
+
+export function scrollList(deltaY: number) {
+    fireEvent.wheel(rowList(), { deltaY });
 }
 
 const formatArg = (arg: unknown): string =>

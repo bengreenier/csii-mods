@@ -34,6 +34,10 @@ word     := any other run of non-whitespace
 
 - Case-insensitive throughout.
 - Keys must be typed in full (`theme:`, not `th:`). Hints complete them.
+  The exceptions are the short forms (`FilterDef.aliases` in
+  `query/filters.ts`): `s:` for `size:`, `w:` for `width:` and `d:` for
+  `depth:`. They behave exactly like the full key; hints and chips still
+  show the full key.
 - A space after the colon is allowed: `is: ok` is the same as `is:ok`. The
   value is then the next word, unless that word starts with `-` or `"`, which
   begin a new token. Examples in the hub use the spaced form.
@@ -78,9 +82,9 @@ Titles come from the localization key `Assets.NAME[<prefab name>]`.
 | `pack:` | an asset pack word, e.g. a pack's name or title | belong to that asset pack (word prefix over the pack's name and title) | cheap (C#) |
 | `cat:` | a Find It category word, e.g. `props`, `decals`, `trees`, `fences`, `service` | are in a Find It category or subcategory with a word starting with the value (enum name split on `_` and camelCase, plus Find It's titles). Only while Find It's catalogue is in use (see Find It). | cheap (C#) |
 | `zone:` | `residential`, `commercial`, `industrial`, `office`, and densities `low`, `medium`, `high` | are zoned buildings (e.g. signature buildings) or zone types (the Zones tab) of that zone type or density. Plain industrial has no density. | cheap (C#) |
-| `size:` | `WxD` in cells, e.g. `2x3` | are buildings on a lot W cells wide (frontage) and D deep. Not rotated: `2x3` doesn't match a 3x2 lot. | cheap (C#) |
-| `width:` | cells, e.g. `4`, `2,3`, also written as units (`2u`, as players say "a 2u road"), or metres, e.g. `16m`, `12.5m` | are buildings with that lot frontage, or networks (roads, tracks, paths) that wide. A cell is 8 m, so each unit also finds the other kind: `width: 2u` matches 16 m roads, and `width: 16m` matches 2-cell buildings. Widths that aren't whole cells (e.g. 12 m) are only found in metres. Network chips and suggestions use `2u` for whole cells, metres otherwise. | cheap (C#) |
-| `depth:` | a number of cells, e.g. `4` or `4u` | are buildings with that lot depth | cheap (C#) |
+| `size:` (or `s:`) | `WxD` in cells, e.g. `2x3` | are buildings on a lot W cells wide (frontage) and D deep. Not rotated: `2x3` doesn't match a 3x2 lot. | cheap (C#) |
+| `width:` (or `w:`) | cells, e.g. `4`, `2,3`, also written as units (`2u`, as players say "a 2u road"), or metres, e.g. `16m`, `12.5m` | are buildings with that lot frontage, or networks (roads, tracks, paths) that wide. A cell is 8 m, so each unit also finds the other kind: `width: 2u` matches 16 m roads, and `width: 16m` matches 2-cell buildings. Widths that aren't whole cells (e.g. 12 m) are only found in metres. Network chips and suggestions use `2u` for whole cells, metres otherwise. | cheap (C#) |
+| `depth:` (or `d:`) | a number of cells, e.g. `4` or `4u` | are buildings with that lot depth | cheap (C#) |
 | `level:` | a number, e.g. `1`, `3,4` | are zoned buildings of that level | cheap (C#) |
 | `dlc:` | `none`, or part of a DLC's icon name, e.g. `sanfrancisco` | `none` = base game (no DLC, not a mod); otherwise the asset's DLC icon file name contains the value. Mod assets are not a DLC here: use `is:mod`. | cheap |
 | `in:` | a tab or category name, e.g. `health`, `roads`, `parks` | live in a toolbar tab or asset category whose name has a word starting with the value | cheap |
@@ -111,8 +115,8 @@ The direction of an `fx:` effect (positive or negative) is not considered.
 | `in:health` | Everything in Healthcare & Deathcare (useful from the top ring) |
 | `zone:office` | Office signature buildings and office zones |
 | `zone:residential zone:high` | High-density residential (two filters, ANDed) |
-| `size:2x2` | Buildings on a 2x2 lot |
-| `width:4 depth:4` | The same as `size:4x4` |
+| `size:2x2` / `s:2x2` | Buildings on a 2x2 lot |
+| `width:4 depth:4` | The same as `size:4x4`; so is `w:4 d:4` |
 | `width:1,2` | Buildings with 1 or 2 cells of frontage |
 | `width:2u in:roads` / `width:16m in:roads` | 16 m (2-unit) roads |
 | `level:3,4` | Zoned buildings of level 3 or 4 |
@@ -177,6 +181,10 @@ results, the hub shows which page you're on ("62-122 of 214 matches"). Scroll th
 press PageUp/PageDown, to flip pages. Changing the query starts again at the
 first page.
 
+The pane ("Menu style: Pane", `views/pane/`) doesn't page: every result is one
+row in a list that scrolls (only the visible rows are mounted), and the
+footer shows the plain count ("214 matches"). See "The pane" below.
+
 ## Hub display and keys
 
 When text is typed and nothing is hovered, the hub shows:
@@ -208,7 +216,7 @@ When text is typed and nothing is hovered, the hub shows:
    - or `unknown filter "foo"`.
 
 Hovering a result shows its picture and title instead. The picture follows the
-"Center image" setting: "Preview" (default) uses the prefab's dedicated preview
+"Preview image" setting: "Preview" (default) uses the prefab's dedicated preview
 when it has one (`prefabDetails.preview`, e.g. signature buildings) and its
 thumbnail otherwise; "Button icon" always uses the button's thumbnail.
 
@@ -264,7 +272,7 @@ menu" (default Tab), only opens it.
 Picking only a single remaining match means a double Enter (complete, then
 submit) can't place the top one of many results by surprise.
 
-The accept key is a mod key binding ("Accept suggestion / pick the only match",
+The accept key is a mod key binding ("Accept suggestion / pick result",
 Options > Radial Menu > Key bindings). It uses its own input usage and is only
 read on the C# side while the menu is open, when the game's keyboard shortcuts
 are paused by the focused search field. So it can't collide with other game
@@ -281,20 +289,53 @@ A player-facing version of this reference is built into the mod's settings,
 under **Options > Radial Menu > Usage Guide**. It comes from `LocaleEn` in
 `Setting.cs`, with one read-only text block per section, in this order
 (`SettingsUIGroupOrder`):
-- quick start;
-- keys and mouse;
+- quick start (both menu styles);
+- keys and mouse (what both styles share);
+- "Menu style: Radial" and "Menu style: Pane": each style's own keys and
+  layout settings;
 - searching by name;
 - favorites;
-- filters in general;
+- Find It;
+- filters in general (including the short forms `s:`, `w:`, `d:`);
 - one section each for `is:`, `in:`, `theme:`, `pack:`, `dlc:`,
-  `zone:` (with `size:` / `width:` / `depth:` / `level:`) and `fx:`;
+  `zone:` (with `size:` / `width:` / `depth:` / `level:`, and their short
+  forms `s:` / `w:` / `d:`) and `fx:`;
 - combining searches.
 
-The Main tab groups the settings as Menu layout, Assets, Vanilla toolbar and
-tools, Key bindings, and Utilities.
+The Main tab groups the settings as Menu layout (both styles), Radial menu
+layout or Pane layout (only the chosen style's shows), Assets, Vanilla
+toolbar and tools, Key bindings, and Utilities.
 
 Everything shown in-game writes filters in the spaced `key: value` form, and
 uses plain ASCII only.
+
+## The pane
+
+With "Menu style: Pane" the same levels, search and context menu are drawn as
+a list (`views/pane/`): a visible search field, rows (icon, title, and where
+the asset lives, or `>` for something that opens a level), the highlighted
+row's details beside them (picture, title, chips, why it's disabled), and a
+footer with the breadcrumb and count.
+
+- **Highlight**: the first row starts highlighted, and typing goes back to it.
+  It's kept by item key (`highlight.ts`), so the same row stays highlighted
+  while results reorder as `fx:` details load. Up/Down move it (clamped);
+  PageUp/PageDown move it by the visible row count; moving the mouse over a
+  row highlights it (`onMouseMove`, not `onMouseEnter`).
+- **Accept key (Enter)**: a completion hint first, as in the wheel, then the
+  highlighted row (opening a level, or picking an asset). A disabled
+  highlighted row does nothing. The wheel's "only placeable match" rule
+  doesn't apply (`ViewCommands.accept`, `session-context.ts`).
+- **Tab** accepts the completion hint. **Right** opens the highlighted
+  menu or category, and **Left** goes back a level, only while nothing is
+  typed (or, for Right, with the caret at the end), so they still move the
+  caret while typing.
+- **Mouse wheel** over the list scrolls it and closes an open context menu.
+  Clicks inside the pane never close the menu; a click outside does.
+- **Chips** in the detail side add their filter like the context menu's.
+- Where a result lives comes from its search `Location` (menu and category
+  titles), or from prefab titles for favorites; Find It's catalogue shows
+  "Find It".
 
 ## Favorites
 
@@ -370,7 +411,7 @@ steps back a level; Escape and clicking the hub do.
   `useSecondaryClick` pattern, not the DOM `contextmenu` event). Right-clicking
   another item moves the menu there.
 - **Position:** at the cursor, flipped or shifted to stay inside the view.
-  It's drawn outside the scaled wheel, so "Menu size" doesn't affect it.
+  It's drawn outside the scaled wheel or pane, so "Wheel size" and "Pane size" don't affect it.
 - **While open:**
 
 | Input | Result |
@@ -431,7 +472,7 @@ steps back a level; Escape and clicking the hub do.
 | `find-it.ts` / `FindItBridge.cs` / `RadialMenuUISystem.FindIt.cs` | Find It integration: reading its catalogue, bindings, titles and `cat:` text | no |
 | `query/aliases.ts` | One-way word aliases for text matching (`road` also matches `street`) | yes |
 | `query/lexer.ts` | `tokenize()`: tokens with negation/quote info; never throws | yes |
-| `query/filters.ts` | Filter registry (`is`, `theme`, `pack`, `zone`, `size`, `width`, `depth`, `level`, `dlc`, `in`, `fx`): compile, validate, suggest | yes |
+| `query/filters.ts` | Filter registry (`is`, `theme`, `pack`, `zone`, `size`, `width`, `depth`, `level`, `dlc`, `in`, `fx`) and their short forms (`aliases`: `s`, `w`, `d`): compile, validate, suggest | yes |
 | `query/parser.ts` | `parse()`: words, phrases, excludes, filters, token statuses, hint | yes |
 | `query/record.ts` | `AssetRecord`, `buildRecord()`, `fxTerms()`, word-prefix matching | yes |
 | `query/evaluate.ts` | `evaluate()`: filter, rank, pending/need-details | yes |

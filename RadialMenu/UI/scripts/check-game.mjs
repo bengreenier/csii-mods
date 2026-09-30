@@ -152,6 +152,7 @@ const FINGERPRINTS = [
     ["Game.UI.InGame.ToolbarUISystem", "FilterByThemes", "what toolbar.assets$ leaves out (search-schema.md, Known limitations)"],
     ["Game.UI.InGame.ToolbarUISystem", "FilterByPacks", "what toolbar.assets$ leaves out (search-schema.md, Known limitations)"],
     ["Game.UI.InGame.ToolbarUISystem", "FilterThemesByAsset", "picking an asset switches vanilla's theme filter (search-schema.md)"],
+    ["Game.UI.InGame.GameScreenUISystem", "SetScreen", "the menu closes off the main screen, e.g. with the UI hidden (game-internals.md, Hidden UI)"],
     ["Game.Tools.ToolSystem", "OnUpdate", "tool info views (game-internals.md, Tool info views)"],
     ["Game.Tools.ToolSystem", "ToolUpdate", "tool info views (game-internals.md, Tool info views)"],
     ["Game.Tools.ToolSystem", "SetInfoview", "tool info views (game-internals.md, Tool info views)"],

@@ -2,7 +2,7 @@
 import { bindValue } from "cs2/api";
 import { GROUP } from "../../bindings";
 
-// Scale factor for the whole wheel (1 = 100%), from the "Menu size" setting.
+// Scale factor for the whole wheel (1 = 100%), from the "Wheel size" setting.
 export const menuScale$ = bindValue<number>(GROUP, "menuScale", 1);
 
 // Factors (1 = 100%) from the "Distance from center" and "Item spacing" settings.

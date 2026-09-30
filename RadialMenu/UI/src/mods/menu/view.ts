@@ -20,6 +20,11 @@ export interface MenuView {
     // Registers paging and key handling through the session's commandsRef
     // (session-context.ts).
     Level: ComponentType<LevelViewProps>;
+    // The search field's look, applied by the session (hidden for the wheel,
+    // a visible field for the pane). Only its look: its behaviour stays the
+    // session's.
+    searchFieldClassName: string;
+    placeholder?: string;
 }
 
 // Provided by the shell (always mounted) for the open menu.

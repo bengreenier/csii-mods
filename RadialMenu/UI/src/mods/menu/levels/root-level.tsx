@@ -36,6 +36,7 @@ export const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenFindIt }: RootLev
                     icon: item.icon,
                     disabled: item.locked,
                     group: groupIndex,
+                    opens: item.type === TOOLBAR_ITEM_TYPE_MENU,
                     onSelect: () => {
                         activateToolbarItem(item);
                         if (item.type === TOOLBAR_ITEM_TYPE_MENU) onOpenMenu(item);
@@ -51,6 +52,7 @@ export const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenFindIt }: RootLev
                 icon: FAVORITE_ICON,
                 iconColor: FAVORITE_COLOR,
                 disabled: false,
+                opens: true,
                 group: groups.length,
                 onSelect: onOpenFavorites,
             }).concat(
@@ -64,6 +66,7 @@ export const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenFindIt }: RootLev
                               title: FIND_IT_TITLE,
                               icon: FIND_IT_ICON,
                               disabled: false,
+                              opens: true,
                               group: groups.length,
                               onSelect: onOpenFindIt,
                           },

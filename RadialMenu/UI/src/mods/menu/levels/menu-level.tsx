@@ -31,6 +31,7 @@ export const MenuLevel = ({ menu, onOpenCategory, onBack }: MenuLevelProps) => {
                 name: category.name,
                 icon: category.icon,
                 disabled: category.locked,
+                opens: true,
                 onSelect: () => {
                     selectAssetCategory(category.entity);
                     onOpenCategory(category);

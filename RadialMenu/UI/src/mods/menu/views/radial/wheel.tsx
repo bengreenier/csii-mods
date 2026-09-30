@@ -5,7 +5,7 @@ import { useCssLength } from "cs2/utils";
 import classNames from "classnames";
 import { itemSpacing$, menuScale$, ringDistance$ } from "./bindings";
 import { HubChips } from "./hub-chips";
-import { ItemIcon } from "../../item-icon";
+import { MenuItemIcon } from "../../item-icon";
 import { ItemPreview, ItemTitle } from "../../item-details";
 import {
     BACK_HINT,
@@ -22,7 +22,7 @@ import { layoutQuery, MAX_QUERY_SHRINK } from "./query-layout";
 import { DisplayToken } from "../../query/parser";
 import { TOKEN_CLASS } from "../../query-tokens";
 import { itemKey, LevelViewProps, MenuItem } from "../../model";
-import { getLastMouse } from "../../mouse";
+import { clampToView, getLastMouse } from "../../mouse";
 import { useMenuSession } from "../../session-context";
 import styles from "./radial.module.scss";
 
@@ -45,8 +45,7 @@ export const WheelAnchorContext = createContext<{ x: number; y: number } | null>
 export function anchorAtCursor(fitRadiusPx: number) {
     const lastMouse = getLastMouse();
     if (!lastMouse) return null;
-    const clamp = (value: number, size: number) =>
-        size < 2 * fitRadiusPx ? size / 2 : Math.min(Math.max(value, fitRadiusPx), size - fitRadiusPx);
+    const clamp = (value: number, size: number) => clampToView(value, fitRadiusPx, fitRadiusPx, size);
     return { x: clamp(lastMouse.x, window.innerWidth), y: clamp(lastMouse.y, window.innerHeight) };
 }
 
@@ -147,7 +146,7 @@ export const Wheel = ({ level }: LevelViewProps) => {
         hubContent = (
             <>
                 {hoveredEntry?.showPreview && (
-                    <ItemPreview className={styles.hubPreview} entity={hoveredEntry.entity} icon={hoveredEntry.icon} />
+                    <ItemPreview className={styles.hubPreview} item={hoveredEntry} />
                 )}
                 {label && (
                     <div className={classNames(styles.hubTitle, hoveredEntry?.showPreview && styles.hubTitleSmall)}>
@@ -198,7 +197,7 @@ export const Wheel = ({ level }: LevelViewProps) => {
     // The query's layout is estimated (query-layout.ts); if the hub's content
     // still comes out too big for the circle, step to a more compact layout and
     // measure again. Runs before paint, so only the final layout is seen. The
-    // check compares against the hub's own box, so "Menu size" doesn't matter.
+    // check compares against the hub's own box, so "Wheel size" doesn't matter.
     // Each new query starts over at the most readable layout.
     useLayoutEffect(() => {
         if (!showingQuery || hoveredEntry) return;
@@ -213,7 +212,7 @@ export const Wheel = ({ level }: LevelViewProps) => {
 
     return (
         // The wheel is a zero-size anchor at screen center, so scaling it scales
-        // everything around the center ("Menu size" setting).
+        // everything around the center ("Wheel size" setting).
         <div
             className={styles.wheel}
             style={{
@@ -249,12 +248,7 @@ export const Wheel = ({ level }: LevelViewProps) => {
                     }}
                     {...secondaryClick(entry)}
                 >
-                    <ItemIcon
-                        className={styles.icon}
-                        icon={entry.icon}
-                        fallbackIcon={entry.fallbackIcon}
-                        iconColor={entry.iconColor}
-                    />
+                    <MenuItemIcon className={styles.icon} item={entry} />
                 </button>
             ))}
         </div>

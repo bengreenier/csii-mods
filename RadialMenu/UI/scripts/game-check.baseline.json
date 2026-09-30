@@ -4,6 +4,7 @@
   "Game.UI.InGame.ToolbarUISystem.FilterByThemes": "fcf2591308745a75",
   "Game.UI.InGame.ToolbarUISystem.FilterByPacks": "2bf4d767fc8bb9fa",
   "Game.UI.InGame.ToolbarUISystem.FilterThemesByAsset": "d120799791a1757e",
+  "Game.UI.InGame.GameScreenUISystem.SetScreen": "c4d5f1cce4cb2501",
   "Game.Tools.ToolSystem.OnUpdate": "056e4d28cd1998e6",
   "Game.Tools.ToolSystem.ToolUpdate": "631d9225c9350029",
   "Game.Tools.ToolSystem.SetInfoview": "b0d59c7d43169ac1"

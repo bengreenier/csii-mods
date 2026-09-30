@@ -18,6 +18,9 @@ export interface SearchResult {
     asset: toolbar.Asset;
     menu?: Entity | null;
     category?: Entity | null;
+    // The menu's and category's titles, for showing where it lives; unset
+    // for Find It's catalogue.
+    location?: Location;
 }
 
 export interface Location {
@@ -122,7 +125,9 @@ export function buildPart(sources: PartSource[], factory: RecordFactory, orderBa
             const record = factory(asset, location, orderBase + entries.length);
             if (seen.has(record.key)) continue;
             seen.add(record.key);
-            entries.push({ record, result: { asset, ...place } });
+            const result: SearchResult = { asset, ...place };
+            if (location !== NO_LOCATION) result.location = location;
+            entries.push({ record, result });
             suggestions.add(record);
         }
     }

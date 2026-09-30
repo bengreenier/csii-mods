@@ -10,6 +10,7 @@ import {
     menuPath,
     Path,
     ROOT,
+    trail,
     withoutFindIt,
 } from "mods/menu/navigation";
 
@@ -93,5 +94,39 @@ describe("withoutFindIt", () => {
         const inMenu = menuPath(menu);
         expect(withoutFindIt(inFindIt, true)).toBe(inFindIt);
         expect(withoutFindIt(inMenu, false)).toBe(inMenu);
+    });
+});
+
+describe("trail", () => {
+    it("is empty at the root", () => {
+        expect(trail(ROOT)).toEqual([]);
+    });
+
+    it("names the menu, then the category", () => {
+        expect(trail(categoryPath(menuPath(menu), category))).toEqual([
+            { kind: "prefab", entity: menu.entity, name: "Roads" },
+            { kind: "prefab", entity: category.entity, name: "Streets" },
+        ]);
+    });
+
+    it("is just Favorites there", () => {
+        expect(trail(favoritesPath())).toEqual([{ kind: "favorites" }]);
+    });
+
+    it("names Find It's category and subcategory", () => {
+        const s = twoSubs.subCategories[1];
+        expect(trail(findItPath({ category: twoSubs, sub: s }))).toEqual([
+            { kind: "findIt" },
+            { kind: "findIt", name: "cat2" },
+            { kind: "findIt", name: s.name },
+        ]);
+    });
+
+    it("leaves out a single-subcategory category, skipped on the way in", () => {
+        const s = oneSub.subCategories[0];
+        expect(trail(findItPath({ category: oneSub, sub: s }))).toEqual([
+            { kind: "findIt" },
+            { kind: "findIt", name: s.name },
+        ]);
     });
 });

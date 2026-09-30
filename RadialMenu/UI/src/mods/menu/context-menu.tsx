@@ -53,7 +53,7 @@ interface ContextMenuProps {
 }
 
 // Opens at the cursor, towards the bottom right, and flips or shifts to stay
-// inside the view. Rendered outside the scaled wheel, so "Menu size" doesn't
+// inside the view. Rendered outside the scaled wheel, so "Wheel size" doesn't
 // change it.
 export const ContextMenu = ({ x, y, actions, title, chips, onChipClick, onClose }: ContextMenuProps) => {
     const ref = useRef<HTMLDivElement>(null);

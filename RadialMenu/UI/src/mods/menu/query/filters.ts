@@ -24,6 +24,9 @@ export type Predicate = (record: AssetRecord, fx?: string[]) => boolean;
 
 export interface FilterDef {
     key: string;
+    // Shorter keys that mean the same ("w:" for "width:"). Hints and chips
+    // use `key`.
+    aliases?: string[];
     // Needs per-prefab details (loaded lazily; see search.ts).
     needsDetails?: boolean;
     // Values offered as hints/completions.
@@ -161,6 +164,7 @@ export const FILTERS: FilterDef[] = [
     },
     {
         key: "size",
+        aliases: ["s"],
         suggest: (ctx) => ctx.sizes,
         compile: (atoms) => {
             const tests = atoms.map(sizeTest);
@@ -170,6 +174,7 @@ export const FILTERS: FilterDef[] = [
     },
     {
         key: "width",
+        aliases: ["w"],
         suggest: (ctx) => ctx.widths,
         compile: (atoms) => {
             const tests = atoms.map(widthTest);
@@ -177,7 +182,7 @@ export const FILTERS: FilterDef[] = [
             return (r) => tests.some((t) => t!(r));
         },
     },
-    numberFilter("depth", (r) => r.lotDepth, (ctx) => ctx.depths, true),
+    { ...numberFilter("depth", (r) => r.lotDepth, (ctx) => ctx.depths, true), aliases: ["d"] },
     numberFilter("level", (r) => r.level, (ctx) => ctx.levels),
     {
         key: "dlc",
@@ -203,7 +208,8 @@ export const FILTERS: FilterDef[] = [
     },
 ];
 
-export const FILTERS_BY_KEY = new Map(FILTERS.map((f) => [f.key, f]));
+// By key and by alias.
+export const FILTERS_BY_KEY = new Map(FILTERS.flatMap((f) => [f.key, ...(f.aliases ?? [])].map((k) => [k, f] as const)));
 
 // Example queries for the idle hub's rotating "Hint: try ..." line.
 // Written with a space after the colon for readability; "is:ok" works too.
