@@ -1,9 +1,9 @@
-# Radial Menu search language
+# Better Asset Menu search language
 
-When the radial menu is open, typing filters the menu to matching assets. Plain
+When the menu is open, typing filters the menu to matching assets. Plain
 typing searches by name. A small set of `key:value` filters narrows results
 further. This document is the specification. The implementation lives in
-`RadialMenu/UI/src/mods/menu/query/` and `search.ts`.
+`BetterAssetMenu/UI/src/mods/menu/query/` and `search.ts`.
 
 ## Design principles
 
@@ -273,7 +273,7 @@ Picking only a single remaining match means a double Enter (complete, then
 submit) can't place the top one of many results by surprise.
 
 The accept key is a mod key binding ("Accept suggestion / pick result",
-Options > Radial Menu > Key bindings). It uses its own input usage and is only
+Options > Better Asset Menu > Key bindings). It uses its own input usage and is only
 read on the C# side while the menu is open, when the game's keyboard shortcuts
 are paused by the focused search field. So it can't collide with other game
 shortcuts, and can share a key with them. It shouldn't be a key that types a
@@ -286,7 +286,7 @@ exclude", and `Hint: try "<example>"`. The example is picked at random from
 `FILTER_EXAMPLES` (`query/filters.ts`) each time the menu opens.
 
 A player-facing version of this reference is built into the mod's settings,
-under **Options > Radial Menu > Usage Guide**. It comes from `LocaleEn` in
+under **Options > Better Asset Menu > Usage Guide**. It comes from `LocaleEn` in
 `Setting.cs`, with one read-only text block per section, in this order
 (`SettingsUIGroupOrder`):
 - quick start (both menu styles);
@@ -355,7 +355,7 @@ added. Favorites are stored in each save (`FavoritesSystem.cs`; see
 - **Locked** favorites are dimmed and can't be picked, as elsewhere. Unique
   buildings already placed are never greyed out in Favorites, whatever "Disable
   placed unique buildings" is set to.
-- **Clearing them all:** Options > Radial Menu > Utilities > "Remove Radial
+- **Clearing them all:** Options > Better Asset Menu > Utilities > "Remove Radial
   Menu data from this city", then save the city.
 
 Any level with more items than fit in the first three rings is paged like
@@ -364,7 +364,7 @@ search results, and the hub shows which items are on screen ("1-61 of 80").
 ## Find It
 
 With the Find It mod enabled and **"Use Find It's catalogue"** on (Assets
-group, on by default, greyed out without Find It), the radial menu reaches
+group, on by default, greyed out without Find It), the menu reaches
 everything Find It indexes: props, decals, trees, vehicles, growables and so
 on, not just the vanilla toolbar. How it reads Find It is in
 `game-internals.md`, "Find It".
@@ -420,7 +420,7 @@ steps back a level; Escape and clicking the hub do.
 | Left-click anywhere else (item, hub, backdrop) | Closes only the context menu |
 | Right-click on empty space or the hub | Closes it |
 | Escape / game "Back" | Closes it (before clearing the query or going back) |
-| Typing, a page flip, changing level, closing the radial menu | Closes it |
+| Typing, a page flip, changing level, closing the menu | Closes it |
 | The item leaving the wheel (e.g. results changed) | Closes it |
 | Accept key | Ignored, so it can't pick the result behind the menu |
 
@@ -469,7 +469,7 @@ steps back a level; Escape and clicking the hub do.
 |---|---|---|
 | `search-index.ts` | Record factory, index parts (records + suggestions), combining parts | no |
 | `find-it-catalogue.ts` | Find It's catalogue, subscribed once at the menu root and shared via context | no |
-| `find-it.ts` / `FindItBridge.cs` / `RadialMenuUISystem.FindIt.cs` | Find It integration: reading its catalogue, bindings, titles and `cat:` text | no |
+| `find-it.ts` / `FindItBridge.cs` / `BetterAssetMenuUISystem.FindIt.cs` | Find It integration: reading its catalogue, bindings, titles and `cat:` text | no |
 | `query/aliases.ts` | One-way word aliases for text matching (`road` also matches `street`) | yes |
 | `query/lexer.ts` | `tokenize()`: tokens with negation/quote info; never throws | yes |
 | `query/filters.ts` | Filter registry (`is`, `theme`, `pack`, `zone`, `size`, `width`, `depth`, `level`, `dlc`, `in`, `fx`) and their short forms (`aliases`: `s`, `w`, `d`): compile, validate, suggest | yes |
@@ -477,7 +477,7 @@ steps back a level; Escape and clicking the hub do.
 | `query/record.ts` | `AssetRecord`, `buildRecord()`, `fxTerms()`, word-prefix matching | yes |
 | `query/evaluate.ts` | `evaluate()`: filter, rank, pending/need-details | yes |
 | `search.ts` | Hook glue: data subscriptions, index, lazy `fx:` details, caps | no |
-| `bindings.ts` / `RadialMenuUISystem.AssetMeta.cs` | `assetMeta`: static per-asset data from C# (packs, lot size, zone, level) | no |
+| `bindings.ts` / `BetterAssetMenuUISystem.AssetMeta.cs` | `assetMeta`: static per-asset data from C# (packs, lot size, zone, level) | no |
 | `session.tsx` | Keys (accept event / Escape) | no |
 | `level-frame.tsx` | What the accept key does on a level (completion, or the only placeable match) | no |
 | `views/radial/wheel.tsx` | Hub display | no |
@@ -493,7 +493,7 @@ steps back a level; Escape and clicking the hub do.
 
 1. Add any data it needs to `RecordSource` / `AssetRecord` in `record.ts`, and
    fill it in `buildIndex()` in `search.ts`. Data the UI can't get from
-   vanilla bindings goes into `assetMeta` (C# `RadialMenuUISystem.AssetMeta.cs`
+   vanilla bindings goes into `assetMeta` (C# `BetterAssetMenuUISystem.AssetMeta.cs`
    and `AssetMeta` in `bindings.ts`).
 2. Add an entry to `FILTERS` in `filters.ts`, with `compile` (null means
    invalid) and `suggest`. Set `needsDetails: true` only if it needs
@@ -519,7 +519,7 @@ steps back a level; Escape and clicking the hub do.
   (`ToolbarUISystem.FilterByPacks`), although selecting a tab or category
   resets vanilla's pack filter.
   - With "Search every theme and asset pack" on (the default), search reads
-    `RadialMenu.allAssets` instead (`RadialMenuUISystem.AllAssets.cs`). It is
+    `BetterAssetMenu.allAssets` instead (`BetterAssetMenuUISystem.AllAssets.cs`). It is
     `BindAssets` without those two filters, so `theme: american` works in a
     European city.
   - Changing vanilla's selection instead (`toolbar.setSelectedThemes`) was
@@ -532,7 +532,7 @@ steps back a level; Escape and clicking the hub do.
   - Picking a result from another theme goes through `toolbar.selectAsset`.
     Vanilla's `SelectAsset` then switches its theme selection to that asset's
     theme (`FilterThemesByAsset`), so browsing follows the last pick. The
-    "Reset vanilla theme filter" button (Options > Radial Menu > Utilities)
+    "Reset vanilla theme filter" button (Options > Better Asset Menu > Utilities)
     sets it back to the city's default theme. It clears the asset selection
     first, because `setSelectedThemes` would otherwise swap the active tool.
     Restoring the theme automatically when the menu closes was ruled out for
