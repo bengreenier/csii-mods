@@ -56,7 +56,7 @@ jobs:
 
       - name: Syntax-check scripts
         shell: bash
-        run: for f in scripts/*.mjs; do node --check "$f"; done
+        run: shopt -s nullglob; for f in scripts/*.mjs; do node --check "$f"; done
 
       - name: Publish configs are valid XML
         shell: pwsh
