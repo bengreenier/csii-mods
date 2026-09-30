@@ -49,9 +49,24 @@ and `npm run check` passes. Every feature branch is merged.
 4. **Publish (user, game closed, needs a Paradox account login):**
    `dotnet publish BetterAssetMenu/BetterAssetMenu.csproj /p:PublishProfile=PublishNewMod`
 5. **After publishing (Claude):**
-   - commit the ModId it writes back;
-   - tag the release (`v0.1.0` or `v1.0.0`);
-   - optionally add a GitHub remote and put the link in `ExternalLink`.
+   - `git diff` the config first: ModPublisher may rewrite the whole file
+     (indentation, comments, BOM, LongDescription whitespace). If anything
+     but the `ModId` line changed, restore it and set the ModId by hand;
+   - commit the ModId as `chore:` on `main`, and push;
+   - create the GitHub release at that commit:
+     `gh release create better-asset-menu-v1.0.0 --target <sha> --title "Better Asset Menu v1.0.0" --notes "First release."`
+6. **Only then merge `chore/release-please`.** If it reaches `main` before
+   the `better-asset-menu-v1.0.0` release exists, release-please reads the
+   whole history and opens a bogus release PR past 1.0.0. Before merging:
+   - rebase `chore/release-please` onto `main` (so it contains the released
+     commit) and push it;
+   - check that release-please proposes nothing:
+     `npx release-please release-pr --repo-url=bengreenier/csii-mods --token=$(gh auth token) --target-branch=chore/release-please --dry-run`
+   - turn on Settings > Actions > General > "Allow GitHub Actions to create
+     and approve pull requests".
+
+Branches: `chore/release-1.0.0` (listing, assets, ModPublisher .NET fix)
+merges first; `chore/release-please` is based on it.
 
 ## Decisions (2026-09-29)
 
