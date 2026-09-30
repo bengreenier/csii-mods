@@ -458,7 +458,7 @@ namespace RadialMenu
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchIsGroup), "is: - what you can build" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchThemeGroup), "theme: - building style" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchPackGroup), "pack: - asset packs" },
-                { _setting.GetOptionGroupLocaleID(Setting.KSearchZoneGroup), "zone:, size:, width:, depth:, level: - zones and lots" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSearchZoneGroup), "zone:, size: (s:), width: (w:), depth: (d:), level: - zones and lots" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchDlcGroup), "dlc: - base game or DLC" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchInGroup), "in: - which tab it lives in" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFxGroup), "fx: - what it does for your city" },
@@ -513,8 +513,9 @@ namespace RadialMenu
                     "The space after the colon is optional.\n" +
                     "\n" +
                     "You don't need to remember the values: start typing a filter and suggestions appear " +
-                    "in the middle of the wheel. Press Enter to accept one. " +
-                    "Values can also be shortened, so 'is: u' means 'is: unique'.\n" +
+                    "(in the middle of the wheel, or under the search field in the pane). Press Enter to accept one. " +
+                    "Values can also be shortened, so 'is: u' means 'is: unique'. " +
+                    "Filter names must be typed in full, except for the short forms 's:', 'w:' and 'd:' (see zones and lots below).\n" +
                     "\n" +
                     "A filter you haven't finished, or one the menu doesn't recognise, is shown faded or " +
                     "crossed out and simply ignored - it never hides your results."
@@ -557,7 +558,7 @@ namespace RadialMenu
                     "'width: 2u' or 'width: 16m' - roads, tracks and paths by width, in units (cells, as in a '2u road') or metres. " +
                     "A unit is 8 metres, so 'width: 2', 'width: 2u' and 'width: 16m' all find both 16 metre roads and buildings 2 cells wide. " +
                     "'depth: 3u' works like 'depth: 3'.\n" +
-                    "Short forms: 'w:' for 'width:' and 'd:' for 'depth:', e.g. 'w: 2u' or 'w: 4 d: 4'.\n" +
+                    "Short forms: 's:' for 'size:', 'w:' for 'width:' and 'd:' for 'depth:', e.g. 's: 2x3', 'w: 2u' or 'w: 4 d: 4'.\n" +
                     "'level: 3' - zoned buildings of that level"
                 },
                 {

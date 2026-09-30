@@ -34,6 +34,10 @@ word     := any other run of non-whitespace
 
 - Case-insensitive throughout.
 - Keys must be typed in full (`theme:`, not `th:`). Hints complete them.
+  The exceptions are the short forms (`FilterDef.aliases` in
+  `query/filters.ts`): `s:` for `size:`, `w:` for `width:` and `d:` for
+  `depth:`. They behave exactly like the full key; hints and chips still
+  show the full key.
 - A space after the colon is allowed: `is: ok` is the same as `is:ok`. The
   value is then the next word, unless that word starts with `-` or `"`, which
   begin a new token. Examples in the hub use the spaced form.
@@ -78,7 +82,7 @@ Titles come from the localization key `Assets.NAME[<prefab name>]`.
 | `pack:` | an asset pack word, e.g. a pack's name or title | belong to that asset pack (word prefix over the pack's name and title) | cheap (C#) |
 | `cat:` | a Find It category word, e.g. `props`, `decals`, `trees`, `fences`, `service` | are in a Find It category or subcategory with a word starting with the value (enum name split on `_` and camelCase, plus Find It's titles). Only while Find It's catalogue is in use (see Find It). | cheap (C#) |
 | `zone:` | `residential`, `commercial`, `industrial`, `office`, and densities `low`, `medium`, `high` | are zoned buildings (e.g. signature buildings) or zone types (the Zones tab) of that zone type or density. Plain industrial has no density. | cheap (C#) |
-| `size:` | `WxD` in cells, e.g. `2x3` | are buildings on a lot W cells wide (frontage) and D deep. Not rotated: `2x3` doesn't match a 3x2 lot. | cheap (C#) |
+| `size:` (or `s:`) | `WxD` in cells, e.g. `2x3` | are buildings on a lot W cells wide (frontage) and D deep. Not rotated: `2x3` doesn't match a 3x2 lot. | cheap (C#) |
 | `width:` (or `w:`) | cells, e.g. `4`, `2,3`, also written as units (`2u`, as players say "a 2u road"), or metres, e.g. `16m`, `12.5m` | are buildings with that lot frontage, or networks (roads, tracks, paths) that wide. A cell is 8 m, so each unit also finds the other kind: `width: 2u` matches 16 m roads, and `width: 16m` matches 2-cell buildings. Widths that aren't whole cells (e.g. 12 m) are only found in metres. Network chips and suggestions use `2u` for whole cells, metres otherwise. | cheap (C#) |
 | `depth:` (or `d:`) | a number of cells, e.g. `4` or `4u` | are buildings with that lot depth | cheap (C#) |
 | `level:` | a number, e.g. `1`, `3,4` | are zoned buildings of that level | cheap (C#) |
@@ -111,7 +115,7 @@ The direction of an `fx:` effect (positive or negative) is not considered.
 | `in:health` | Everything in Healthcare & Deathcare (useful from the top ring) |
 | `zone:office` | Office signature buildings and office zones |
 | `zone:residential zone:high` | High-density residential (two filters, ANDed) |
-| `size:2x2` | Buildings on a 2x2 lot |
+| `size:2x2` / `s:2x2` | Buildings on a 2x2 lot |
 | `width:4 depth:4` | The same as `size:4x4`; so is `w:4 d:4` |
 | `width:1,2` | Buildings with 1 or 2 cells of frontage |
 | `width:2u in:roads` / `width:16m in:roads` | 16 m (2-unit) roads |
@@ -285,17 +289,22 @@ A player-facing version of this reference is built into the mod's settings,
 under **Options > Radial Menu > Usage Guide**. It comes from `LocaleEn` in
 `Setting.cs`, with one read-only text block per section, in this order
 (`SettingsUIGroupOrder`):
-- quick start;
-- keys and mouse;
+- quick start (both menu styles);
+- keys and mouse (what both styles share);
+- "Menu style: Radial" and "Menu style: Pane": each style's own keys and
+  layout settings;
 - searching by name;
 - favorites;
-- filters in general;
+- Find It;
+- filters in general (including the short forms `s:`, `w:`, `d:`);
 - one section each for `is:`, `in:`, `theme:`, `pack:`, `dlc:`,
-  `zone:` (with `size:` / `width:` / `depth:` / `level:`) and `fx:`;
+  `zone:` (with `size:` / `width:` / `depth:` / `level:`, and their short
+  forms `s:` / `w:` / `d:`) and `fx:`;
 - combining searches.
 
-The Main tab groups the settings as Menu layout, Assets, Vanilla toolbar and
-tools, Key bindings, and Utilities.
+The Main tab groups the settings as Menu layout (both styles), Radial menu
+layout or Pane layout (only the chosen style's shows), Assets, Vanilla
+toolbar and tools, Key bindings, and Utilities.
 
 Everything shown in-game writes filters in the spaced `key: value` form, and
 uses plain ASCII only.
@@ -463,7 +472,7 @@ steps back a level; Escape and clicking the hub do.
 | `find-it.ts` / `FindItBridge.cs` / `RadialMenuUISystem.FindIt.cs` | Find It integration: reading its catalogue, bindings, titles and `cat:` text | no |
 | `query/aliases.ts` | One-way word aliases for text matching (`road` also matches `street`) | yes |
 | `query/lexer.ts` | `tokenize()`: tokens with negation/quote info; never throws | yes |
-| `query/filters.ts` | Filter registry (`is`, `theme`, `pack`, `zone`, `size`, `width`, `depth`, `level`, `dlc`, `in`, `fx`): compile, validate, suggest | yes |
+| `query/filters.ts` | Filter registry (`is`, `theme`, `pack`, `zone`, `size`, `width`, `depth`, `level`, `dlc`, `in`, `fx`) and their short forms (`aliases`: `s`, `w`, `d`): compile, validate, suggest | yes |
 | `query/parser.ts` | `parse()`: words, phrases, excludes, filters, token statuses, hint | yes |
 | `query/record.ts` | `AssetRecord`, `buildRecord()`, `fxTerms()`, word-prefix matching | yes |
 | `query/evaluate.ts` | `evaluate()`: filter, rank, pending/need-details | yes |

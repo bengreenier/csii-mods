@@ -164,6 +164,7 @@ export const FILTERS: FilterDef[] = [
     },
     {
         key: "size",
+        aliases: ["s"],
         suggest: (ctx) => ctx.sizes,
         compile: (atoms) => {
             const tests = atoms.map(sizeTest);
