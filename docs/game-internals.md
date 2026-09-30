@@ -29,6 +29,7 @@ group) is still in the sections below.
 - [Binding names](#binding-names)
 - [Escape, "Back" and the pause menu (input isolation)](#escape-back-and-the-pause-menu-input-isolation)
 - [Keyboard focus and hasInputFieldFocus](#keyboard-focus-and-hasinputfieldfocus)
+- [Hidden UI (free camera) and other screens](#hidden-ui-free-camera-and-other-screens)
 - [Tool info views ("Show info views for radial menu selections")](#tool-info-views-show-info-views-for-radial-menu-selections)
 - [The bulldozer ("Bulldozer in radial menu")](#the-bulldozer-bulldozer-in-radial-menu)
 - [Search filter data (assetMeta)](#search-filter-data-assetmeta)
@@ -245,6 +246,29 @@ What to check:
     `acceptSuggestion` UI event.
 - The field is blurred in a layout-effect cleanup before it unmounts, matching
   vanilla, which blurs text fields on Escape/Enter.
+
+## Hidden UI (free camera) and other screens
+
+The game's "hide UI" is a screen, not a CSS toggle:
+`GameScreenUISystem.activeScreen` (binding `game.activeScreen`) becomes
+`GameScreen.FreeCamera` (1). The key for it, and photo mode's "Hide UI"
+button (`showFreeCameraScreen` / `setActiveScreen(freeCamera)` in the UI
+bundle), both go there. The in-game UI (`GameMainScreen`) isn't drawn then.
+The pause menu, save/load and options are screens 10-14.
+
+Our menu can't be seen with the UI hidden. But while it's open, its focused
+search field blocks every game keyboard action (see above). That would
+silently swallow WASD and every other key. So `RadialMenuUISystem.OnUpdate`
+closes the menu, and won't open it, unless `activeScreen` is
+`GameScreen.Main`, and `gameMode` is `Game` too. Closing goes through the
+normal path: the UI unmounts the field (blurring it first), and input
+isolation is released once the focus has been clear for a few frames.
+
+`GameScreenUISystem.SetScreen` is fingerprinted by `npm run check-game`.
+
+- **If a game update breaks this:** check that `GameScreen.Main` is still
+  the in-city screen and `FreeCamera` still means the UI is hidden
+  (decompile `Game.UI.InGame.GameScreenUISystem`).
 
 ## Tool info views ("Show info views for radial menu selections")
 
