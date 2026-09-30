@@ -1,7 +1,7 @@
-# Game internals the Radial Menu relies on
+# Game internals the Better Asset Menu relies on
 
 The mod uses several parts of Cities: Skylines II that aren't part of the
-public modding typings (`RadialMenu/UI/types`). They were found by reading the
+public modding typings (`BetterAssetMenu/UI/types`). They were found by reading the
 game's UI bundle (`Cities2_Data/Content/Game/UI/index.js`, minified) and
 reflecting over `Game.dll`. Game updates can rename or change them without
 notice.
@@ -9,7 +9,7 @@ notice.
 **After a game update, check this list first.** Each entry says where it's
 used, what breaks if it changes, and how to re-find it.
 
-Start with `npm run check-game` (in `RadialMenu/UI`; needs `ilspycmd`). It
+Start with `npm run check-game` (in `BetterAssetMenu/UI`; needs `ilspycmd`). It
 confirms that the UI modules, `cs2/bindings` members and vanilla bindings the UI
 uses still exist in the game's bundle, and that the private `Game.dll` members
 the C# reads by reflection are still there. It also fingerprints the vanilla
@@ -30,8 +30,8 @@ group) is still in the sections below.
 - [Escape, "Back" and the pause menu (input isolation)](#escape-back-and-the-pause-menu-input-isolation)
 - [Keyboard focus and hasInputFieldFocus](#keyboard-focus-and-hasinputfieldfocus)
 - [Hidden UI (free camera) and other screens](#hidden-ui-free-camera-and-other-screens)
-- [Tool info views ("Show info views for radial menu selections")](#tool-info-views-show-info-views-for-radial-menu-selections)
-- [The bulldozer ("Bulldozer in radial menu")](#the-bulldozer-bulldozer-in-radial-menu)
+- [Tool info views ("Show info views for menu selections")](#tool-info-views-show-info-views-for-menu-selections)
+- [The bulldozer ("Bulldozer in the menu")](#the-bulldozer-bulldozer-in-the-menu)
 - [Search filter data (assetMeta)](#search-filter-data-assetmeta)
 - [Per-save data (favorites)](#per-save-data-favorites)
 - [Find It](#find-it)
@@ -43,7 +43,7 @@ group) is still in the sections below.
 
 | Module path | Export | Used in | If it breaks |
 |---|---|---|---|
-| `game-ui/common/input-events/input-controller.ts` | `useInputController` | `modal-input.ts` (`useModalInput`), driven by `isolateInput` from `RadialMenuUISystem` | Guarded. Logs `useInputController not found` to `UI.log`; the menu works, but see the [pause-menu bug](#escape-back-and-the-pause-menu-input-isolation) |
+| `game-ui/common/input-events/input-controller.ts` | `useInputController` | `modal-input.ts` (`useModalInput`), driven by `isolateInput` from `BetterAssetMenuUISystem` | Guarded. Logs `useInputController not found` to `UI.log`; the menu works, but see the [pause-menu bug](#escape-back-and-the-pause-menu-input-isolation) |
 | `game-ui/game/components/toolbar/top/toolbar-button-strip/toolbar-button-strip.tsx` | `ToolbarButtonStrip` | `hide-vanilla.tsx` (`trimStrip`) | Guarded (try/catch). The vanilla tab strip is no longer hidden |
 | `game-ui/game/components/asset-menu/asset-menu.tsx` | `AssetMenu` | `hide-vanilla.tsx` | Same; the vanilla asset panel shows again |
 | `game-ui/game/components/asset-menu/console-asset-menu.tsx` | `ConsoleAssetMenu` | `hide-vanilla.tsx` | Same, for the gamepad UI |
@@ -67,7 +67,7 @@ Used through `cs2/bindings` / `cs2/api`:
 - `selectedInfo.clearSelection` and `map.disableMapTileView`.
 - `app.setClipboard(text)` ("Copy ... link" in the context menu): C#
   `AppBindings.SetClipboard`, which sets `GUIUtility.systemCopyBuffer`.
-- DLC Steam pages (`RadialMenu.dlcSteamApps`, `RadialMenuUISystem.StoreLinks.cs`):
+- DLC Steam pages (`BetterAssetMenu.dlcSteamApps`, `BetterAssetMenuUISystem.StoreLinks.cs`):
   `Asset.dlc` is `Media/DLC/<name>.svg`, with `<name>` from
   `PlatformManager.GetDlcName`. Each DLC's Steam app ID is resolved as the
   game's Steam backend does (`SteamworksPlatform.RemapDLCs`):
@@ -97,7 +97,7 @@ Localization keys:
 - `useModalInput` in `modal-input.ts`; `MenuShell` (`shell.tsx`, always
   mounted, owns the isolation) and `MenuSession` (`session.tsx`, the open
   menu: its search field, focus and blur on close);
-- the `isolateInput` binding in `RadialMenuUISystem.cs`.
+- the `isolateInput` binding in `BetterAssetMenuUISystem.cs`.
 
 C# sources below were read by decompiling `Game.dll` with ILSpy
 (`ilspycmd -p -o <out> -r <Managed> <Managed>/Game.dll`).
@@ -175,7 +175,7 @@ Log evidence, from temporary `[escape-debug]` logging:
 While it's active, Escape can only mean the menu's Back, and vanilla UI hotkeys
 can't fire underneath the menu.
 
-**When it's active is decided in C#** (`isolateInput` in `RadialMenuUISystem`):
+**When it's active is decided in C#** (`isolateInput` in `BetterAssetMenuUISystem`):
 - It turns **on** when the menu opens.
 - After the menu closes, it turns **off** only once `hasInputFieldFocus` has
   been false for **2 frames** (`kFocusClearFramesBeforeRelease`). By then
@@ -233,16 +233,16 @@ What to check:
 
 - A focused DOM `<input>` sets `Game.Input.InputManager.hasInputFieldFocus`,
   which blocks keyboard input actions, **including the mod's own actions**.
-- `RadialMenuUISystem` therefore reads bound keys directly while the menu is
+- `BetterAssetMenuUISystem` therefore reads bound keys directly while the menu is
   open: `InputSystem.FindControl(binding.path)` on `ProxyAction.bindings`,
   including modifiers.
-  - "Open menu" (action `OpenRadialMenu`; the label was "Open radial menu"
-    and the action id is kept, since saved bindings are keyed by it) only opens, so it's only
+  - "Open menu" (action `OpenBetterAssetMenu`; saved bindings are keyed by the
+    action id, so renaming it resets the player's binding) only opens, so it's only
     needed while the menu is closed, when the field isn't focused: it's read
     as a normal action.
   - The "Accept suggestion / pick result" action is **only** read this
     way. It stays disabled (its binding is just data) and has its own usage,
-    `RadialMenuSearch`, so it never conflicts with game shortcuts. It fires the
+    `BetterAssetMenuSearch`, so it never conflicts with game shortcuts. It fires the
     `acceptSuggestion` UI event.
 - The field is blurred in a layout-effect cleanup before it unmounts, matching
   vanilla, which blurs text fields on Escape/Enter.
@@ -258,7 +258,7 @@ The pause menu, save/load and options are screens 10-14.
 
 Our menu can't be seen with the UI hidden. But while it's open, its focused
 search field blocks every game keyboard action (see above). That would
-silently swallow WASD and every other key. So `RadialMenuUISystem.OnUpdate`
+silently swallow WASD and every other key. So `BetterAssetMenuUISystem.OnUpdate`
 closes the menu, and won't open it, unless `activeScreen` is
 `GameScreen.Main`, and `gameMode` is `Game` too. Closing goes through the
 normal path: the UI unmounts the field (blurring it first), and input
@@ -270,7 +270,7 @@ isolation is released once the focus has been clear for a few frames.
   the in-city screen and `FreeCamera` still means the UI is hidden
   (decompile `Game.UI.InGame.GameScreenUISystem`).
 
-## Tool info views ("Show info views for radial menu selections")
+## Tool info views ("Show info views for menu selections")
 
 **Code:** `ToolInfoviewSystem.cs`, which holds two systems.
 **Setting:** `ShowToolInfoviews` (default on, which is vanilla behaviour).
@@ -296,19 +296,19 @@ How vanilla works (decompiled `Game.Tools`):
 
 What the mod does:
 
-- **Scope: radial-menu selections only.** Attribution is by identity and
+- **Scope: menu selections only.** Attribution is by identity and
   event order, with no timing:
   - Vanilla's toolbar triggers (`ToolbarUISystem.SelectAsset` /
     `SelectAssetMenu` / `SelectAssetCategory` -> `Apply` ->
     `ToolSystem.ActivatePrefabTool`) change the active tool **synchronously**
     inside the trigger handler, and UI triggers are handled in order.
-  - Every selection the radial menu makes goes through wrappers in
+  - Every selection the menu makes goes through wrappers in
     `actions.ts`. These call the vanilla select, then the mod's
     `radialSelect` trigger, so `RadialSelection.Mark()` records exactly the
     resulting active tool and `GetPrefab()`.
   - `RadialSelection.Update` runs each frame in the `ToolUpdate` phase. It drops
     ownership as soon as the tool or prefab differs. After that, the selection
-    isn't the radial menu's, even if the same asset is picked again elsewhere.
+    isn't the menu's, even if the same asset is picked again elsewhere.
   - Both systems only act while `IsCurrent`, so the vanilla toolbar, hotkeys,
     picking a building and so on keep vanilla behaviour.
   - If a game update makes the vanilla handlers deferred instead of
@@ -347,10 +347,10 @@ If a game update breaks this:
   `ToolUpdate`, `SetInfoview`, the `m_LastToolInfoview` / `m_LastToolInfomodes`
   fields) and `ToolBaseSystem.UpdateInfoview`.
 
-## The bulldozer ("Bulldozer in radial menu")
+## The bulldozer ("Bulldozer in the menu")
 
 On PC the bulldozer is an ordinary item in `toolbar.toolbarGroups$`
-(`ToolbarUISystem.ProcessToolbarBinding`), so the radial menu's top level gets
+(`ToolbarUISystem.ProcessToolbarBinding`), so the menu's top level gets
 it for free, and the vanilla `ToolbarButtonStrip` draws it along with the tab
 buttons. The mod recognises it by `selectSound === "bulldoze"`, which
 `ProcessToolbarBinding` sets only for the `BulldozePrefab` item.
@@ -387,7 +387,7 @@ Health & Deathcare ... Landscaping | Bulldoze Tool
 ```
 
 `useBulldozerPlacement` in `bulldozer.ts` finds the bulldozer's group; it
-doesn't assume a position. The bulldozer stays in the radial menu (and the
+doesn't assume a position. The bulldozer stays in the menu (and the
 whole strip is hidden) unless all of these hold, so it can't go missing from
 both places:
 - the `ToolbarButtonStrip` extension registered (`bulldozerHost.ready`);
@@ -418,8 +418,8 @@ groups before k one by one and the rest with `n + (k+1)`.
 ## Search filter data (assetMeta)
 
 Some search filters need prefab data that vanilla's `toolbar.assets$` doesn't
-send. `RadialMenuUISystem.AssetMeta.cs` collects it into one raw value binding,
-`RadialMenu.assetMeta`: a list of `{ entity, packs, ... }`, one entry per
+send. `BetterAssetMenuUISystem.AssetMeta.cs` collects it into one raw value binding,
+`BetterAssetMenu.assetMeta`: a list of `{ entity, packs, ... }`, one entry per
 toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
 (`search.ts`).
 
@@ -467,8 +467,12 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
   `SystemSerializerLibrary` from every system in the world that implements
   `IDefaultSerializable` (or `IJobSerializable`), and writes each one's
   `Serialize` output into the save as its own block. The block is keyed by the
-  **class name**: renaming `FavoritesSystem` orphans existing data unless the old
-  name is added with `[FormerlySerializedAs]`.
+  type's **assembly-qualified name** (`SystemSerializer` writes
+  `AssemblyQualifiedName`; `DeserializeType` tries `Type.GetType`, then the
+  `[FormerlySerializedAs]` table, dropping trailing `, ...` parts one at a
+  time). Renaming the class, its namespace or the assembly orphans existing
+  data unless the old name is added, e.g.
+  `[FormerlySerializedAs("OldNamespace.FavoritesSystem, OldAssembly")]`.
   - The library is built once and only rebuilt when marked dirty, so
     `FavoritesSystem` is created in `Mod.OnLoad` and calls
     `systemLibrary.SetDirty()` in `OnCreate`, in case it was built earlier.
@@ -489,8 +493,8 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
   name URL-escaped), parsed back with `Uri.UnescapeDataString` and
   `Hash128.TryParse`. `PrefabSystem.TryGetPrefab(PrefabID)` looks prefabs up by
   type, name and hash. IDs that don't resolve are kept, not dropped.
-- **Removing it from a city:** the "Remove Radial Menu data from this city"
-  button (Options > Radial Menu > Utilities, only enabled in a city) calls
+- **Removing it from a city:** the "Remove Better Asset Menu data from this city"
+  button (Options > Better Asset Menu > Utilities, only enabled in a city) calls
   `FavoritesSystem.ResetCityData`. After the city is saved, its block holds
   only the format version and a count of 0. A save with no block at all needs
   the mod disabled while saving. Anything else stored per save later must be
@@ -499,7 +503,7 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
   first; everything after that (unknown version, unreadable lines) runs on the
   already-read string inside try/catch and at worst costs favorites. Resolving
   IDs to prefabs happens later, when the list is sent to the UI.
-- **UI:** `RadialMenu.favorites` (raw value binding) sends each resolved
+- **UI:** `BetterAssetMenu.favorites` (raw value binding) sends each resolved
   favorite as `{ asset, menu, category }`: `asset` is written by
   `ToolbarUISystem.BindAsset`, and `menu` / `category` come from
   `UIObjectData.m_Group` and `UIAssetCategoryData.m_Menu`. It's re-sent when
@@ -518,7 +522,7 @@ compile-time reference, since it's optional.
 - **Detection:** `GameManager.instance.modManager.ListModsEnabled()` has an
   entry starting with `"FindIt, "` (the way Find It detects RoadBuilder).
   Mods load one at a time, and Find It may load **after** us (it does:
-  "RadialMenu" loads before "FindIt"), so the answer isn't cached until the
+  "BetterAssetMenu" loads before "FindIt"), so the answer isn't cached until the
   first `OnGameLoadingComplete` (the main menu, after every mod has loaded);
   until then it's re-checked on each call.
 - **Setting:** the saved choice is the hidden `UseFindItWanted` (default on).
@@ -537,7 +541,7 @@ compile-time reference, since it's optional.
     loading-complete callback, Find It's re-index included, finishes before
     our next update). Prefabs Find It adds later (its incremental `OnUpdate`
     indexing) aren't picked up until the next load, or until "Refresh
-    radial menu data" (Utilities) is pressed. That re-reads the index in
+    Better Asset Menu data" (Utilities) is pressed. That re-reads the index in
     place (the integration never blinks off) and resends it; the UI's cached
     records rebuild in the background, since they're keyed on the resent
     arrays. See Caches.
@@ -601,8 +605,8 @@ compile-time reference, since it's optional.
 ## Caches
 
 Nothing the mod caches should ever require reloading a city. Most caches
-refresh themselves; the rest are rebuilt by the **"Refresh radial menu
-data"** button (Utilities, needs a city; `RadialMenuUISystem.Refresh.cs`).
+refresh themselves; the rest are rebuilt by the **"Refresh Better Asset Menu
+data"** button (Utilities, needs a city; `BetterAssetMenuUISystem.Refresh.cs`).
 
 | Cache | Where | Refreshes |
 |---|---|---|
@@ -640,12 +644,12 @@ When adding a cache, either key it on data C# resends, or clear it in
   `Cities2_Data/resources.assets`, found by searching for `<Mouse>/rightButton`):
   the UI "Secondary Action" and the tool actions "Cancel" and "Secondary
   Apply". The UI "Back" action is Escape and gamepad buttons only, so
-  right-clicks reach the radial menu only as DOM mouse events. The menu's
+  right-clicks reach the menu only as DOM mouse events. The menu's
   input isolation removes "Secondary Action" while it's open.
 - **Text ("I-beam") cursor:** the game shows whatever cursor the UI view
   reports (`UserInterface.OnCursorChanged`, from
   `view.Listener.CursorChanged`). Checked with temporary logging on
-  2026-09-27: the radial menu's hidden search field never changes the cursor
+  2026-09-27: the menu's hidden search field never changes the cursor
   (open, type, close: no events). The stray "T" came with the menu closed and
   no field focused: on the main menu around starting a new game, briefly
   during loading, and over vanilla text fields in the city. Like any cursor,
@@ -694,11 +698,11 @@ When adding a cache, either key it on data C# resends, or clear it in
 - **Theme and pack selection:** `toolbar.assets$` only includes the themes and
   asset packs selected in the vanilla asset menu's filters
   (`ToolbarUISystem.FilterByThemes` / `FilterByPacks`). Search reads
-  `RadialMenu.allAssets` instead: a copy of `ToolbarUISystem.BindAssets` without
+  `BetterAssetMenu.allAssets` instead: a copy of `ToolbarUISystem.BindAssets` without
   those filters (and so does wheel browsing with "Show every theme and asset
   pack" on). It uses the public `ToolbarUISystem.BindAsset`,
   `UIObjectInfo.GetObjects` and `UniqueAssetTrackingSystem`. After a game
-  update, compare `RadialMenuUISystem.AllAssets.cs` with `BindAssets`. See
+  update, compare `BetterAssetMenuUISystem.AllAssets.cs` with `BindAssets`. See
   `search-schema.md`, Known limitations.
 
 ## Log messages
@@ -706,7 +710,7 @@ When adding a cache, either key it on data C# resends, or clear it in
 The mod logs very little: routine logging stays quiet, and the remaining
 messages mostly exist to flag breakage after a game update.
 
-**C#** (`Logs/RadialMenu.Mod.log`):
+**C#** (`Logs/BetterAssetMenu.Mod.log`):
 
 | Message | Meaning |
 |---|---|
@@ -715,20 +719,20 @@ messages mostly exist to flag breakage after a game update.
 | `Favorites saved: N` / `Favorites loaded: N` | Once per save (autosaves too) / load of a city. `(K unreadable, skipped)` if some lines couldn't be parsed |
 | `Favorites not loaded: unknown format version N` (warning) | The save was written by a newer version of the mod; the city loads with no favorites |
 | `Favorites could not be read from the save; starting empty` (error) | The favorites block was unreadable; the city still loads |
-| `Removed Radial Menu data from this city` | The "Remove Radial Menu data from this city" button was confirmed; `Remove Radial Menu data skipped: no city loaded` if there was no city |
+| `Removed Better Asset Menu data from this city` | The "Remove Better Asset Menu data from this city" button was confirmed; `Remove Better Asset Menu data skipped: no city loaded` if there was no city |
 | `Could not resolve DLC Steam app IDs; DLC assets get no store link` (warning) | The game's DLC data couldn't be read (after a game update?); DLC assets offer no "Copy Steam store link" |
 | `Could not read the Paradox Mods ID of <prefab>; ...` (warning, once) | An asset's mod metadata couldn't be read; that asset (and any other failing one) gets no "Copy Paradox Mods link" |
 | `Find It <version>: read N catalogue entries (M subcategories) in T ms` | Once per load with the Find It integration on |
-| `Refresh radial menu data requested`, `Refreshed radial menu data`, and with Find It `Find It <version>: rebuilt N catalogue entries ...` | The "Refresh radial menu data" button was pressed |
-| `Find It integration off: <what> (Find It <version>)...` (warning) | Find It's internals didn't look as expected (after a Find It update?); the radial menu works without it |
+| `Refresh Better Asset Menu data requested`, `Refreshed Better Asset Menu data`, and with Find It `Find It <version>: rebuilt N catalogue entries ...` | The "Refresh Better Asset Menu data" button was pressed |
+| `Find It integration off: <what> (Find It <version>)...` (warning) | Find It's internals didn't look as expected (after a Find It update?); the menu works without it |
 | `Reset vanilla theme filter` | The "Reset vanilla theme filter" button was used; followed by `... skipped: no city loaded` if there was no city |
-| `ToolSystem.m_LastToolInfoview/m_LastToolInfomodes not found; ...` (warning) | A game update renamed vanilla's private fields. The flicker-free tool info view path is off, and the fallback is used. See [Tool info views](#tool-info-views-show-info-views-for-radial-menu-selections). |
+| `ToolSystem.m_LastToolInfoview/m_LastToolInfomodes not found; ...` (warning) | A game update renamed vanilla's private fields. The flicker-free tool info view path is off, and the fallback is used. See [Tool info views](#tool-info-views-show-info-views-for-menu-selections). |
 | `Tool info view suppressed via fallback ...` | The fallback ran, once per session: the overlay may flash for a frame. Normally absent. |
 
 **UI** (`Logs/UI.log`, as JS console output):
 
 | Message | Meaning |
 |---|---|
-| `[RadialMenu] UI error, disabling mod UI: ...` | A render error was caught by the error boundary; the radial menu is hidden, the game UI is unaffected |
-| `[RadialMenu] Could not extend <path>#<export>` | A vanilla component to hide was renamed; that part of the vanilla toolbar stays visible |
-| `[RadialMenu] ...useInputController not found; ...` | Menu input isolation is disabled (see [Escape, "Back" and the pause menu](#escape-back-and-the-pause-menu-input-isolation)) |
+| `[BetterAssetMenu] UI error, disabling mod UI: ...` | A render error was caught by the error boundary; the menu is hidden, the game UI is unaffected |
+| `[BetterAssetMenu] Could not extend <path>#<export>` | A vanilla component to hide was renamed; that part of the vanilla toolbar stays visible |
+| `[BetterAssetMenu] ...useInputController not found; ...` | Menu input isolation is disabled (see [Escape, "Back" and the pause menu](#escape-back-and-the-pause-menu-input-isolation)) |

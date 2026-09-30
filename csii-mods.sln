@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RadialMenu", "RadialMenu\RadialMenu.csproj", "{4624F52D-9645-4550-9BDF-F07988373F2F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BetterAssetMenu", "BetterAssetMenu\BetterAssetMenu.csproj", "{4624F52D-9645-4550-9BDF-F07988373F2F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

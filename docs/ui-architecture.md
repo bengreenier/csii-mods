@@ -1,6 +1,6 @@
 # UI architecture
 
-How the menu's UI module (`RadialMenu/UI/src/mods/menu/`) is split, so that
+How the menu's UI module (`BetterAssetMenu/UI/src/mods/menu/`) is split, so that
 another way of drawing it (a "view") can be added as one folder. There are
 two: the wheel (`views/radial/`) and the pane (`views/pane/`, a Raycast-style
 list), picked by the "Menu style" setting.
@@ -87,7 +87,7 @@ out:
 (selecting it opens a level) and `place` (where an asset shown outside its
 category lives).
 
-Behaviour tests (`RadialMenu/UI/test/menu/`) drive the menu through its public
+Behaviour tests (`BetterAssetMenu/UI/test/menu/`) drive the menu through its public
 surface. `test/menu/driver.tsx` finds the backdrop as the field's ancestor
 under the render container, the view as the field's next sibling (the wheel)
 or the backdrop child holding the field (the pane), and the context menu
