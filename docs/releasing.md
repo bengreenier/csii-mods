@@ -6,7 +6,8 @@ Releases have two halves:
 - **Paradox Mods** is one local command, because publishing needs the game's
   modding toolchain and a signed-in Paradox account, which only this PC has.
 
-Each mod is released on its own. Tags carry the mod's name, e.g.
+Claude Code follows the `release-mod` skill (`.claude/skills/release-mod/`)
+for the local half. Each mod is released on its own. Tags carry the mod's name, e.g.
 `better-asset-menu-v1.1.0`.
 
 ## How a release happens
