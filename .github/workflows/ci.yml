@@ -1,0 +1,67 @@
+# What can run without the game installed. The C# build, check-game and
+# publishing need the game's DLLs and toolchain, so they stay local.
+#
+# Windows runners: webpack.config.js builds its output path with backslashes,
+# and that's where the mods are built and played.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  better-asset-menu-ui:
+    name: Better Asset Menu UI
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: BetterAssetMenu/UI
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: BetterAssetMenu/UI/package-lock.json
+
+      - run: npm ci
+
+      - name: Tests
+        run: npm test
+
+      - name: Type-check tests
+        run: npm run typecheck:test
+
+      - name: Static checks (builds the UI)
+        run: npm run check
+
+  repo:
+    name: Repo scripts and publish configs
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Syntax-check scripts
+        shell: bash
+        run: for f in scripts/*.mjs; do node --check "$f"; done
+
+      - name: Publish configs are valid XML
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path */Properties/PublishConfiguration.xml | ForEach-Object {
+            [xml](Get-Content -Raw $_.FullName) | Out-Null
+            Write-Output "ok: $($_.FullName)"
+          }
