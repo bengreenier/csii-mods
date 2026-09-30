@@ -557,6 +557,7 @@ namespace RadialMenu
                     "'width: 2u' or 'width: 16m' - roads, tracks and paths by width, in units (cells, as in a '2u road') or metres. " +
                     "A unit is 8 metres, so 'width: 2', 'width: 2u' and 'width: 16m' all find both 16 metre roads and buildings 2 cells wide. " +
                     "'depth: 3u' works like 'depth: 3'.\n" +
+                    "Short forms: 'w:' for 'width:' and 'd:' for 'depth:', e.g. 'w: 2u' or 'w: 4 d: 4'.\n" +
                     "'level: 3' - zoned buildings of that level"
                 },
                 {

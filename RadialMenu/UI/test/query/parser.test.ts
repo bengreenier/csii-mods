@@ -52,6 +52,17 @@ describe("parse: token statuses (docs: Half-typed and invalid input)", () => {
         expect(statuses("IS:OK")).toEqual([["IS:OK", "filter"]]);
     });
 
+    it("takes w: and d: for width: and depth:", () => {
+        expect(statuses("w:2 d:3u -W:4")).toEqual([
+            ["w:2", "filter"],
+            ["d:3u", "filter"],
+            ["-W:4", "filter"],
+        ]);
+        expect(statuses("w:x")).toEqual([["w:x", "invalid"]]);
+        const q = parseQ("w:2 d:3");
+        expect(q.filters.map((f) => f.def.key)).toEqual(["width", "depth"]);
+    });
+
     it("ignores empty comma atoms", () => {
         expect(statuses("is:new,")).toEqual([["is:new,", "filter"]]);
         expect(statuses("is:,")).toEqual([["is:,", "incomplete"]]);
