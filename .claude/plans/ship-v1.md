@@ -57,7 +57,7 @@ and `npm run check` passes. Every feature branch is merged.
 
 - First version: 1.0.0 (`PublishConfiguration.xml` and `UI/mod.json`).
 - Access level: Public.
-- Display name "Better Asset Menu"; tags `Code Mod` and `UI`.
+- Display name "Better Asset Menu"; tag `Code Mod` (Paradox has no general "UI" tag; its UI* tags are asset categories).
 - `GameVersion`: `1.6.*` (the game in use is 1.6.2f1).
 - Screenshots: ten, in `Properties/Screenshots/` (radial, then pane, then the Usage Guide).
 - `ExternalLink`: github, `https://github.com/bengreenier/csii-mods/tree/main/BetterAssetMenu`.

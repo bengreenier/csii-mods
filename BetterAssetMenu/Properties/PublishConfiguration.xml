@@ -103,7 +103,6 @@ Press Tab and see how fast building can be.
 	<Screenshot Value="Properties/Screenshots/10-settings-usage-guide.png" />
 	<!--Tag, can be set multiple times-->
 	<Tag Value="Code Mod" />
-	<Tag Value="UI" />
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="" />
 	<!--Version of the mod-->
