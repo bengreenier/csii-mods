@@ -551,3 +551,6 @@ FodyWeavers.xsd
 
 # Claude Code: per-session git worktrees (the project skills in .claude/skills are tracked)
 .claude/worktrees/
+
+# Per-release copy of a mod's publish config with the ChangeLog filled in (scripts/publish.mjs)
+**/Properties/PublishConfiguration.release.xml

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "separate-pull-requests": true,
+  "include-component-in-tag": true,
+  "packages": {
+    "BetterAssetMenu": {
+      "release-type": "simple",
+      "component": "better-asset-menu",
+      "package-name": "Better Asset Menu",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "UI/mod.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "generic",
+          "path": "Properties/PublishConfiguration.xml"
+        }
+      ]
+    }
+  }
+}

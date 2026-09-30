@@ -1,0 +1,22 @@
+# Opens a release PR per mod from conventional commits on main; merging it
+# tags the mod (e.g. better-asset-menu-v1.1.0) and creates the GitHub
+# release. Publishing to Paradox Mods is a local step: see docs/releasing.md.
+name: release-please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
