@@ -95,6 +95,7 @@ Press Tab and see how fast building can be.
 	<Screenshot Value="Properties/Screenshots/07-pane-search-size.png" />
 	<Screenshot Value="Properties/Screenshots/08-pane-add-favorite.png" />
 	<Screenshot Value="Properties/Screenshots/09-pane-favorites.png" />
+	<Screenshot Value="Properties/Screenshots/10-settings-usage-guide.png" />
 	<!--Tag, can be set multiple times-->
 	<Tag Value="Code Mod" />
 	<Tag Value="UI" />
