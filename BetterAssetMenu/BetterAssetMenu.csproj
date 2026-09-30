@@ -92,6 +92,13 @@
         </PropertyGroup>
     </Target>
 
+    <!--ModPublisher targets .NET 6 too; same roll-forward-->
+    <Target Name="CustomModPublisherConfig" AfterTargets="ModPublisherConfig">
+        <PropertyGroup>
+            <ModPublisherArgs>set "DOTNET_ROLL_FORWARD=Major" &amp;&amp; $(ModPublisherArgs)</ModPublisherArgs>
+        </PropertyGroup>
+    </Target>
+
     <!--DeployWIP wipes the deploy dir, so the UI bundle must be built after it-->
     <Target Name="BuildUI" AfterTargets="DeployWIP" Condition="'$(NeedBuild)'">
         <Exec Command="npm install" WorkingDirectory="$(UIProjectDir)" Condition="!Exists('$(UIProjectDir)\node_modules')"/>
