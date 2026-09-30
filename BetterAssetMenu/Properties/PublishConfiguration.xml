@@ -4,45 +4,84 @@
 	<!--Name of the mod to display to players-->
 	<DisplayName Value="Better Asset Menu" />
 	<!--Short description of the mod-->
-	<ShortDescription Value="Find and place any building, road or prop in a few keystrokes: a radial or list menu with type-to-search, filters and per-city favorites." />
+	<ShortDescription Value="Press Tab, type, place. Instantly search every building, road and prop in the game, with smart filters, per-city favorites and Find It support." />
 	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 	<LongDescription>
-Better Asset Menu replaces the bottom toolbar with a menu you open with a key (Tab, or the mouse's forward button, by default). Open it and start typing: the menu narrows to matching buildings, roads and props as you type, and Enter picks one, ready to place. Without typing, you can browse the same tabs and categories as the vanilla toolbar.
+**Stop hunting through tabs. Start building.**
 
-## Two menu styles
+Hundreds of buildings, roads, services and props are buried in menus inside menus. Better Asset Menu puts all of them one keypress away. Press **Tab**, type a few letters, pick your match, and you're placing it. No clicking through categories, no remembering which tab the water tower lives in.
 
-- **Radial:** a wheel of buttons around a center that shows the picture, name and details of whatever you point at.
-- **Pane:** a search field over a list you move through with the arrow keys, with details of the highlighted item beside it.
+It's the asset menu Cities: Skylines II deserved: fast enough for veterans who know exactly what they want, and friendly enough for new mayors who don't know what anything is called yet.
 
-Both search, browse and pick the same things. Choose one under Options > Better Asset Menu.
+## Just start typing
 
-## Search
+Open the menu and type. There's no search box to click. Results narrow with every keystroke. Click what you want, or press Enter once you've narrowed it down, and it's ready to place.
 
-Type words to search by name, "quotes" for an exact phrase, and a minus to leave things out (road -highway). Filters narrow results by more than the name, and suggestions appear as you type them:
+- Type **fire station** and every fire station appears.
+- Type **road -highway** for every road except highways.
+- Type **"bus stop"** for that exact phrase.
 
-- is: ok / new / unique / placed / locked / mod / favorite
-- theme: and pack: - building styles and asset packs, from every theme or only your city's
-- zone:, level:, size: (s:), width: (w:) and depth: (d:) - zoned buildings, lots and road widths, e.g. s: 2x3 or w: 2u
-- dlc: - base game, a DLC, or everything but the base game
-- in: - a toolbar tab or category, e.g. in: parks bench
-- fx: - what it does for your city, e.g. fx: crime
+Not searching? Browse the same tabs and categories as the vanilla toolbar, in a layout that's faster to scan.
 
-Unfinished or unknown filters are simply ignored, so a search never comes up empty because of a typo in a filter. The in-game Usage Guide tab covers everything.
+## Search like a pro
 
-## Favorites
+Filters find things by what they are, not just what they're called. You don't need to memorise anything: suggestions pop up as you type, and Enter accepts them.
 
-Right-click anything you can place and add it to your favorites. Each city keeps its own favorites, saved with the city.
+- **is: ok** - only what you can place right now
+- **is: new** - everything you just unlocked
+- **is: unique -is: placed** - the landmarks still waiting for a spot in your city
+- **fx: crime** - anything that affects crime; also try **fx: health**, **fx: wellbeing** and **fx: entertainment**
+- **s: 2x3** - buildings on a lot exactly 2 cells wide and 3 deep
+- **w: 2u road** - every road 2 cells wide, the "2u road" builders talk about
+- **zone: residential zone: high** - high-density housing
+- **theme: european** or **pack:** - a regional style or a content pack
+- **dlc: none** - base game only; **is: mod** - only mod content
+- **in: parks bench** - search inside a single tab
 
-## Find It
+Mix and match freely: **school is: ok** shows the schools you can build right now. Made a typo in a filter? It's shown crossed out and ignored, so you never end up staring at an empty list wondering why.
 
-With the Find It mod enabled, the menu can also reach everything Find It lists (props, decals, trees, vehicles and more), with a cat: filter for Find It's categories.
+## Every theme, every pack, at your fingertips
 
-## Also
+Want a North American building in your European city? Search finds assets from every theme and asset pack, without touching the vanilla theme filter. Prefer to see only your city's style? That's one setting away.
 
-- Open at the screen center or at the mouse cursor
-- Scale the wheel or pane, and adjust the wheel's spacing
-- Optionally keep the bulldozer, or the whole vanilla toolbar, visible
-- Optionally stop menu picks from switching on info views
+## Supercharged with Find It
+
+Already using **Find It**? Better Asset Menu plugs straight into its catalogue. Props, decals, trees, fences, vehicles and everything else Find It knows about become searchable from the same menu, right next to your roads and services.
+
+- A Find It entry at the top of the menu browses all of Find It's categories.
+- One search covers both the toolbar and Find It's whole catalogue.
+- The **cat:** filter narrows by Find It category: **cat: decals**, **cat: trees**, **cat: props cat: residential**.
+- Anything from Find It can go in your favorites too.
+
+Find It isn't required. Without it, Better Asset Menu works with everything in the vanilla toolbar.
+
+## Two ways to play
+
+Pick the menu that fits how you build:
+
+- **Radial:** a wheel of buttons that opens around your cursor or the center of the screen. Point at anything to see its picture, name and details in the middle. Quick, visual and very satisfying.
+- **Pane:** a keyboard-first list with a big preview beside it. Arrow keys to move, Enter to place, and click any detail (like **theme: European**) to add it to your search, or right-click it to exclude it.
+
+Both search, browse and place exactly the same things. Switch whenever you like.
+
+## Favorites for every city
+
+Right-click anything and add it to your favorites. Each city keeps its own list, saved with the save file, so your downtown build and your farm town each get the tools they need. Typing while in Favorites searches only your favorites.
+
+## Make it yours
+
+- Rebind the open key, or open the menu with a mouse button (the forward button by default)
+- Scale the wheel or the pane, and tune the wheel's spacing
+- Open at the mouse cursor or the center of the screen
+- Hide the vanilla toolbar entirely, or keep the bulldozer where it's always been
+- Stop menu picks from switching on info views, if you'd rather keep your view
+- Right-click an item to copy its DLC or mod link
+
+## Learn it in a minute
+
+A full **Usage Guide** tab in the mod's settings walks through every filter and key with examples to try. Every time you open the menu, it suggests a different search to try.
+
+Press Tab and see how fast building can be.
 	</LongDescription>
 	<!--Thumbnail-->
 	<Thumbnail Value="Properties/Thumbnail.png" />
