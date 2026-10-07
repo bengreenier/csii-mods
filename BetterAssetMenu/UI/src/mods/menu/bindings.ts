@@ -64,6 +64,11 @@ export const browseAllThemes$ = bindValue<boolean>(GROUP, "browseAllThemes", fal
 // search (BetterAssetMenuUISystem.AllAssets.cs). Refreshed whenever the menu opens.
 export const allAssets$ = bindMap<Entity, toolbar.Asset[]>(GROUP, "allAssets");
 
+// Categories nested in a category (ExtraLib's, used by Extra Assets Importer):
+// the leaf categories under it, in toolbar.AssetCategory's shape; empty for an
+// ordinary category. See BindSubCategories in BetterAssetMenuUISystem.AllAssets.cs.
+export const subCategories$ = bindMap<Entity, toolbar.AssetCategory[]>(GROUP, "subCategories");
+
 // Fired by C# from the "Reset vanilla theme filter" settings button, with the
 // city's default theme.
 export const resetVanillaThemes$ = bindEvent<Entity>(GROUP, "resetVanillaThemes");

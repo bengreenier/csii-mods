@@ -35,6 +35,7 @@ group) is still in the sections below.
 - [Search filter data (assetMeta)](#search-filter-data-assetmeta)
 - [Per-save data (favorites)](#per-save-data-favorites)
 - [Find It](#find-it)
+- [Nested categories (ExtraLib / Extra Assets Importer)](#nested-categories-extralib--extra-assets-importer)
 - [Caches](#caches)
 - [Other runtime quirks](#other-runtime-quirks)
 - [Log messages](#log-messages)
@@ -602,6 +603,39 @@ compile-time reference, since it's optional.
     the first search doesn't stall;
   - a search then only builds the small toolbar part and merges.
 
+## Nested categories (ExtraLib / Extra Assets Importer)
+
+Extra Assets Importer (EAI) builds its menu with ExtraLib's category
+prefabs, one level deeper than vanilla: **Extra Assets** (a vanilla
+`UIAssetMenuPrefab`, "ExtraAssetsMenu") > **Surfaces / Decals / NetLanes**
+(`UIAssetParentCategoryPrefab`) > **"Brick Surfaces"** etc.
+(`UIAssetChildCategoryPrefab`, named `<pack category> <parent>`) > assets.
+Checked against ExtraLib 75724 and EAI 80529, decompiled.
+
+- The parent category drops `UIAssetMenuData` and has `UIAssetCategoryData`,
+  so vanilla's `toolbar.assetCategories` lists it under the menu. Its
+  `UIGroupElement` buffer holds the **child categories**, so vanilla's
+  `ToolbarUISystem.BindAssets` (and our `allAssets` copy) list those as
+  its "assets". Child categories have `UIAssetCategoryData` with the menu, and
+  their buffer holds the assets.
+- `toolbar.selectAsset` on a category activates no tool
+  (`ToolSystem.ActivatePrefabTool` finds no tool for it and falls back to the
+  default tool). That was issue #2: picking "Brick Surfaces" closed the menu
+  and selected nothing.
+- ExtraLib's own UI extends vanilla's `AssetCategoryTabBar` with a second tab
+  row that calls `toolbar.selectAssetCategory(child)`. A Harmony postfix on
+  `ToolbarUISystem.SelectAssetMenu` / `SelectAssetCategory` redirects a
+  parent's selection to its deepest (last-selected or first) child.
+- What the mod does: `subCategories` (`BetterAssetMenuUISystem.AllAssets.cs`)
+  writes the leaf categories under a category (empty for ordinary ones).
+  CategoryLevel shows those as categories to open (`selectAssetCategory`)
+  instead of its assets, `Path.parent` remembers where Back goes, and search
+  expands such a category into its leaves.
+- **If this breaks** (Extra Assets items close the menu and select nothing
+  again): re-decompile ExtraLib's `UIAssetParentCategoryPrefab` /
+  `UIAssetChildCategoryPrefab` / `AssetMultiCategory` and vanilla's
+  `ToolbarUISystem.BindAssets` / `GetSortedCategories`.
+
 ## Caches
 
 Nothing the mod caches should ever require reloading a city. Most caches
@@ -612,6 +646,7 @@ data"** button (Utilities, needs a city; `BetterAssetMenuUISystem.Refresh.cs`).
 |---|---|---|
 | Favorites | C# `favorites` | on every change |
 | Unfiltered asset lists | C# `allAssets` | whenever the menu opens |
+| Nested categories | C# `subCategories` | whenever the menu opens |
 | `assetMeta` (packs, lot, zone, level, net width, mod ID, Find It category) | C# | on load, when the Find It snapshot changes, and on Refresh |
 | DLC Steam app IDs | C# `dlcSteamApps` | once per session, and on Refresh |
 | Find It snapshot | C# `findItCategories` / `findItAssets` | on load, and on Refresh (in place) |

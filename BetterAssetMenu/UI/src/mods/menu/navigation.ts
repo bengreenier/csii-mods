@@ -10,6 +10,9 @@ import { FindItCategory, FindItSubCategory } from "./bindings";
 export interface Path {
     menu?: toolbar.ToolbarItem;
     category?: toolbar.AssetCategory;
+    // The category `category` was opened from, when it's nested in one
+    // (subCategories$, e.g. Extra Assets > Surfaces > Brick Surfaces).
+    parent?: toolbar.AssetCategory;
     favorites?: boolean;
     // The Find It level: its categories, then a category's subcategories,
     // then a subcategory's assets (BetterAssetMenuUISystem.FindIt.cs).
@@ -20,7 +23,12 @@ export type FindItPlace = { category?: FindItCategory; sub?: FindItSubCategory }
 
 export const ROOT: Path = {};
 export const menuPath = (menu: toolbar.ToolbarItem): Path => ({ menu });
-export const categoryPath = (path: Path, category: toolbar.AssetCategory): Path => ({ ...path, category });
+// From a category level, the category opened is nested in the current one.
+export const categoryPath = (path: Path, category: toolbar.AssetCategory): Path => ({
+    ...path,
+    category,
+    parent: path.category,
+});
 export const favoritesPath = (): Path => ({ favorites: true });
 export const findItPath = (place: FindItPlace = {}): Path => ({ findIt: place });
 
@@ -50,7 +58,9 @@ export type BackStep =
 export function backStep({ path, query, contextOpen }: { path: Path; query: string; contextOpen: boolean }): BackStep {
     if (contextOpen) return { kind: "closeContext" };
     if (query) return { kind: "clearQuery" };
-    if (path.category) return { kind: "goTo", path: { menu: path.menu } };
+    // A nested category goes back to the one it was opened from.
+    if (path.category)
+        return { kind: "goTo", path: path.parent ? { menu: path.menu, category: path.parent } : { menu: path.menu } };
     // Favorites never opened a vanilla menu, so there's nothing to reset.
     if (path.favorites) return { kind: "goTo", path: ROOT };
     // Find It: up one step; nothing vanilla to reset.
@@ -93,6 +103,7 @@ export function trail(path: Path): Crumb[] {
     }
     const crumbs: Crumb[] = [];
     if (path.menu) crumbs.push({ kind: "prefab", entity: path.menu.entity, name: path.menu.name });
+    if (path.parent) crumbs.push({ kind: "prefab", entity: path.parent.entity, name: path.parent.name });
     if (path.category) crumbs.push({ kind: "prefab", entity: path.category.entity, name: path.category.name });
     return crumbs;
 }
