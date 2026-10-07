@@ -83,6 +83,8 @@ namespace BetterAssetMenu
         // that changed while it was closed. Only subscribed keys are written.
         private void RefreshAllAssets()
         {
+            // assetMeta may have been built before Platter made its prefabs.
+            if (LookUpPlatter()) RefreshAssetMeta();
             _allAssets.UpdateAll();
             _subCategories.UpdateAll();
         }

@@ -46,7 +46,7 @@ namespace BetterAssetMenu
             var toolSystem = World.GetOrCreateSystemManaged<ToolSystem>();
             AddBinding(new TriggerBinding<Entity>(kGroup, "activatePrefab", entity =>
             {
-                if (!_prefabSystem.TryGetPrefab(entity, out PrefabBase prefab)) return;
+                if (!_prefabSystem.TryGetPrefab(PlatterPlaceholderOf(entity), out PrefabBase prefab)) return;
                 toolSystem.ActivatePrefabTool(prefab);
                 RadialSelection.Mark(toolSystem);
             }));
@@ -166,12 +166,7 @@ namespace BetterAssetMenu
                 return;
             }
             writer.ArrayBegin(entities.Count);
-            foreach (var entity in entities)
-            {
-                _toolbarUISystem.BindAsset(writer, entity,
-                    _uniqueAssetTrackingSystem.IsUniqueAsset(entity),
-                    _uniqueAssetTrackingSystem.IsPlacedUniqueAsset(entity));
-            }
+            foreach (var entity in entities) WriteAsset(writer, entity);
             writer.ArrayEnd();
         }
 

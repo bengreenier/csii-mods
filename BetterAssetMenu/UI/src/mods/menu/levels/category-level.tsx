@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { useMapValue, useValue } from "cs2/api";
 import { toolbar } from "cs2/bindings";
-import { selectAsset, selectAssetCategory } from "../actions";
-import { allAssets$, browseAllThemes$, close, lockPlacedUnique$, subCategories$ } from "../bindings";
+import { entityKey } from "cs2/utils";
+import { placeDirectly, selectAsset, selectAssetCategory } from "../actions";
+import { allAssets$, browseAllThemes$, close, lockPlacedUnique$, platterParcels$, subCategories$ } from "../bindings";
 import { useLocalization } from "../localization";
 import { Label, LevelModel, MenuItem } from "../model";
 import { SearchScope, useAssetSearch } from "../search";
@@ -31,6 +32,11 @@ export const CategoryLevel = ({ menu, category, current, onOpenCategory, onBack 
     // vanilla lists those as its "assets", but they're opened, as ExtraLib's
     // second tab row does, not selected as assets (which activates no tool).
     const subCategories = useMapValue(subCategories$, category.entity) ?? EMPTY;
+    // Platter's category: its "Parcel" selector (which places the size picked
+    // in Platter's panel), then every size.
+    const platter = useValue(platterParcels$);
+    const parcels =
+        platter && entityKey(platter.category) === entityKey(category.entity) ? platter.assets : EMPTY;
     const scope = useMemo<SearchScope[]>(() => [{ menu, category }], [menu, category]);
     const search = useAssetSearch(query, useLocalization(), EMPTY, scope);
     const lockPlaced = useValue(lockPlacedUnique$);
@@ -48,13 +54,16 @@ export const CategoryLevel = ({ menu, category, current, onOpenCategory, onBack 
                           onOpenCategory(sub);
                       },
                   }))
-                : assets.map((asset) =>
-                      assetItem(asset, lockPlaced, () => {
-                          selectAsset(asset.entity, true);
-                          close();
-                      })
-                  ),
-        [subCategories, assets, lockPlaced, onOpenCategory]
+                : [
+                      ...assets.map((asset) =>
+                          assetItem(asset, lockPlaced, () => {
+                              selectAsset(asset.entity, true);
+                              close();
+                          })
+                      ),
+                      ...parcels.map((asset) => assetItem(asset, lockPlaced, () => placeDirectly(asset.entity))),
+                  ],
+        [subCategories, assets, parcels, lockPlaced, onOpenCategory]
     );
     const resultItems = useResultItems(search.results);
     const level = useMemo<LevelModel>(

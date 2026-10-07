@@ -37,6 +37,8 @@ namespace BetterAssetMenu
             // Re-read in place by UpdateFindIt this update; it resends
             // assetMeta itself when it does.
             _findItRebuildRequested = true;
+            // Looked up again by RefreshAllAssets.
+            ResetPlatter();
             RefreshAssetMeta();
             RefreshAllAssets();
             RefreshFavorites();

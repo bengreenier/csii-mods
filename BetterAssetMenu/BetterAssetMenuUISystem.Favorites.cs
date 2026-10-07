@@ -60,9 +60,7 @@ namespace BetterAssetMenu
             {
                 writer.TypeBegin("betterAssetMenu.Favorite");
                 writer.PropertyName("asset");
-                _toolbarUISystem.BindAsset(writer, asset,
-                    _uniqueAssetTrackingSystem.IsUniqueAsset(asset),
-                    _uniqueAssetTrackingSystem.IsPlacedUniqueAsset(asset));
+                WriteAsset(writer, asset);
                 writer.PropertyName("menu");
                 if (menu != Entity.Null) writer.Write(menu);
                 else writer.WriteNull();
