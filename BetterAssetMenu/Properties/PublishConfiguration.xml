@@ -106,7 +106,7 @@ Press Tab and see how fast building can be.
 	<!--Link to the forum post where the mod can be discussed-->
 	<ForumLink Value="" />
 	<!--Version of the mod-->
-	<ModVersion Value="1.0.0" /> <!-- x-release-please-version -->
+	<ModVersion Value="1.1.0" /> <!-- x-release-please-version -->
 	<!--Recommended version of the base game to use the mod-->
 	<GameVersion Value="1.6.*" />
 	<!--Dependency for the mod, can be set multiple times-->
