@@ -122,6 +122,15 @@ export const findItAssets$ = bindMap<number, toolbar.Asset[]>(GROUP, "findItAsse
 // for assets that aren't in the vanilla toolbar.
 export const activatePrefab = (asset: Entity) => trigger(GROUP, "activatePrefab", asset);
 
+// Platter's parcel sizes ("Parcel WxD"), listed in its toolbar category after
+// its "Parcel" selector, and placed with activatePrefab (C# places the size's
+// placeholder). null without Platter. See BetterAssetMenuUISystem.Platter.cs.
+export interface PlatterParcels {
+    category: Entity;
+    assets: toolbar.Asset[];
+}
+export const platterParcels$ = bindValue<PlatterParcels | null>(GROUP, "platterParcels", null);
+
 // Each DLC's Steam app ID, by DLC name (the icon name in Asset.dlc); see
 // BetterAssetMenuUISystem.StoreLinks.cs. Static game data.
 export interface DlcSteamApp {

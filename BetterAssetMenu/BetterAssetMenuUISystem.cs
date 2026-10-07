@@ -69,6 +69,7 @@ namespace BetterAssetMenu
             CreateStoreLinkBindings();
             // After CreateAllAssetsBinding (shares its systems).
             CreateFindItBindings();
+            CreatePlatterBindings();
             CreateRefreshBindings();
         }
 
@@ -79,6 +80,7 @@ namespace BetterAssetMenu
             // Loading resets vanilla's theme filter anyway (ToolbarUISystem.OnGameLoaded).
             _themeResetRequested = false;
             ResetFindIt();
+            ResetPlatter();
         }
 
         protected override void OnUpdate()

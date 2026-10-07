@@ -60,6 +60,8 @@ namespace BetterAssetMenu
         {
             base.OnGameLoadingComplete(purpose, mode);
             OnFindItLoadComplete();
+            // Before assetMeta, which includes Platter's sizes.
+            LookUpPlatter();
             // The UI may have subscribed mid-load and received a partial list.
             _assetMetaCache = null;
             _assetMeta.Update();
@@ -117,6 +119,9 @@ namespace BetterAssetMenu
             var entities = new HashSet<Entity>(toolbarEntities);
             if (FindItActive && _findItEntries != null)
                 foreach (var entry in _findItEntries) entities.Add(entry.Entity);
+            // Platter's parcel sizes: not toolbar assets, and not buildings, so
+            // their size comes from Platter's names.
+            foreach (var parcel in _platter) entities.Add(parcel.Parcel);
             foreach (var entity in entities)
             {
                 var meta = new AssetMeta { Entity = entity, Packs = GetPacks(entity) };
@@ -124,6 +129,11 @@ namespace BetterAssetMenu
                 {
                     meta.LotWidth = building.m_LotSize.x;
                     meta.LotDepth = building.m_LotSize.y;
+                }
+                else if (PlatterParcelSize(entity) is (int width, int depth))
+                {
+                    meta.LotWidth = width;
+                    meta.LotDepth = depth;
                 }
                 // Zoned buildings (e.g. signature buildings) take their zone from
                 // their zone prefab; the Zones tab's items are zone prefabs.

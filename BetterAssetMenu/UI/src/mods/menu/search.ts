@@ -11,6 +11,7 @@ import {
     AssetMeta,
     findItActive$,
     findItCategories$,
+    platterParcels$,
     searchAllThemes$,
     subCategories$,
 } from "./bindings";
@@ -92,6 +93,8 @@ const findItParts = new WeakMap<toolbar.Asset[], { factory: RecordFactory; part:
 // After the toolbar (orderBase 0), and apart per subcategory, so toolbar
 // assets win ties and the order is stable.
 const findItOrderBase = (subId: number) => 1_000_000 + subId * 100_000;
+// Platter's parcel sizes: after the toolbar, before Find It.
+const PLATTER_ORDER_BASE = 500_000;
 
 function findItPart(subId: number, assets: toolbar.Asset[], factory: RecordFactory): IndexPart {
     const cached = findItParts.get(assets);
@@ -209,6 +212,22 @@ export function useAssetSearch(
         return buildPart(sources, factory, 0);
     }, [resolvedScope, assetsPerCategory, factory, loc]);
 
+    // Platter's parcel sizes, with its category when that's in scope. Shown
+    // in their category, but placed directly (no `place`): they aren't in
+    // the vanilla toolbar.
+    const platter = useValue(platterParcels$);
+    const platterPart = useMemo(() => {
+        const s = platter && resolvedScope.find((s) => entityKey(s.category.entity) === entityKey(platter.category));
+        if (!platter || !s) return null;
+        const location = {
+            menuName: s.menu.name,
+            menuTitle: title(loc, s.menu.name),
+            categoryName: s.category.name,
+            categoryTitle: title(loc, s.category.name),
+        };
+        return buildPart([{ assets: platter.assets, place: {}, location }], factory, PLATTER_ORDER_BASE);
+    }, [platter, resolvedScope, factory, loc]);
+
     // Find It's catalogue (subscribed at the root; see find-it-catalogue.ts),
     // after the toolbar: duplicates keep the toolbar's entry.
     const catalogue = useContext(FindItCatalogueContext);
@@ -230,8 +249,8 @@ export function useAssetSearch(
 
     // Rebuilt only when game data or the scope changes, never per keystroke.
     const index = useMemo(
-        () => combineParts([toolbarPart, ...findItPartsInScope]),
-        [toolbarPart, findItPartsInScope]
+        () => combineParts(platterPart ? [toolbarPart, platterPart, ...findItPartsInScope] : [toolbarPart, ...findItPartsInScope]),
+        [toolbarPart, platterPart, findItPartsInScope]
     );
 
     const parsed = useMemo(() => parse(query, index.ctx), [query, index.ctx]);

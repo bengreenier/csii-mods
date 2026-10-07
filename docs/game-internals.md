@@ -36,6 +36,7 @@ group) is still in the sections below.
 - [Per-save data (favorites)](#per-save-data-favorites)
 - [Find It](#find-it)
 - [Nested categories (ExtraLib / Extra Assets Importer)](#nested-categories-extralib--extra-assets-importer)
+- [Platter](#platter)
 - [Caches](#caches)
 - [Other runtime quirks](#other-runtime-quirks)
 - [Log messages](#log-messages)
@@ -636,6 +637,47 @@ Checked against ExtraLib 75724 and EAI 80529, decompiled.
   `UIAssetChildCategoryPrefab` / `AssetMultiCategory` and vanilla's
   `ToolbarUISystem.BindAssets` / `GetSortedCategories`.
 
+## Platter
+
+Platter (lucarager, Paradox Mods 125278, github.com/lucarager/CS2-Platter; no
+licence, so runtime interop only) adds placeable parcels with zone blocks.
+Checked against Platter 1.6.4.0, decompiled. Everything is created at runtime
+by `P_PrefabsCreateSystem.Install()`, once per session on its first
+`OnGamePreload` (or `OnGameLoadingComplete`):
+
+- `UIAssetCategoryPrefab "PlatterCat"` ("Platter - Parcels"), with `m_Menu`
+  copied from vanilla's office zones category, so it's under **Zones**.
+- One toolbar asset, `ParcelSelectorPrefab "Parcel"` (`m_Group` PlatterCat,
+  icon `coui://platter/ParcelThumbnail.svg`). Harmony prefixes on
+  `ObjectToolSystem.TrySetPrefab` / `GetObjectPrefab` swap it for the
+  placeholder of the size picked in Platter's panel (`P_UISystem.SelectedParcelSize`).
+- Per size, `ParcelPrefab "Parcel WxD"` and `ParcelPlaceholderPrefab
+  "ParcelPlaceholder WxD"` (W 1-8, D 2-6: 40 sizes; `AvailableParcelLotSizes`).
+  No `UIObject`, so not in the toolbar and no icon. Locale keys exist for
+  `Assets.NAME[Parcel WxD]` ("Parcel (WxD)"), not for the placeholders.
+  Platter's panel places a size by `ToolSystem.ActivatePrefabTool(placeholder)`
+  (then points the toolbar at the selector by reflection), and its
+  `OnUpdate` takes the panel's size from whichever placeholder the object tool has.
+- Platter's panel (`ToolOptionsPanel` extension) shows while the object tool
+  has a placeholder (`BINDING:ENABLE_TOOL_BUTTONS`), whatever selected it.
+
+What the mod does (`BetterAssetMenuUISystem.Platter.cs`): finds PlatterCat, the
+selector and every `Parcel WxD` / `ParcelPlaceholder WxD` pair by `PrefabID`
+(probing up to 16x16) at loading complete and on menu open until found, and
+sends the sizes as `platterParcels` (`{ category, assets }`, vanilla's
+`BindAsset` shape with the selector's icon swapped in). CategoryLevel lists
+them after the selector; search includes them wherever PlatterCat is in
+scope; `assetMeta` gives them their lot size (`size:`). Picking one uses
+`activatePrefab`, which places the size's **placeholder**, as Platter's panel
+does. The (hidden) vanilla toolbar isn't pointed at the selector. Platter's
+bindings aren't used.
+
+- **If this breaks** (no sizes in Platter's category, or picking one places
+  nothing or the wrong size): check `BetterAssetMenu.Mod.log` for `Platter:
+  listing N parcel sizes`, then re-decompile Platter's
+  `P_PrefabsCreateSystem` / `ParcelUtils.GetPrefabID` (names) and
+  `P_UISystem.UpdateSelectedPrefab` / `OnUpdate` (how a size is placed).
+
 ## Caches
 
 Nothing the mod caches should ever require reloading a city. Most caches
@@ -647,7 +689,8 @@ data"** button (Utilities, needs a city; `BetterAssetMenuUISystem.Refresh.cs`).
 | Favorites | C# `favorites` | on every change |
 | Unfiltered asset lists | C# `allAssets` | whenever the menu opens |
 | Nested categories | C# `subCategories` | whenever the menu opens |
-| `assetMeta` (packs, lot, zone, level, net width, mod ID, Find It category) | C# | on load, when the Find It snapshot changes, and on Refresh |
+| Platter's parcel sizes | C# `platterParcels` | once per load (looked up at loading complete, or on menu open until Platter's prefabs exist), and on Refresh |
+| `assetMeta` (packs, lot, zone, level, net width, mod ID, Find It category) | C# | on load, when the Find It snapshot changes, when Platter's sizes are found, and on Refresh |
 | DLC Steam app IDs | C# `dlcSteamApps` | once per session, and on Refresh |
 | Find It snapshot | C# `findItCategories` / `findItAssets` | on load, and on Refresh (in place) |
 | `fx:` effect terms | UI `FX_CACHE` (search.ts) | on Refresh (the `dataRefreshed` event) |
