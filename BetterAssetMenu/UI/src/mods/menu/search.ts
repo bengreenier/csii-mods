@@ -5,7 +5,15 @@ import * as l10n from "cs2/l10n";
 import { Entity, entityKey } from "cs2/utils";
 import { assetTitle as title, useAssetMetaByKey, useThemes } from "./asset-data";
 import { TOOLBAR_ITEM_TYPE_MENU } from "./actions";
-import { activeLocale$, allAssets$, AssetMeta, findItActive$, findItCategories$, searchAllThemes$ } from "./bindings";
+import {
+    activeLocale$,
+    allAssets$,
+    AssetMeta,
+    findItActive$,
+    findItCategories$,
+    searchAllThemes$,
+    subCategories$,
+} from "./bindings";
 import { useFavoriteKeys } from "./favorites";
 import { FindItCatalogue, FindItCatalogueContext } from "./find-it-catalogue";
 import { evaluate } from "./query/evaluate";
@@ -161,11 +169,23 @@ export function useAssetSearch(
     const menuKeys = useStableKeys(menus.map((m) => m.entity));
     const categoriesPerMenu = useMapValues(toolbar.assetCategories$, menuKeys);
 
-    const resolvedScope = useMemo<SearchScope[]>(() => {
+    const outerScope = useMemo<SearchScope[]>(() => {
         if (!searching) return EMPTY;
         if (scope !== "all") return scope;
         return menus.flatMap((menu, i) => (categoriesPerMenu[i] ?? EMPTY).map((category) => ({ menu, category })));
     }, [searching, scope, menus, categoriesPerMenu]);
+    // A category holding categories (subCategories$) is searched through
+    // them: its own "assets" are those categories.
+    const outerKeys = useStableKeys(outerScope.map((s) => s.category.entity));
+    const subsPerCategory = useMapValues(subCategories$, outerKeys);
+    const resolvedScope = useMemo<SearchScope[]>(
+        () =>
+            outerScope.flatMap((s, i) => {
+                const subs = subsPerCategory[i];
+                return subs && subs.length > 0 ? subs.map((category) => ({ menu: s.menu, category })) : [s];
+            }),
+        [outerScope, subsPerCategory]
+    );
 
     const categoryKeys = useStableKeys(resolvedScope.map((s) => s.category.entity));
     // toolbar.assets$ only lists the themes/packs selected in the vanilla asset

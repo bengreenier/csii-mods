@@ -270,6 +270,7 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
                 menu={path.menu}
                 category={path.category}
                 current={path.category}
+                onOpenCategory={openCategory}
                 onBack={back}
             />
         );
