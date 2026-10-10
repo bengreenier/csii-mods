@@ -20,15 +20,23 @@ const NO_KEYS: ReadonlySet<string> = new Set<string>();
  * The set only changes when a favorite is added or removed. While `enabled` is
  * false it's always the same empty set, so memos depending on it stay put.
  */
-// Shared across components: search caches records keyed on this set.
+// Shared across components: search caches records keyed on this set. C#
+// resends the list on every menu open (for current locked/placed states), so
+// the set is only replaced when the keys themselves change.
 let keysSource: unknown = null;
+let keysSignature = "";
 let keys: ReadonlySet<string> = NO_KEYS;
 
 export function useFavoriteKeys(enabled = true): ReadonlySet<string> {
     const favorites = useValue(favorites$);
     if (keysSource !== favorites) {
         keysSource = favorites;
-        keys = new Set(favorites.map((f) => entityKey(f.asset.entity)));
+        const next = favorites.map((f) => entityKey(f.asset.entity));
+        const signature = next.join(",");
+        if (signature !== keysSignature) {
+            keysSignature = signature;
+            keys = new Set(next);
+        }
     }
     return enabled ? keys : NO_KEYS;
 }
