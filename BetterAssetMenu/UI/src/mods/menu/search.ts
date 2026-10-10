@@ -147,7 +147,8 @@ export function clearSearchSessionCaches() {
  * `favoritesOnly` narrows that to this city's favorites (the Favorites level),
  * using the same lookup as is:favorite. `findIt` adds Find It subcategories
  * while its catalogue is in use: all of them by default at the root.
- * Nothing toolbar-side is subscribed while `query` is empty.
+ * Nothing toolbar-side is subscribed until the first query; after that it
+ * stays subscribed (and indexed) while the calling level is mounted.
  */
 export function useAssetSearch(
     query: string,
@@ -158,24 +159,29 @@ export function useAssetSearch(
     findIt: number[] | "all" = scope === "all" ? "all" : EMPTY
 ): SearchResults {
     const searching = query.trim().length > 0;
+    // Clearing the query and typing again would otherwise resubscribe every
+    // category (C# resends them all) and rebuild the index.
+    const [started, setStarted] = useState(false);
+    if (searching && !started) setStarted(true);
+    const subscribed = searching || started;
     const factory = useFactory(loc);
 
     // Root search needs every menu's categories first.
     const menus = useMemo(
         () =>
-            searching && scope === "all"
+            subscribed && scope === "all"
                 ? groups.flatMap((g) => g.children).filter((i) => i.type === TOOLBAR_ITEM_TYPE_MENU && !i.locked)
                 : EMPTY,
-        [searching, scope, groups]
+        [subscribed, scope, groups]
     );
     const menuKeys = useStableKeys(menus.map((m) => m.entity));
     const categoriesPerMenu = useMapValues(toolbar.assetCategories$, menuKeys);
 
     const outerScope = useMemo<SearchScope[]>(() => {
-        if (!searching) return EMPTY;
+        if (!subscribed) return EMPTY;
         if (scope !== "all") return scope;
         return menus.flatMap((menu, i) => (categoriesPerMenu[i] ?? EMPTY).map((category) => ({ menu, category })));
-    }, [searching, scope, menus, categoriesPerMenu]);
+    }, [subscribed, scope, menus, categoriesPerMenu]);
     // A category holding categories (subCategories$) is searched through
     // them: its own "assets" are those categories.
     const outerKeys = useStableKeys(outerScope.map((s) => s.category.entity));
@@ -233,10 +239,10 @@ export function useAssetSearch(
     const findItActive = useValue(findItActive$);
     const findItCategories = useValue(findItCategories$);
     const findItSubs = useMemo(() => {
-        if (!searching || !findItActive) return EMPTY;
+        if (!subscribed || !findItActive) return EMPTY;
         if (findIt !== "all") return findIt;
         return findItCategories.flatMap((c) => c.subCategories.map((s) => s.id));
-    }, [searching, findItActive, findIt, findItCategories]);
+    }, [subscribed, findItActive, findIt, findItCategories]);
     const findItPartsInScope = useMemo(
         () =>
             findItSubs.flatMap((id) => {
