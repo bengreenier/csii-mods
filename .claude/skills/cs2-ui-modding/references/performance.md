@@ -113,6 +113,9 @@ without stalls:
 
 ## Measuring in game
 
+The `csii-ui-mod-benchmarking` skill has the scripts for all of this (frame-stall
+benchmark, result fingerprint, CPU profiles) and the loop to use them in.
+
 - `performance.now()` is not useful for timing in Gameface: in testing
   (2026-09-27), every measured interval (a keystroke to its committed render,
   building thousands of search records) read 0.0 ms, so the clock seems fixed
