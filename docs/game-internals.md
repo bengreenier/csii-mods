@@ -610,7 +610,10 @@ compile-time reference, since it's optional.
   - the root prewarms those parts in the background, one subcategory per
     tick, when the catalogue arrives or assetMeta changes, so even
     the first search doesn't stall;
-  - a search then only builds the small toolbar part and merges;
+  - the Find It parts in a scope are merged once per scope (`findItTail`)
+    and cached with them; the prewarm also builds the root's merge of all of
+    them. A search then only builds the small toolbar part and puts it in
+    front (`combineParts`), instead of re-merging ~19k records (~20 ms);
   - a level keeps its search subscriptions and index once it has searched,
     until it unmounts, so clearing the query and typing again doesn't
     resubscribe every category (C# resends them all, ~30 ms) and re-merge.

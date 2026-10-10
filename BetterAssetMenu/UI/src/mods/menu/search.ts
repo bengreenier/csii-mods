@@ -25,6 +25,7 @@ import {
     combineParts,
     createRecordFactory,
     IndexPart,
+    mergeParts,
     NO_LOCATION,
     PartSource,
     RecordFactory,
@@ -103,13 +104,36 @@ function findItPart(subId: number, assets: toolbar.Asset[], factory: RecordFacto
     return part;
 }
 
+// Find It's parts in a scope (the whole catalogue at the root, a category or
+// subcategory in Find It's level), merged once per scope and reused until the
+// factory or the catalogue changes: merging ~19k records took ~20 ms, on
+// every search start.
+let tailSources: [RecordFactory | null, FindItCatalogue | null] = [null, null];
+const findItTails = new Map<string, IndexPart>();
+
+function findItTail(subIds: number[], catalogue: FindItCatalogue, factory: RecordFactory): IndexPart {
+    if (tailSources[0] !== factory || tailSources[1] !== catalogue) {
+        tailSources = [factory, catalogue];
+        findItTails.clear();
+    }
+    const ids = subIds.filter((id) => catalogue.bySub.has(id));
+    const key = ids.join(",");
+    let tail = findItTails.get(key);
+    if (!tail) {
+        tail = mergeParts(ids.map((id) => findItPart(id, catalogue.bySub.get(id)!, factory)));
+        findItTails.set(key, tail);
+    }
+    return tail;
+}
+
 function useFactory(loc: l10n.Localization): RecordFactory {
     return getFactory(useThemes(), useAssetMetaByKey(), useValue(activeLocale$), loc);
 }
 
 /**
  * Builds the Find It parts in the background, one subcategory per tick, as
- * soon as the catalogue arrives, so even the first search doesn't stall.
+ * soon as the catalogue arrives, then the root search's merge of all of them,
+ * so even the first search doesn't stall.
  * Call once, at the always-mounted root, below FindItCatalogueContext.
  */
 export function usePrewarmFindItSearch(catalogue: FindItCatalogue, loc: l10n.Localization) {
@@ -119,7 +143,10 @@ export function usePrewarmFindItSearch(catalogue: FindItCatalogue, loc: l10n.Loc
         let timer: ReturnType<typeof setTimeout> | null = null;
         const step = () => {
             const next = pending.shift();
-            if (!next) return;
+            if (!next) {
+                findItTail([...catalogue.bySub.keys()], catalogue, factory);
+                return;
+            }
             findItPart(next[0], next[1], factory);
             timer = setTimeout(step, 0);
         };
@@ -243,19 +270,12 @@ export function useAssetSearch(
         if (findIt !== "all") return findIt;
         return findItCategories.flatMap((c) => c.subCategories.map((s) => s.id));
     }, [subscribed, findItActive, findIt, findItCategories]);
-    const findItPartsInScope = useMemo(
-        () =>
-            findItSubs.flatMap((id) => {
-                const assets = catalogue.bySub.get(id);
-                return assets ? [findItPart(id, assets, factory)] : [];
-            }),
-        [findItSubs, catalogue, factory]
-    );
+    const findItInScope = useMemo(() => findItTail(findItSubs, catalogue, factory), [findItSubs, catalogue, factory]);
 
     // Rebuilt only when game data or the scope changes, never per keystroke.
     const index = useMemo(
-        () => combineParts(platterPart ? [toolbarPart, platterPart, ...findItPartsInScope] : [toolbarPart, ...findItPartsInScope]),
-        [toolbarPart, platterPart, findItPartsInScope]
+        () => combineParts(platterPart ? [toolbarPart, platterPart] : [toolbarPart], findItInScope),
+        [toolbarPart, platterPart, findItInScope]
     );
 
     // Favorites are looked up live (is:favorite, the Favorites level), so
