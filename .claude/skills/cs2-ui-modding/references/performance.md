@@ -121,7 +121,10 @@ without stalls:
   11 ms), and `requestAnimationFrame` runs at the UI's frame rate (~144/s
   here). A repeatable benchmark: trigger the action from CDP, then record
   `Date.now()` per rAF until no frame gap > 20 ms for ~300 ms; report the
-  longest gap and the sum of over-budget time. Spread was about +-10%.
+  longest gap and the sum of over-budget time. Medians of 3 runs were
+  repeatable, but single runs aren't: the first search after a launch (cold
+  JIT and caches) and occasional game hitches (one idle run read 861 ms)
+  land in the range, so report median and range.
   - Drive React inputs by calling the element's `__reactProps$...`
     `onChange` with the new value set; dispatching `input` events doesn't
     reach React in Gameface. Navigate by calling items' `onSelect` found
@@ -130,7 +133,8 @@ without stalls:
   `setSamplingInterval`, `start`/`stop`): a sampled CPU profile with function
   names and lines. Build unminified for it (`npx webpack
   --no-optimization-minimize`); Cohtml live-reloads the rebuilt module under
-  `-uiDeveloperMode`. Expect ~1.5x overhead. `Performance.getMetrics` returns
+  `-uiDeveloperMode`. Sampling inflates times (not measured; profiles read
+  higher than Date.now() timing of the same work). `Performance.getMetrics` returns
   malformed JSON. "(program)" self time is native work (layout, images, the
   game), not your JS.
 - **JIT warm-up dominates first calls**: right after the module loads, a
