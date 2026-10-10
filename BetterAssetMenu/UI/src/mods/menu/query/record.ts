@@ -27,8 +27,6 @@ export interface RecordSource {
     unique: boolean;
     placed: boolean;
     highlight: boolean;
-    // In this city's favorites.
-    favorite: boolean;
     locked: boolean;
 }
 
@@ -57,7 +55,6 @@ export interface AssetRecord {
     unique: boolean;
     placed: boolean;
     isNew: boolean;
-    favorite: boolean;
     locked: boolean;
     // Can be placed right now (the vanilla asset grid's "Select" rule).
     ok: boolean;
@@ -100,7 +97,6 @@ export function buildRecord(src: RecordSource, order: number): AssetRecord {
         unique: src.unique,
         placed: src.placed,
         isNew: src.highlight,
-        favorite: src.favorite,
         locked: src.locked,
         ok: !src.locked && !(src.unique && src.placed),
         order,

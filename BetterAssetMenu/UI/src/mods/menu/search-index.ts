@@ -42,10 +42,14 @@ export interface IndexPart {
     suggestions: Suggestions;
 }
 
+// What the records in scope contribute to the filter context; the search
+// adds the favorites (FilterContext.favoriteKeys).
+export type IndexContext = Omit<FilterContext, "favoriteKeys">;
+
 export interface SearchIndex {
     records: AssetRecord[];
     byKey: Map<string, SearchResult>;
-    ctx: FilterContext;
+    ctx: IndexContext;
 }
 
 export type RecordFactory = (asset: toolbar.Asset, location: Location, order: number) => AssetRecord;
@@ -54,7 +58,6 @@ export type RecordFactory = (asset: toolbar.Asset, location: Location, order: nu
 export function createRecordFactory(
     themes: { name: string; icon: string }[],
     metaByKey: ReadonlyMap<string, AssetMeta>,
-    favoriteKeys: ReadonlySet<string>,
     loc: l10n.Localization
 ): RecordFactory {
     // Name + both titles the game may use for it (the theme filter tooltip
@@ -101,7 +104,6 @@ export function createRecordFactory(
                 unique: asset.unique,
                 placed: asset.placed,
                 highlight: asset.highlight,
-                favorite: favoriteKeys.has(key),
                 locked: asset.locked,
             },
             order
@@ -198,7 +200,7 @@ export class Suggestions {
         into(this.levels, other.levels);
     }
 
-    toContext(): FilterContext {
+    toContext(): IndexContext {
         const sorted = (s: Set<string>) => [...s].sort();
         const numbers = (s: Set<number>) => [...s].sort((a, b) => a - b).map(String);
         return {

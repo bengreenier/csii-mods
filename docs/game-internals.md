@@ -592,15 +592,23 @@ compile-time reference, since it's optional.
     load;
   - search records are built per subcategory and cached (`search.ts`,
     `findItPart`), keyed on the subcategory's asset array and a shared
-    record factory (themes, assetMeta, favorites and the locale id
+    record factory (themes, assetMeta and the locale id
     `app.activeLocale`; all module-cached, so every component shares them).
     Not the `loc` object: vanilla's `useLocalization()` returns a **new
     wrapper per component** (its own `useMemo`), so keying on it made each
     component invalidate the others' cache and rebuild all ~19k records;
+  - those inputs are only replaced when their **content** changes: C#
+    resends `favorites` (unchanged) on every menu open, and vanilla's
+    `toolbar.themes$` changes with the selected category while repeating
+    `prefabs.themes`. Keyed on identity, each made a new factory and a
+    rebuild of every record (~190 ms on the first keystroke after opening);
+  - favorites aren't in the records at all: `is:favorite` and the Favorites
+    level look keys up in `FilterContext.favoriteKeys`, so adding or
+    removing a favorite rebuilds nothing;
   - wheel entries for results are cached per result object, so a broad
     query doesn't rebuild thousands of them per keystroke;
   - the root prewarms those parts in the background, one subcategory per
-    tick, when the catalogue arrives or favorites/assetMeta change, so even
+    tick, when the catalogue arrives or assetMeta changes, so even
     the first search doesn't stall;
   - a search then only builds the small toolbar part and merges.
 
@@ -695,7 +703,7 @@ data"** button (Utilities, needs a city; `BetterAssetMenuUISystem.Refresh.cs`).
 | Find It snapshot | C# `findItCategories` / `findItAssets` | on load, and on Refresh (in place) |
 | `fx:` effect terms | UI `FX_CACHE` (search.ts) | on Refresh (the `dataRefreshed` event) |
 | assetMeta lookup, themes, favorite keys | UI (asset-data.ts, favorites.ts) | whenever the data they come from changes |
-| Record factory, Find It search records | UI (search.ts) | whenever themes, assetMeta, favorites, the locale or the catalogue change |
+| Record factory, Find It search records | UI (search.ts) | whenever themes (by content), assetMeta, the locale or the catalogue change |
 | Menu items for results | UI (levels/items.ts) | whenever their results change |
 
 When adding a cache, either key it on data C# resends, or clear it in

@@ -65,7 +65,7 @@ const FX_CACHE = new Map<string, string[]>();
 // Find It's catalogue is ~20k assets, too many to turn into records per
 // search. Its records are built once per subcategory and cached, keyed on the
 // subcategory's asset array (stable until C# resends it) and on the record
-// factory (rebuilt when themes, assetMeta, favorites or the language change;
+// factory (rebuilt when themes, assetMeta or the language change;
 // all of those are shared, module-cached values). Not keyed on the `loc`
 // object: vanilla's useLocalization() makes a new wrapper per component, which
 // made every component invalidate the others' cache; the locale id is shared.
@@ -76,14 +76,13 @@ let sharedFactory: RecordFactory | null = null;
 function getFactory(
     themes: { name: string; icon: string }[],
     metaByKey: ReadonlyMap<string, AssetMeta>,
-    favoriteKeys: ReadonlySet<string>,
     locale: string,
     loc: l10n.Localization
 ): RecordFactory {
-    const inputs = [themes, metaByKey, favoriteKeys, locale];
+    const inputs = [themes, metaByKey, locale];
     if (!sharedFactory || inputs.some((v, i) => v !== factoryInputs[i])) {
         factoryInputs = inputs;
-        sharedFactory = createRecordFactory(themes, metaByKey, favoriteKeys, loc);
+        sharedFactory = createRecordFactory(themes, metaByKey, loc);
     }
     return sharedFactory;
 }
@@ -105,7 +104,7 @@ function findItPart(subId: number, assets: toolbar.Asset[], factory: RecordFacto
 }
 
 function useFactory(loc: l10n.Localization): RecordFactory {
-    return getFactory(useThemes(), useAssetMetaByKey(), useFavoriteKeys(), useValue(activeLocale$), loc);
+    return getFactory(useThemes(), useAssetMetaByKey(), useValue(activeLocale$), loc);
 }
 
 /**
@@ -146,7 +145,7 @@ export function clearSearchSessionCaches() {
  * Searches assets within `scope` (every unlocked menu at the root, else the
  * given categories) using the query language in docs/search-schema.md.
  * `favoritesOnly` narrows that to this city's favorites (the Favorites level),
- * using the same flag as is:favorite. `findIt` adds Find It subcategories
+ * using the same lookup as is:favorite. `findIt` adds Find It subcategories
  * while its catalogue is in use: all of them by default at the root.
  * Nothing toolbar-side is subscribed while `query` is empty.
  */
@@ -253,7 +252,11 @@ export function useAssetSearch(
         [toolbarPart, platterPart, findItPartsInScope]
     );
 
-    const parsed = useMemo(() => parse(query, index.ctx), [query, index.ctx]);
+    // Favorites are looked up live (is:favorite, the Favorites level), so
+    // adding or removing one re-runs the query but rebuilds no records.
+    const favoriteKeys = useFavoriteKeys();
+    const ctx = useMemo(() => ({ ...index.ctx, favoriteKeys }), [index.ctx, favoriteKeys]);
+    const parsed = useMemo(() => parse(query, ctx), [query, ctx]);
 
     // Lazy fx: details. `loadKeys` comes from the previous evaluation; values
     // are folded into FX_CACHE, which bumps `ingested` and re-evaluates.
@@ -277,8 +280,8 @@ export function useAssetSearch(
     }, slotValues);
 
     const records = useMemo(
-        () => (favoritesOnly ? index.records.filter((r) => r.favorite) : index.records),
-        [index.records, favoritesOnly]
+        () => (favoritesOnly ? index.records.filter((r) => favoriteKeys.has(r.key)) : index.records),
+        [index.records, favoritesOnly, favoriteKeys]
     );
     const evaluation = useMemo(
         () => (parsed.active ? evaluate(parsed, records, (k) => FX_CACHE.get(k)) : null),
