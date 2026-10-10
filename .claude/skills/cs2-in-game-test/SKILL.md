@@ -1,6 +1,6 @@
 ---
 name: cs2-in-game-test
-description: Test a CS2 mod from this repo in the real game, yourself - launch Cities Skylines II through Steam and the Paradox launcher, start a new city, then drive and inspect the game UI (Chrome DevTools Protocol into Gameface, plus OS screenshots, clicks and key presses) and always shut the game down afterwards. Use whenever a change needs checking in-game, the user asks you to run, try, verify, smoke-test or screenshot a mod in the game, or you would otherwise hand the user an in-game test checklist.
+description: Test a CS2 mod from this repo in the real game, yourself - launch Cities Skylines II through Steam and the Paradox launcher, start a new city, then drive and inspect the game UI (Chrome DevTools Protocol into Gameface, plus OS screenshots, clicks and key presses), change game or mod options (settings.mjs) and playsets for settings-dependent tests, and always shut the game down afterwards. Use whenever a change needs checking in-game, the user asks you to run, try, verify, smoke-test or screenshot a mod in the game, or you would otherwise hand the user an in-game test checklist.
 ---
 
 # Testing a mod in the running game
@@ -85,6 +85,7 @@ input (key bindings) and for pictures.
 | Press a key binding | `$W press Cities2 ctrl+h` |
 | Type into a focused field | `$W type Cities2 "How much money do I have?"` then `$W press Cities2 enter` |
 | Click at a point | `$W click Cities2 <x> <y>` (coordinates from a 1280-wide shot) |
+| Read/change an option | `node $S/settings.mjs get MenuStyle`, `set MenuStyle Radial` (see below) |
 
 Gotchas, all hit while building this:
 
@@ -105,6 +106,61 @@ Gotchas, all hit while building this:
   example, Chirpy's model takes ~20 s to reach `phase: "Ready"`.
 - **Logs to check after a test:** `Logs/UI.log` (JS errors),
   `Logs/<Mod>.Mod.log`, `Logs/SceneFlow.log`, `Player.log`.
+
+## Game and mod options
+
+`settings.mjs` reads and changes any option on the Options screen, for the
+game or a mod, through the screen's own bindings. That means
+settings-dependent paths (a mod's view style, an integration toggle) can be
+tested in the game instead of handed back as a checklist. Verified on
+2026-10-10:
+- Better Asset Menu's Menu style set to Radial, then Pane;
+- "Use Find It's catalogue" set off, then on;
+
+both in a city, with the mod's own bindings following each change.
+
+```bash
+node $S/settings.mjs pages                    # option page ids (mods: <Mod>.<Mod>.Mod)
+node $S/settings.mjs list BetterAssetMenu     # every option: path, type, value, enum members
+node $S/settings.mjs get UseFindIt            # short names work when unique
+node $S/settings.mjs set MenuStyle Radial     # prints old value + the command to restore it
+```
+
+- **Always restore.** Changes are written to the user's settings file right
+  away (`<userdata>/<Mod>.coc`, `Settings.coc`). `set` prints a `restore`
+  command; run it before `game.sh stop`.
+- **How it works** (see `OptionsUISystem` / `WidgetBindings` in Game.dll):
+  - The options system only updates while its screen is open. The script
+    opens it (`menu.setActiveScreen` 3 in the main menu, `game.setActiveScreen`
+    14 in a city), then calls `options.selectPage(pageId, sectionId, false)`.
+    It reads `options.children` (the widget tree; `path` is the option id)
+    and calls `options.setValue([path], value)`. Afterwards it returns to the
+    screen it found.
+  - Values by widget type:
+    - `ToggleField` takes a bool.
+    - `EnumField` takes `[low, high]` uint halves of a ulong (`[1,0]`);
+      the script accepts member names.
+    - Sliders take numbers. A slider shows its *display* value (Better Asset
+      Menu's 100% scale reads `100`); setting sliders is untested.
+- **A trigger called with the wrong argument types crashes the game**
+  natively. For example, `options.selectPage` with 2 arguments instead of 3
+  crashed it, and `Player.log` showed `cohtmlNative:ReadBool` under
+  `TriggerBinding`. Check a trigger's C# signature (ilspycmd) before firing
+  one by hand. `settings.mjs` type-checks values before sending them.
+- **Playsets** (adding or removing mods, e.g. to test with or without
+  another mod) live in the Paradox launcher, not in Options:
+  - Open Playsets, then ADD MODS. Search with `$W type`, tick the mods, and
+    click ADD n TO PLAYSET.
+  - To remove a mod, hover its row and click its ⊗ (compact list view).
+  - Close the game first. A launcher still holding a crashed game shows
+    "currently operating on playsets"; click OK, then `game.sh play`.
+  - Put the playset back afterwards.
+- **Back up `continue_game.json`** before the first launch. Long sessions
+  autosave throwaway cities, which also repoints the launcher's Continue tile;
+  delete session saves (`find Saves -newer <mark>`) and restore the file at
+  the end. A scripted save needs the save screen open first
+  (`game.setActiveScreen` 11, then `menu.saveGame "<name>"`); `menu.continueGame`
+  loads the newest save.
 
 ## Rebuilding during a session
 
