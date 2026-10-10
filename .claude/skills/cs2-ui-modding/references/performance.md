@@ -66,6 +66,21 @@ without stalls:
   invalidating each other. Cache shared derived values (merged lists, key sets)
   at module level, keyed on the binding values they come from. Vanilla's
   `useLocalization()` is per component too: key on the locale id.
+- **Replace derived inputs only when their content changes.** A binding C#
+  resends unchanged (e.g. on every menu open) still arrives as a new array,
+  and vanilla's `toolbar.themes$` changes with the selected category while
+  repeating `prefabs.themes`. Keyed on identity, each rebuilt ~19k records.
+  Compare a cheap signature (joined keys) before replacing a cached Set/array.
+- **Keep volatile per-user state out of cached records.** Baking "is a
+  favorite" into every record made each toggle rebuild them all; look it up
+  at query time from a Set passed in with the filter context instead.
+- **Merge big parts once.** Re-merging a cached 19k-record part into a new
+  key map per search cost ~20 ms; give each part its own key map, cache the
+  merged large part per scope, and put the small per-search part in front.
+- **Subscriptions resolve in stages.** A search that subscribes menus, then
+  their categories, then their assets runs its whole pipeline once per stage
+  (3 times on the first keystroke). Keep such subscriptions for the life of
+  the level once made, so clearing and retyping doesn't repeat it.
 - **Prewarm in the background:** build one chunk per `setTimeout(…, 0)` tick
   when data arrives, so even the first search is fast.
 - **Split the index into parts** (records plus the suggestions they
@@ -101,12 +116,33 @@ without stalls:
 - `performance.now()` is not useful for timing in Gameface: in testing
   (2026-09-27), every measured interval (a keystroke to its committed render,
   building thousands of search records) read 0.0 ms, so the clock seems fixed
-  within a frame, or very coarse.
-- Judge speed by feel instead, and reason about cost from the code: per
-  keystroke, count what's O(all records), and whether anything sorts, allocates
-  or builds per record.
-- If you need numbers, test `Date.now()` first, measure across frames
-  (`requestAnimationFrame` counts), or do the timing on the C# side.
+  within a task.
+- **`Date.now()` works** (ms resolution, verified 2026-10-10: a busy loop read
+  11 ms), and `requestAnimationFrame` runs at the UI's frame rate (~144/s
+  here). A repeatable benchmark: trigger the action from CDP, then record
+  `Date.now()` per rAF until no frame gap > 20 ms for ~300 ms; report the
+  longest gap and the sum of over-budget time. Spread was about +-10%.
+  - Drive React inputs by calling the element's `__reactProps$...`
+    `onChange` with the new value set; dispatching `input` events doesn't
+    reach React in Gameface. Navigate by calling items' `onSelect` found
+    through `__reactFiber$...`, so virtualized lists don't matter.
+- **The CDP `Profiler` domain works** on :9444 (`Profiler.enable`,
+  `setSamplingInterval`, `start`/`stop`): a sampled CPU profile with function
+  names and lines. Build unminified for it (`npx webpack
+  --no-optimization-minimize`); Cohtml live-reloads the rebuilt module under
+  `-uiDeveloperMode`. Expect ~1.5x overhead. `Performance.getMetrics` returns
+  malformed JSON. "(program)" self time is native work (layout, images, the
+  game), not your JS.
+- **JIT warm-up dominates first calls**: right after the module loads, a
+  linear pass over 19k records took 9-23 ms for the first few runs and ~2 ms
+  after. Don't "optimize" a hot loop on first-run numbers; compare steady
+  state.
+- C# side: `Stopwatch` around binding writers, summed per update and logged
+  once per frame. A `useMapValues` subscribe runs the C# writer synchronously
+  inside `engine.trigger` ("TriggerEvent" in a UI profile).
+- Judge feel too, and reason about cost from the code: per keystroke, count
+  what's O(all records), and whether anything sorts, allocates or builds per
+  record.
 - The big wins in this mod came from caching per-record work across searches
   and replacing a per-keystroke sort with a linear pass. Also, never key shared
   caches on per-component objects: `useLocalization()` returns a new wrapper
