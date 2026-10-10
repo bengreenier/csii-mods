@@ -57,8 +57,10 @@ before changing anything input-, settings- or tool-related.
    remove the logging before committing.
 4. **Trust runtime exports over `types/*.d.ts`.** Confirm a symbol exists in the
    game bundle before relying on it (see `references/ui-runtime.md`).
-5. **You can't see the game.** Say plainly what's untested, and give the user a
-   short, concrete test checklist, including what to look for in the logs.
+5. **Test in the game yourself** with the `cs2-in-game-test` skill: launch,
+   start a city, drive the UI over CDP, screenshot, read bindings and logs,
+   then shut the game down. Say plainly what you couldn't exercise that way
+   (e.g. feel, performance), and give the user a short checklist for that part.
 6. **Document game internals as you learn them** (`docs/game-internals.md` in
    this repo): what you rely on, why, and what to check after a game update.
    Future you will need it.
