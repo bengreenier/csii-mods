@@ -29,15 +29,29 @@ export function usePrefabTitle(entity: Entity | undefined, fallback: string): st
 // Shared across components (like the assetMeta lookup below), so everyone
 // gets the same array: search caches records keyed on it.
 let themeSources: [unknown, unknown] = [null, null];
+let themesSignature = "";
 let mergedThemes: { name: string; icon: string }[] = [];
 
-/** Every theme: toolbar.themes$ may only cover the vanilla panel's current category. */
+/**
+ * Every theme, without repeats: toolbar.themes$ may only cover the vanilla
+ * panel's current category. It changes with that category, mostly repeating
+ * prefab.themes$, so the array is only replaced when its content changes.
+ */
 export function useThemes(): { name: string; icon: string }[] {
     const toolbarThemes = useValue(toolbar.themes$);
     const prefabThemes = useValue(prefab.themes$);
     if (themeSources[0] !== prefabThemes || themeSources[1] !== toolbarThemes) {
         themeSources = [prefabThemes, toolbarThemes];
-        mergedThemes = [...prefabThemes, ...toolbarThemes];
+        const byId = new Map<string, { name: string; icon: string }>();
+        for (const theme of [...prefabThemes, ...toolbarThemes]) {
+            const id = `${theme.name}|${theme.icon}`;
+            if (!byId.has(id)) byId.set(id, theme);
+        }
+        const signature = [...byId.keys()].join("\n");
+        if (signature !== themesSignature) {
+            themesSignature = signature;
+            mergedThemes = [...byId.values()];
+        }
     }
     return mergedThemes;
 }

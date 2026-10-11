@@ -32,20 +32,23 @@ export interface Location {
 
 export const NO_LOCATION: Location = { menuName: "", menuTitle: "", categoryName: "", categoryTitle: "" };
 
-export interface IndexEntry {
-    record: AssetRecord;
-    result: SearchResult;
-}
-
+// Records in order (an asset in several sources keeps the first), each
+// asset's result by key, and the filter suggestions they contribute. One
+// part, or several merged (mergeParts).
 export interface IndexPart {
-    entries: IndexEntry[];
+    records: AssetRecord[];
+    byKey: Map<string, SearchResult>;
     suggestions: Suggestions;
 }
 
+// What the records in scope contribute to the filter context; the search
+// adds the favorites (FilterContext.favoriteKeys).
+export type IndexContext = Omit<FilterContext, "favoriteKeys">;
+
 export interface SearchIndex {
     records: AssetRecord[];
-    byKey: Map<string, SearchResult>;
-    ctx: FilterContext;
+    byKey: { get(key: string): SearchResult | undefined };
+    ctx: IndexContext;
 }
 
 export type RecordFactory = (asset: toolbar.Asset, location: Location, order: number) => AssetRecord;
@@ -54,7 +57,6 @@ export type RecordFactory = (asset: toolbar.Asset, location: Location, order: nu
 export function createRecordFactory(
     themes: { name: string; icon: string }[],
     metaByKey: ReadonlyMap<string, AssetMeta>,
-    favoriteKeys: ReadonlySet<string>,
     loc: l10n.Localization
 ): RecordFactory {
     // Name + both titles the game may use for it (the theme filter tooltip
@@ -101,7 +103,6 @@ export function createRecordFactory(
                 unique: asset.unique,
                 placed: asset.placed,
                 highlight: asset.highlight,
-                favorite: favoriteKeys.has(key),
                 locked: asset.locked,
             },
             order
@@ -117,36 +118,62 @@ export interface PartSource {
 
 /** Records for `sources`, in order; `orderBase` sorts parts against each other. */
 export function buildPart(sources: PartSource[], factory: RecordFactory, orderBase: number): IndexPart {
-    const entries: IndexEntry[] = [];
+    const records: AssetRecord[] = [];
+    const byKey = new Map<string, SearchResult>();
     const suggestions = new Suggestions();
-    const seen = new Set<string>();
     for (const { assets, place, location } of sources) {
         for (const asset of assets ?? []) {
-            const record = factory(asset, location, orderBase + entries.length);
-            if (seen.has(record.key)) continue;
-            seen.add(record.key);
+            const record = factory(asset, location, orderBase + records.length);
+            if (byKey.has(record.key)) continue;
             const result: SearchResult = { asset, ...place };
             if (location !== NO_LOCATION) result.location = location;
-            entries.push({ record, result });
+            byKey.set(record.key, result);
+            records.push(record);
             suggestions.add(record);
         }
     }
-    return { entries, suggestions };
+    return { records, byKey, suggestions };
 }
 
-/** One index from parts, in order: an asset in several parts keeps the first. */
-export function combineParts(parts: IndexPart[]): SearchIndex {
+// Created on first use: Suggestions is declared further down.
+let noPart: IndexPart | null = null;
+const emptyPart = () => (noPart ??= { records: [], byKey: new Map(), suggestions: new Suggestions() });
+
+/** Parts as one, in order: an asset in several parts keeps the first. A single part is returned as is. */
+export function mergeParts(parts: IndexPart[]): IndexPart {
+    if (parts.length === 0) return emptyPart();
+    if (parts.length === 1) return parts[0];
     const records: AssetRecord[] = [];
     const byKey = new Map<string, SearchResult>();
     const suggestions = new Suggestions();
     for (const part of parts) {
-        for (const { record, result } of part.entries) {
+        for (const record of part.records) {
             if (byKey.has(record.key)) continue;
-            byKey.set(record.key, result);
+            byKey.set(record.key, part.byKey.get(record.key)!);
             records.push(record);
         }
         suggestions.merge(part.suggestions);
     }
+    return { records, byKey, suggestions };
+}
+
+/**
+ * One index from `head` (small parts built per search) in front of `tail`
+ * (large, merged once and cached): an asset in both keeps head's entry. Only
+ * head is merged here, so a search over a large catalogue doesn't re-merge it.
+ */
+export function combineParts(head: IndexPart[], tail: IndexPart = emptyPart()): SearchIndex {
+    const front = mergeParts(head);
+    const records =
+        tail.records.length === 0
+            ? front.records
+            : front.records.length === 0
+              ? tail.records
+              : front.records.concat(tail.records.filter((r) => !front.byKey.has(r.key)));
+    const suggestions = new Suggestions();
+    suggestions.merge(front.suggestions);
+    suggestions.merge(tail.suggestions);
+    const byKey = { get: (key: string) => front.byKey.get(key) ?? tail.byKey.get(key) };
     return { records, byKey, ctx: suggestions.toContext() };
 }
 
@@ -198,7 +225,7 @@ export class Suggestions {
         into(this.levels, other.levels);
     }
 
-    toContext(): FilterContext {
+    toContext(): IndexContext {
         const sorted = (s: Set<string>) => [...s].sort();
         const numbers = (s: Set<number>) => [...s].sort((a, b) => a - b).map(String);
         return {

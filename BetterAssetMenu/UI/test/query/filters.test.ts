@@ -47,10 +47,14 @@ describe("is:", () => {
         ["locked", { locked: true }, true],
         ["mod", { dlcIcon: "Media/Glyphs/ParadoxModsCloud.svg" }, true],
         ["mod", { dlcIcon: "Media/DLC/SanFrancisco.svg" }, false],
-        ["favorite", { favorite: true }, true],
-        ["favorite", {}, false],
     ] as const)("is:%s on %j -> %s", (value, over, expected) => {
         expect(matches("is", value, over)).toBe(expected);
+    });
+
+    it("is:favorite checks the context's favorite keys, not the record", () => {
+        const ctx = context({ favoriteKeys: new Set(["Fav"]) });
+        expect(compile("is", "favorite", ctx)!(record({ name: "Fav" }))).toBe(true);
+        expect(compile("is", "favorite", ctx)!(record({ name: "Other" }))).toBe(false);
     });
 
     it("matches by prefix and ORs commas", () => {

@@ -25,6 +25,7 @@ import {
     combineParts,
     createRecordFactory,
     IndexPart,
+    mergeParts,
     NO_LOCATION,
     PartSource,
     RecordFactory,
@@ -65,7 +66,7 @@ const FX_CACHE = new Map<string, string[]>();
 // Find It's catalogue is ~20k assets, too many to turn into records per
 // search. Its records are built once per subcategory and cached, keyed on the
 // subcategory's asset array (stable until C# resends it) and on the record
-// factory (rebuilt when themes, assetMeta, favorites or the language change;
+// factory (rebuilt when themes, assetMeta or the language change;
 // all of those are shared, module-cached values). Not keyed on the `loc`
 // object: vanilla's useLocalization() makes a new wrapper per component, which
 // made every component invalidate the others' cache; the locale id is shared.
@@ -76,14 +77,13 @@ let sharedFactory: RecordFactory | null = null;
 function getFactory(
     themes: { name: string; icon: string }[],
     metaByKey: ReadonlyMap<string, AssetMeta>,
-    favoriteKeys: ReadonlySet<string>,
     locale: string,
     loc: l10n.Localization
 ): RecordFactory {
-    const inputs = [themes, metaByKey, favoriteKeys, locale];
+    const inputs = [themes, metaByKey, locale];
     if (!sharedFactory || inputs.some((v, i) => v !== factoryInputs[i])) {
         factoryInputs = inputs;
-        sharedFactory = createRecordFactory(themes, metaByKey, favoriteKeys, loc);
+        sharedFactory = createRecordFactory(themes, metaByKey, loc);
     }
     return sharedFactory;
 }
@@ -104,13 +104,36 @@ function findItPart(subId: number, assets: toolbar.Asset[], factory: RecordFacto
     return part;
 }
 
+// Find It's parts in a scope (the whole catalogue at the root, a category or
+// subcategory in Find It's level), merged once per scope and reused until the
+// factory or the catalogue changes: merging ~19k records took ~20 ms, on
+// every search start.
+let tailSources: [RecordFactory | null, FindItCatalogue | null] = [null, null];
+const findItTails = new Map<string, IndexPart>();
+
+function findItTail(subIds: number[], catalogue: FindItCatalogue, factory: RecordFactory): IndexPart {
+    if (tailSources[0] !== factory || tailSources[1] !== catalogue) {
+        tailSources = [factory, catalogue];
+        findItTails.clear();
+    }
+    const ids = subIds.filter((id) => catalogue.bySub.has(id));
+    const key = ids.join(",");
+    let tail = findItTails.get(key);
+    if (!tail) {
+        tail = mergeParts(ids.map((id) => findItPart(id, catalogue.bySub.get(id)!, factory)));
+        findItTails.set(key, tail);
+    }
+    return tail;
+}
+
 function useFactory(loc: l10n.Localization): RecordFactory {
-    return getFactory(useThemes(), useAssetMetaByKey(), useFavoriteKeys(), useValue(activeLocale$), loc);
+    return getFactory(useThemes(), useAssetMetaByKey(), useValue(activeLocale$), loc);
 }
 
 /**
  * Builds the Find It parts in the background, one subcategory per tick, as
- * soon as the catalogue arrives, so even the first search doesn't stall.
+ * soon as the catalogue arrives, then the root search's merge of all of them,
+ * so even the first search doesn't stall.
  * Call once, at the always-mounted root, below FindItCatalogueContext.
  */
 export function usePrewarmFindItSearch(catalogue: FindItCatalogue, loc: l10n.Localization) {
@@ -120,7 +143,10 @@ export function usePrewarmFindItSearch(catalogue: FindItCatalogue, loc: l10n.Loc
         let timer: ReturnType<typeof setTimeout> | null = null;
         const step = () => {
             const next = pending.shift();
-            if (!next) return;
+            if (!next) {
+                findItTail([...catalogue.bySub.keys()], catalogue, factory);
+                return;
+            }
             findItPart(next[0], next[1], factory);
             timer = setTimeout(step, 0);
         };
@@ -146,9 +172,10 @@ export function clearSearchSessionCaches() {
  * Searches assets within `scope` (every unlocked menu at the root, else the
  * given categories) using the query language in docs/search-schema.md.
  * `favoritesOnly` narrows that to this city's favorites (the Favorites level),
- * using the same flag as is:favorite. `findIt` adds Find It subcategories
+ * using the same lookup as is:favorite. `findIt` adds Find It subcategories
  * while its catalogue is in use: all of them by default at the root.
- * Nothing toolbar-side is subscribed while `query` is empty.
+ * Nothing toolbar-side is subscribed until the first query; after that it
+ * stays subscribed (and indexed) while the calling level is mounted.
  */
 export function useAssetSearch(
     query: string,
@@ -159,24 +186,29 @@ export function useAssetSearch(
     findIt: number[] | "all" = scope === "all" ? "all" : EMPTY
 ): SearchResults {
     const searching = query.trim().length > 0;
+    // Clearing the query and typing again would otherwise resubscribe every
+    // category (C# resends them all) and rebuild the index.
+    const [started, setStarted] = useState(false);
+    if (searching && !started) setStarted(true);
+    const subscribed = searching || started;
     const factory = useFactory(loc);
 
     // Root search needs every menu's categories first.
     const menus = useMemo(
         () =>
-            searching && scope === "all"
+            subscribed && scope === "all"
                 ? groups.flatMap((g) => g.children).filter((i) => i.type === TOOLBAR_ITEM_TYPE_MENU && !i.locked)
                 : EMPTY,
-        [searching, scope, groups]
+        [subscribed, scope, groups]
     );
     const menuKeys = useStableKeys(menus.map((m) => m.entity));
     const categoriesPerMenu = useMapValues(toolbar.assetCategories$, menuKeys);
 
     const outerScope = useMemo<SearchScope[]>(() => {
-        if (!searching) return EMPTY;
+        if (!subscribed) return EMPTY;
         if (scope !== "all") return scope;
         return menus.flatMap((menu, i) => (categoriesPerMenu[i] ?? EMPTY).map((category) => ({ menu, category })));
-    }, [searching, scope, menus, categoriesPerMenu]);
+    }, [subscribed, scope, menus, categoriesPerMenu]);
     // A category holding categories (subCategories$) is searched through
     // them: its own "assets" are those categories.
     const outerKeys = useStableKeys(outerScope.map((s) => s.category.entity));
@@ -234,26 +266,23 @@ export function useAssetSearch(
     const findItActive = useValue(findItActive$);
     const findItCategories = useValue(findItCategories$);
     const findItSubs = useMemo(() => {
-        if (!searching || !findItActive) return EMPTY;
+        if (!subscribed || !findItActive) return EMPTY;
         if (findIt !== "all") return findIt;
         return findItCategories.flatMap((c) => c.subCategories.map((s) => s.id));
-    }, [searching, findItActive, findIt, findItCategories]);
-    const findItPartsInScope = useMemo(
-        () =>
-            findItSubs.flatMap((id) => {
-                const assets = catalogue.bySub.get(id);
-                return assets ? [findItPart(id, assets, factory)] : [];
-            }),
-        [findItSubs, catalogue, factory]
-    );
+    }, [subscribed, findItActive, findIt, findItCategories]);
+    const findItInScope = useMemo(() => findItTail(findItSubs, catalogue, factory), [findItSubs, catalogue, factory]);
 
     // Rebuilt only when game data or the scope changes, never per keystroke.
     const index = useMemo(
-        () => combineParts(platterPart ? [toolbarPart, platterPart, ...findItPartsInScope] : [toolbarPart, ...findItPartsInScope]),
-        [toolbarPart, platterPart, findItPartsInScope]
+        () => combineParts(platterPart ? [toolbarPart, platterPart] : [toolbarPart], findItInScope),
+        [toolbarPart, platterPart, findItInScope]
     );
 
-    const parsed = useMemo(() => parse(query, index.ctx), [query, index.ctx]);
+    // Favorites are looked up live (is:favorite, the Favorites level), so
+    // adding or removing one re-runs the query but rebuilds no records.
+    const favoriteKeys = useFavoriteKeys();
+    const ctx = useMemo(() => ({ ...index.ctx, favoriteKeys }), [index.ctx, favoriteKeys]);
+    const parsed = useMemo(() => parse(query, ctx), [query, ctx]);
 
     // Lazy fx: details. `loadKeys` comes from the previous evaluation; values
     // are folded into FX_CACHE, which bumps `ingested` and re-evaluates.
@@ -277,8 +306,8 @@ export function useAssetSearch(
     }, slotValues);
 
     const records = useMemo(
-        () => (favoritesOnly ? index.records.filter((r) => r.favorite) : index.records),
-        [index.records, favoritesOnly]
+        () => (favoritesOnly ? index.records.filter((r) => favoriteKeys.has(r.key)) : index.records),
+        [index.records, favoritesOnly, favoriteKeys]
     );
     const evaluation = useMemo(
         () => (parsed.active ? evaluate(parsed, records, (k) => FX_CACHE.get(k)) : null),

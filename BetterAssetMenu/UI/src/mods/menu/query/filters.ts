@@ -17,6 +17,9 @@ export interface FilterContext {
     depths: string[];
     // "1".."5", ascending.
     levels: string[];
+    // Entity keys of this city's favorites (is:favorite). Not part of the
+    // records, so adding or removing a favorite doesn't rebuild them.
+    favoriteKeys: ReadonlySet<string>;
 }
 
 // `fx` is undefined for filters that don't need prefab details.
@@ -35,14 +38,14 @@ export interface FilterDef {
     compile(atoms: string[], ctx: FilterContext): Predicate | null;
 }
 
-const IS_VALUES: Record<string, (r: AssetRecord) => boolean> = {
+const IS_VALUES: Record<string, (r: AssetRecord, ctx: FilterContext) => boolean> = {
     ok: (r) => r.ok,
     new: (r) => r.isNew,
     unique: (r) => r.unique,
     placed: (r) => r.placed,
     locked: (r) => r.locked,
     mod: (r) => r.mod,
-    favorite: (r) => r.favorite,
+    favorite: (r, ctx) => ctx.favoriteKeys.has(r.key),
 };
 
 // Curated hint list; matching accepts any effect/leisure type word.
@@ -121,11 +124,11 @@ export const FILTERS: FilterDef[] = [
     {
         key: "is",
         suggest: () => Object.keys(IS_VALUES),
-        compile: (atoms) => {
+        compile: (atoms, ctx) => {
             const tests = atoms.flatMap((a) => prefixed(Object.keys(IS_VALUES), a).map((v) => IS_VALUES[v]));
             // Every atom must name (a prefix of) a known value.
             if (atoms.some((a) => prefixed(Object.keys(IS_VALUES), a).length === 0)) return null;
-            return (r) => tests.some((t) => t(r));
+            return (r) => tests.some((t) => t(r, ctx));
         },
     },
     {
