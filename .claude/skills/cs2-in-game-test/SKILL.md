@@ -140,8 +140,26 @@ node $S/settings.mjs set MenuStyle Radial     # prints old value + the command t
     - `ToggleField` takes a bool.
     - `EnumField` takes `[low, high]` uint halves of a ulong (`[1,0]`);
       the script accepts member names.
-    - Sliders take numbers. A slider shows its *display* value (Better Asset
-      Menu's 100% scale reads `100`); setting sliders is untested.
+    - Sliders (`FloatSliderField`, `IntSliderField`) take numbers in the
+      units they show: Better Asset Menu's Pane scale reads `100` and
+      setting `120` gives the mod 1.2. `setValue` takes any number, but the
+      real slider only produces `min + k * step`, so the script checks the
+      range and step.
+    - `DropdownField` takes one of its `items` values: a number, a string
+      (`"de-DE"`) or an object, as `list` shows them.
+    - Buttons, key bindings and directory pickers aren't values; the script
+      doesn't set them.
+  - Verified for each type on 2026-10-10, each restored afterwards:
+    - Pane scale 100 → 120;
+    - Chirpy idle minutes 10 → 15;
+    - UI volume 100 → 90;
+    - language en-US → de-DE (the menu switched to German).
+- **Hidden and disabled options**: `list` marks them, and `set` refuses
+  them. Some depend on another option (edge scrolling sensitivity is hidden
+  while edge scrolling is off). Others are locked by the mode (interface
+  style is disabled inside a city). A write to a hidden option is still
+  *saved* to the settings file, but its widget keeps showing the old value,
+  so nothing here can confirm or undo it.
 - **A trigger called with the wrong argument types crashes the game**
   natively. For example, `options.selectPage` with 2 arguments instead of 3
   crashed it, and `Player.log` showed `cohtmlNative:ReadBool` under

@@ -9,7 +9,8 @@
 // <path> is the option's full id, e.g. BetterAssetMenu.BetterAssetMenu.Mod.Setting.MenuStyle
 // (a suffix after "Setting." is enough when it's unique: `set MenuStyle Radial`).
 // <value>: true/false for toggles, a member name or number for enums/dropdowns
-// (Radial, Pane, 1), a number for sliders, JSON otherwise.
+// (Radial, Pane, 1), a number for sliders (in the units the slider shows, e.g.
+// 100 for 100%), JSON otherwise.
 //
 // The options system only updates while its screen is open, so each command
 // opens Options (main menu or city), selects the option's page and section,
@@ -110,7 +111,9 @@ const SUMMARIZE = `
     value: w.props.value,
     ...(w.props.enumMembers && { members: w.props.enumMembers.map((m) => name(m) + "=" + JSON.stringify(m.value)) }),
     ...(w.props.items && { items: w.props.items.map((i) => JSON.stringify(i.value)) }),
+    ...(w.props.min !== undefined && { min: w.props.min, max: w.props.max, step: w.props.step, unit: w.props.unit }),
     ...(w.props.disabled && { disabled: true }),
+    ...(w.props.hidden && { hidden: true }),
   });`;
 
 // Resolves a short path (MenuStyle) to the full option id via the pages list.
@@ -132,6 +135,18 @@ async function readOption(c, id) {
   return w;
 }
 
+// Sliders take values in the units they display (e.g. 100 for 100%), within min..max.
+function inRange(widget, n) {
+  if (widget.min !== undefined && (n < widget.min || n > widget.max))
+    throw new Error(`${widget.path} takes ${widget.min}..${widget.max}${widget.unit ? " (" + widget.unit + ")" : ""}`);
+  // The slider itself only produces min + k * step; setValue would take anything.
+  if (widget.step > 0) {
+    const k = (n - widget.min) / widget.step;
+    if (Math.abs(k - Math.round(k)) > 1e-4) throw new Error(`${widget.path} moves in steps of ${widget.step} from ${widget.min}`);
+  }
+  return n;
+}
+
 // The value to send for `raw`, checked against the widget's type; throws if unsure.
 function encode(widget, raw) {
   const json = (() => { try { return JSON.parse(raw); } catch { return raw; } })();
@@ -148,11 +163,14 @@ function encode(widget, raw) {
     }
     case "IntSliderField": case "IntInputField":
       if (!Number.isInteger(json)) throw new Error(`${widget.path} needs an integer`);
-      return json;
+      return inRange(widget, json);
     case "FloatSliderField": case "FloatInputField":
       if (typeof json !== "number") throw new Error(`${widget.path} needs a number`);
-      return json;
+      return inRange(widget, json);
     case "DropdownField":
+      if (widget.items && !widget.items.includes(JSON.stringify(json)))
+        throw new Error(`${widget.path} is a dropdown: pass one of ${widget.items.join(", ")}`);
+      return json;
     case "StringInputField":
       if (typeof json !== typeof widget.value) throw new Error(`${widget.path} needs a ${typeof widget.value} like ${JSON.stringify(widget.value)}`);
       return json;
@@ -178,13 +196,19 @@ try {
   } else if (cmd === "set" && args[0] && args.length >= 2) {
     const id = await resolvePath(c, args[0]);
     const widget = await readOption(c, id);
-    if (widget.disabled) throw new Error(`${id} is disabled right now`);
+    // Never write options the UI hides or disables: a write to a hidden one
+    // (edge scrolling sensitivity while edge scrolling is off) IS saved, but
+    // its widget keeps showing the old value, so it can't be checked or
+    // restored through here.
+    if (widget.disabled || widget.hidden) throw new Error(`${id} is ${widget.hidden ? "hidden" : "disabled"} right now; change what it depends on first`);
     const value = encode(widget, args[1]);
     const [after] = await withOptions(c, { optionId: id }, `${SUMMARIZE}
       engine.trigger("options.setValue", [${JSON.stringify(id)}], ${JSON.stringify(value)});
       await wait(400);
       const fresh = await readBinding("options.children");
       return summary(flat(fresh).find((w) => w.path === ${JSON.stringify(id)}));`);
+    if (JSON.stringify(after.value) === JSON.stringify(widget.value) && JSON.stringify(value) !== JSON.stringify(widget.value))
+      throw new Error(`${id} didn't change (still ${JSON.stringify(after.value)}); the game ignored the value`);
     console.log(JSON.stringify({ path: id, old: widget.value, new: after.value, restore: `node settings.mjs set ${id} '${JSON.stringify(widget.value)}'` }, null, 2));
   } else {
     const lines = readFileSync(new URL(import.meta.url), "utf8").split("\n");
