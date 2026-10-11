@@ -21,6 +21,13 @@ game started by `game.sh launch` (it needs `-uiDeveloperMode` for CDP on :9444).
 | `eval.mjs file.js` | Runs a script in the UI with the `B` helpers, no timeout |
 | `lib.mjs` | The in-page helpers (`B.*`) all three share |
 
+**Both menu styles.** The scenarios run unchanged in Pane and Radial: the
+search, level model and fingerprints are the same, so Radial's `sig` lines must
+equal Pane's. Switch with `cs2-in-game-test`'s `settings.mjs set MenuStyle Radial`,
+and set it back afterwards. `page` (PgDn x5, PgUp x5 on "residential") covers
+both views' pager; `out.view` says which view ran. The radial root has no count
+line, so `B.ready` falls back to "the level has items".
+
 ## Metrics
 
 Per action, `B.measure` records `Date.now()` on every animation frame until no
@@ -71,7 +78,11 @@ resolution and works.
 - **Long walks** time out in `cdp.mjs` (15 s); use `eval.mjs`.
 - **Test cities autosave** in long sessions and overwrite
   `continue_game.json`: back it up before the first launch, delete session
-  saves at the end (see `cs2-in-game-test`).
+  saves at the end (see `cs2-in-game-test`). A radial run of ~25 minutes
+  autosaved once.
+- **Don't run `settings.mjs` right after `npm run build`**: the live reload
+  can land mid-command. The write applies, but the readback fails
+  ("is not iterable"). Wait ~10 s, and confirm with `settings.mjs get`.
 
 ## Adapting to another mod
 

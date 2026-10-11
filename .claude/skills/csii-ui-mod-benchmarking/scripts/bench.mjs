@@ -1,13 +1,14 @@
 // Better Asset Menu benchmark: drives the open menu over CDP (Gameface on :9444)
-// and measures frame stalls with Date.now() + requestAnimationFrame.
+// and measures frame stalls with Date.now() + requestAnimationFrame. Works in
+// either menu style (Pane or Radial; switch with cs2-in-game-test settings.mjs).
 //
 //   node bench.mjs [rounds=3] [--json out.json] [--only a,b]
 //
 // Per action: `lat` = ms from the action until the last long frame (gap > 20 ms)
 // ended (or the first frame, if none), `max` = longest frame gap, `jank` = sum of
-// (gap - 7) over long frames. Needs a city loaded, menu style "Pane", menu closed,
+// (gap - 7) over long frames. Needs a city loaded, the menu closed,
 // and the open key on its default (Tab). Scenarios: open, rootType, browse,
-// favorites, smoke (result fingerprints, not timed), idle. The browse and
+// page, favorites, smoke (result fingerprints, not timed), idle. The browse and
 // smoke places assume Find It and Platter are in the playset.
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
@@ -54,7 +55,7 @@ async function closeMenu(c) {
 
 // Watches frames while an OS key opens the menu.
 async function openMenu(c) {
-  await c.ev(`B.mon = B.measure(null, { pred: () => !!B.field() && B.footer() !== "", quietMs: 400 }); return 1;`);
+  await c.ev(`B.mon = B.measure(null, { pred: () => B.ready(), quietMs: 400 }); return 1;`);
   press("tab");
   const r = await c.ev(`return B.mon;`);
   if (r.timeout) throw new Error("menu did not open");
@@ -125,6 +126,18 @@ const SCENARIOS = {
     const t = await typeKeys(c, "", "coca");
     out.brandingType1 = t[0];
     out.brandingTypeRest = { lat: median(t.slice(1).map((x) => x.lat)), max: Math.max(...t.slice(1).map((x) => x.max)), jank: t.slice(1).reduce((s, x) => s + x.jank, 0) };
+    await closeMenu(c);
+  },
+  // Paging a big result set: PgDn x5 then PgUp x5 on "residential".
+  async page(c, out) {
+    await openMenu(c);
+    out.view = await c.ev(`return B.view();`);
+    await typeKeys(c, "", "residential");
+    await c.ev(`return B.measure(null, { quietMs: 600 });`);
+    const steps = [];
+    for (const s of [1, 1, 1, 1, 1, -1, -1, -1, -1, -1]) steps.push(await c.ev(`return B.measure(() => B.page(${s}), { quietMs: 250 });`));
+    out.page = { lat: median(steps.map((x) => x.lat)), max: Math.max(...steps.map((x) => x.max)), jank: steps.reduce((s, x) => s + x.jank, 0) };
+    out.pageFooter = await c.ev(`return B.footer();`);
     await closeMenu(c);
   },
   // Favorites: add then remove one asset with the menu closed (background

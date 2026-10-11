@@ -21,7 +21,14 @@ B.select = (name) => { const it = B.level().items.find((i) => i.name === name); 
 B.back = () => B.session().memoizedProps.backRef.current();
 B.itemKey = (i) => (i.key ?? "") + "|" + i.name + "|" + (i.disabled ? 1 : 0) + "|" + (i.place?.category ? "c" : "-");
 B.sig = () => { const items = B.level().items; let h = 0; const s = items.map(B.itemKey).join(","); for (let k = 0; k < s.length; k++) h = (h * 31 + s.charCodeAt(k)) | 0; return items.length + "#" + (h >>> 0).toString(16) + ":" + items.slice(0, 3).map((i) => i.name).join("/"); };
-B.footer = () => [...document.querySelectorAll("div")].filter((d) => d.children.length === 0 && /^\\d[\\d,]* (items|match|matches)/.test(d.textContent.trim())).map((d) => d.textContent.trim()).join("|");
+// The result count: the pane's footer ("1160 matches"), or the radial hub's
+// line ("1-58 of 1160 matches", "1-58 of 12060"), only while searching or paging.
+B.footer = () => [...document.querySelectorAll("div")].filter((d) => d.children.length === 0 && /^(\\d[\\d,]*-\\d[\\d,]* of \\d|\\d[\\d,]* (items|match|matches))/.test(d.textContent.trim())).map((d) => d.textContent.trim()).join("|");
+B.view = () => (document.querySelector("[class*=wheel]") ? "radial" : "pane");
+// Open and showing its items (the radial root has no count line to wait for).
+B.ready = () => { if (!B.field()) return false; if (B.footer() !== "") return true; try { return B.level().items.length > 0; } catch { return false; } };
+// PgDn (step 1) / PgUp (-1) through the field's own key handler.
+B.page = (step) => { const i = B.field(); B.props(i).onKeyDown({ keyCode: step > 0 ? 34 : 33, currentTarget: i, target: i, preventDefault() {}, stopPropagation() {} }); };
 // Runs action, then watches frames until quietMs pass with no long frame (and pred holds).
 B.measure = (action, { pred = null, quietMs = 300, maxMs = 15000 } = {}) => new Promise((done) => {
   const t0 = Date.now();
