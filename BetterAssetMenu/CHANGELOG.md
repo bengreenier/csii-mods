@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/bengreenier/csii-mods/compare/better-asset-menu-v1.1.0...better-asset-menu-v1.1.1) (2026-10-11)
+
+
+### Performance Improvements
+
+* faster Better Asset Menu search, browsing and favorites ([#8](https://github.com/bengreenier/csii-mods/issues/8)) ([47652bb](https://github.com/bengreenier/csii-mods/commit/47652bb5953686bad3c8bde79603e4c6e12c4748))
+
 ## [1.1.0](https://github.com/bengreenier/csii-mods/compare/better-asset-menu-v1.0.0...better-asset-menu-v1.1.0) (2026-10-07)
 
 
