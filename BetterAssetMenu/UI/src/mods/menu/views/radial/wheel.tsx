@@ -23,7 +23,7 @@ import { DisplayToken } from "../../query/parser";
 import { TOKEN_CLASS } from "../../query-tokens";
 import { itemKey, LevelViewProps, MenuItem } from "../../model";
 import { clampToView, getLastMouse } from "../../mouse";
-import { useMenuSession } from "../../session-context";
+import { focusIndex, useMenuSession } from "../../session-context";
 import styles from "./radial.module.scss";
 
 // Most of the hub circle's height the content may use; less than all of it,
@@ -78,7 +78,7 @@ const QueryDisplay = ({ tokens, shrink }: { tokens: DisplayToken[]; shrink: numb
 // `level` itself.
 export const Wheel = ({ level }: LevelViewProps) => {
     const { items: entries, grouped, current, search, emptyMessage, onBack } = level;
-    const { query, commandsRef, example, contextKey, openContext, closeContext } = useMenuSession();
+    const { query, commandsRef, example, contextKey, openContext, closeContext, focusAsset } = useMenuSession();
     const [hovered, setHovered] = useState<MenuItem | null>(null);
     const hubRef = useRef<HTMLDivElement>(null);
     const hubContentRef = useRef<HTMLDivElement>(null);
@@ -103,7 +103,10 @@ export const Wheel = ({ level }: LevelViewProps) => {
     // shrink (e.g. as fx: details load, or a favorite is removed).
     const paged = search.active || entries.length > pageSize;
     const pageCount = paged ? Math.max(1, Math.ceil(entries.length / pageSize)) : 1;
-    const [pageState, setPageState] = useState({ query, page: 0 });
+    const [pageState, setPageState] = useState(() => {
+        const at = focusIndex(entries, focusAsset, query);
+        return { query, page: at < 0 ? 0 : Math.floor(at / pageSize) };
+    });
     const page = pageState.query === query ? Math.min(pageState.page, pageCount - 1) : 0;
     const visible = useMemo(
         () => (paged ? entries.slice(page * pageSize, (page + 1) * pageSize) : entries),

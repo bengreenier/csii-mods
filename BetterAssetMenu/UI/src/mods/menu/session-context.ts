@@ -48,7 +48,14 @@ export interface MenuSessionState {
     // Where the menu is, outermost first (navigation.ts, trail); empty at
     // the root.
     trail: Crumb[];
+    // The asset to start on (entity index), when opened from Find It's Picker;
+    // -1 otherwise.
+    focusAsset: number;
 }
+
+// Where a view's level starts: the focus asset's index in `items`, or -1.
+export const focusIndex = (items: MenuItem[], focusAsset: number, query: string): number =>
+    focusAsset < 0 || query ? -1 : items.findIndex((item) => item.asset?.entity.index === focusAsset);
 
 export const MenuSessionContext = createContext<MenuSessionState | null>(null);
 

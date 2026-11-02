@@ -578,6 +578,40 @@ compile-time reference, since it's optional.
   Find It's `TryActivatePrefabTool` does. Vanilla's
   `ToolbarUISystem.OnUpdate` then calls `SelectAsset` for toolbar assets,
   so its panel stays in sync.
+- **Its toolbar button:** "Open this menu from Find It's button" (hidden
+  `FindItButtonOpensMenuWanted`, default off, shown like `UseFindIt`).
+  - The magnifying glass only sends `trigger("FindIt", "FindItIconToggled")`,
+    and Find It has no hook for it. At each loading complete until found,
+    `FindItBridge.HookIconButton` finds `FindIt.Systems.FindItUISystem` in the
+    world, takes the `TriggerBinding` of that name from
+    `UISystemBase.m_Bindings`, and replaces its private readonly `m_Callback`
+    by reflection. That needs no Harmony, and no panel flash, as Find It's
+    handler never runs.
+  - The original still runs when `ShowFindItPanel` or `IsWindowLocked` is true
+    (so the button can close a panel opened another way), when the setting is
+    off, and outside a city's main screen (the editor's button sends the same
+    trigger).
+  - Not covered, on purpose: `SearchKeyBinding` calls `ToggleFindItPanel`
+    directly, and still opens Find It's panel.
+  - If the members are gone, it logs `Find It's button can't be redirected`, and
+    the button and catalogue keep working.
+- **Its Picker:** "Show Find It's picks in this menu" (hidden
+  `PickerOpensMenuWanted`, default off, shown like `UseFindIt`). The Picker
+  button still starts the tool; only what a pick opens changes.
+  - `PickerToolSystem.OnUpdate` calls `ToggleFindItPanel` itself when
+    `FindIt.Mod.Settings.OpenPanelOnPicker` is on, so there's no trigger to swap.
+    While the tool (`toolID` `FindIt.Picker`) is active and the override is on,
+    `UpdatePickerOverride` sets that option false, in memory, and restores it
+    when the tool ends or a load starts. With it off, a pick only calls
+    `ActivatePrefabTool`.
+  - A pick is: the tool just ended, `InputManager.mouseOverUI` is false (so
+    toolbar clicks don't count), and `ToolSystem.activePrefab` is in the
+    snapshot. Don't use the tool's `HoveredPrefab` for this: it can be set for
+    only the frame of a quick click, and is cleared as the tool stops. The menu then opens on that
+    asset's subcategory. Not in the snapshot: the prefab tool is on, no menu.
+  - Without the catalogue the override is off, and Find It behaves as usual.
+  - If the members are gone, it logs `Find It's picker can't be redirected`, and
+    the Picker keeps working as Find It's.
 - **If a Find It update breaks this:** any missing member or exception
   turns the integration off, logging
   `Find It integration off: <what> (Find It <version>)`. Re-decompile

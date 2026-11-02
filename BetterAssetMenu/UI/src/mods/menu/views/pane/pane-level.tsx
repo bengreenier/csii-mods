@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, WheelEvent } from "react";
 import classNames from "classnames";
 import { exampleHint, matchSummary } from "../../menu-text";
 import { itemKey, LevelViewProps, MenuItem } from "../../model";
-import { useMenuSession } from "../../session-context";
+import { focusIndex, useMenuSession } from "../../session-context";
 import { useSecondaryClick } from "../../use-secondary-click";
 import { MenuItemIcon } from "../../item-icon";
 import { ItemTitle } from "../../item-details";
@@ -39,12 +39,17 @@ const KEY_DOWN = 40;
 // depends on its fields, never on `level` itself.
 export const PaneLevel = ({ level }: LevelViewProps) => {
     const { items, grouped, search, emptyMessage, onBack } = level;
-    const { query, example, commandsRef, contextKey, openContext, closeContext, complete, trail } =
+    const { query, example, commandsRef, contextKey, openContext, closeContext, complete, trail, focusAsset } =
         useMenuSession();
     const secondaryClick = useSecondaryClick(itemKey, openContext);
 
     // Typing starts over at the first row, scrolled to the top.
-    const [state, setState] = useState<Highlight>(() => initialHighlight(query));
+    const [state, setState] = useState<Highlight>(() => {
+        const at = focusIndex(items, focusAsset, query);
+        return at < 0
+            ? initialHighlight(query)
+            : { query, key: itemKey(items[at]), index: at, offset: offsetShowing(at, 0, items.length) };
+    });
     const current = state.query === query ? state : initialHighlight(query);
     const count = items.length;
     const index = resolveIndex(count, (i) => itemKey(items[i]), current.key, current.index);

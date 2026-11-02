@@ -1,7 +1,15 @@
 import { KeyboardEvent, MouseEvent, MutableRefObject, WheelEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useValue } from "cs2/api";
 import { toolbar } from "cs2/bindings";
-import { acceptSuggestion$, close, findItActive$ } from "./bindings";
+import {
+    acceptSuggestion$,
+    close,
+    findItActive$,
+    findItCategories$,
+    openAtFindIt$,
+    pickedAsset$,
+    pickedSubCategory$,
+} from "./bindings";
 import { useContextActions } from "./context-actions";
 import { useAssetChips } from "./asset-chips";
 import { usePrefabTitle } from "./asset-data";
@@ -105,6 +113,27 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
         const next = withoutFindIt(path, findItActive);
         if (next !== path) setPath(next);
     }, [findItActive, path]);
+    // Opened from Find It's toolbar button. An effect, not the initial path: C#
+    // sends this and isOpen separately. A layout effect, so the root never paints.
+    const openAtFindIt = useValue(openAtFindIt$);
+    useLayoutEffect(() => {
+        if (openAtFindIt && findItActive) setPath(findItPath());
+    }, [openAtFindIt]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Opened from Find It's Picker: the picked asset's subcategory, where the
+    // view starts on that asset (focusAsset). An effect for the same reason.
+    const focusAsset = useValue(pickedAsset$);
+    const pickedSub = useValue(pickedSubCategory$);
+    const findItCategories = useValue(findItCategories$);
+    useLayoutEffect(() => {
+        if (focusAsset < 0 || pickedSub < 0) return;
+        for (const category of findItCategories) {
+            const sub = category.subCategories.find((s) => s.id === pickedSub);
+            if (sub) {
+                setPath(findItPath({ category, sub }));
+                return;
+            }
+        }
+    }, [focusAsset, pickedSub]); // eslint-disable-line react-hooks/exhaustive-deps
     const openCategory = useCallback(
         (category: toolbar.AssetCategory) => setPath((p) => categoryPath(p, category)),
         []
@@ -252,8 +281,9 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
             complete,
             addFilter: addChipToQuery,
             trail: crumbs,
+            focusAsset,
         }),
-        [query, example, contextKey, openContext, closeContext, complete, addChipToQuery, crumbs]
+        [focusAsset, query, example, contextKey, openContext, closeContext, complete, addChipToQuery, crumbs]
     );
     // Keyed per place, so each level starts on its first page.
     const key = levelKey(path);

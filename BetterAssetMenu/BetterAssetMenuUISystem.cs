@@ -137,6 +137,12 @@ namespace BetterAssetMenu
             if (_isOpen.value == open) return;
 
             _isOpen.Update(open);
+            if (!open)
+            {
+                _openAtFindIt.Update(false);
+                _pickedAsset.Update(-1);
+                _pickedSubCategory.Update(-1);
+            }
             if (open)
             {
                 SetIsolateInput(true);

@@ -122,6 +122,32 @@ describe("Find It", () => {
         expect(calls()).toContain(call(`${MOD}.activatePrefab`, decals[0].entity));
     });
 
+    it("starts at the Find It level when opened from Find It's button", () => {
+        withFindIt();
+        setValue(MOD, "openAtFindIt", true);
+        expect(itemIcons()).toEqual(["icon/fi-props.svg", "icon/fi-trees.svg"]);
+    });
+
+    it("stays at the top level when opened from Find It's button with the catalogue off", () => {
+        start();
+        setValue(MOD, "openAtFindIt", true);
+        expect(itemIcons()).toContain("icon/Roads.svg");
+    });
+
+    it("opens on the picked asset's subcategory when opened from the Picker", () => {
+        const { large } = withFindIt();
+        setValue(MOD, "pickedSubCategory", 22);
+        setValue(MOD, "pickedAsset", large[1].entity.index);
+        expect(itemIcons()).toEqual(large.map((a) => a.icon));
+    });
+
+    it("stays at the top level for a pick in a subcategory it doesn't have", () => {
+        const { large } = withFindIt();
+        setValue(MOD, "pickedSubCategory", 999);
+        setValue(MOD, "pickedAsset", large[1].entity.index);
+        expect(queryItem(FIND_IT)).not.toBeNull();
+    });
+
     it("returns to the top level when the integration turns off", () => {
         withFindIt();
         click(item(FIND_IT));

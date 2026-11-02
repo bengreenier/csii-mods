@@ -97,6 +97,12 @@ export const close = () => trigger(GROUP, "close");
 // "Use Find It's catalogue" (BetterAssetMenuUISystem.FindIt.cs): true while the
 // setting is on, Find It is enabled and its catalogue has been read.
 export const findItActive$ = bindValue<boolean>(GROUP, "findItActive", false);
+// This open came from Find It's toolbar button: start at the Find It level.
+export const openAtFindIt$ = bindValue<boolean>(GROUP, "openAtFindIt", false);
+// This open came from Find It's Picker: the picked asset's entity index and
+// its Find It subcategory, -1 otherwise.
+export const pickedAsset$ = bindValue<number>(GROUP, "pickedAsset", -1);
+export const pickedSubCategory$ = bindValue<number>(GROUP, "pickedSubCategory", -1);
 
 // Find It's categories and subcategories. Names are its enum names (e.g.
 // "Props", "Props_Decals"); titles come from its locale keys
