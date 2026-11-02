@@ -23,7 +23,8 @@ Find It support.
   theme in settings).
 - **Find It support.** With Find It installed, its whole catalogue (props,
   decals, trees, fences, vehicles...) is searchable and browsable from the same
-  menu. Find It isn't required.
+  menu. Find It isn't required. Options make its toolbar button, and its
+  picker's picks, open this menu instead of its panel.
 - **Two menu styles.** *Radial*: a wheel around your cursor or the screen
   center, with a preview in the middle. *Pane*: a keyboard-first list with a
   big preview; click a detail to add it to your search, right-click to exclude

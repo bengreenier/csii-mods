@@ -1,6 +1,6 @@
 // Draws one level in the sidebar: a list of rows as tall as the sidebar
 // allows, the highlighted row's details under it, and where you are.
-import { Fragment, useEffect, useRef, useState, WheelEvent } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, WheelEvent } from "react";
 import classNames from "classnames";
 import { ChipList, useAssetChips } from "../../asset-chips";
 import { ItemPreview, ItemTitle } from "../../item-details";
@@ -21,7 +21,7 @@ import {
     visibleRows,
     WHEEL_ROWS,
 } from "../../row-list";
-import { useMenuSession } from "../../session-context";
+import { focusIndex, useMenuSession } from "../../session-context";
 import { useSecondaryClick } from "../../use-secondary-click";
 import { DETAIL_HEIGHT, FOOTER_HEIGHT, HINT_HEIGHT, listGeometry, ROW_HEIGHT, THUMB_ROOM } from "./layout";
 import { useSidebarSize } from "./sidebar-frame";
@@ -37,7 +37,7 @@ const KEY_DOWN = 40;
 // depends on its fields, never on `level` itself.
 export const SidebarLevel = ({ level }: LevelViewProps) => {
     const { items, grouped, search, emptyMessage, onBack } = level;
-    const { query, example, commandsRef, contextKey, openContext, closeContext, complete, trail } = useMenuSession();
+    const { query, example, commandsRef, contextKey, openContext, closeContext, complete, trail, focusAsset } = useMenuSession();
     const secondaryClick = useSecondaryClick(itemKey, openContext);
     const size = useSidebarSize();
     const geometry = listGeometry(size.height);
@@ -60,6 +60,13 @@ export const SidebarLevel = ({ level }: LevelViewProps) => {
             offset: scroll ? offsetShowing(next, offset, count, geometry) : offset,
         });
     };
+    // Find It's Picker: start on the picked asset. An effect, as the sidebar is
+    // already open for later picks, even in the same subcategory.
+    useLayoutEffect(() => {
+        const at = focusIndex(items, focusAsset, query);
+        if (at >= 0) highlight(at, true);
+    }, [focusAsset]); // eslint-disable-line react-hooks/exhaustive-deps
+
     const scrollBy = (rows: number) =>
         setState({
             ...current,

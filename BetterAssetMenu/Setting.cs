@@ -235,6 +235,40 @@ namespace BetterAssetMenu
             }
         }
 
+        // Find It's toolbar magnifying glass opens this menu instead of its
+        // panel. Saved and shown the same way as UseFindIt above.
+        [SettingsUIHidden]
+        public bool FindItButtonOpensMenuWanted { get; set; }
+
+        [Exclude]
+        [SettingsUIDisableByCondition(typeof(Setting), nameof(IsFindItMissing))]
+        [SettingsUISection(KSection, KAssetsGroup)]
+        public bool FindItButtonOpensMenu
+        {
+            get => FindItButtonOpensMenuWanted && FindItBridge.IsEnabled;
+            set
+            {
+                if (FindItBridge.IsEnabled) FindItButtonOpensMenuWanted = value;
+            }
+        }
+
+        // Assets picked with Find It's Picker show in this menu instead of its
+        // panel. Saved and shown the same way as UseFindIt above.
+        [SettingsUIHidden]
+        public bool PickerOpensMenuWanted { get; set; }
+
+        [Exclude]
+        [SettingsUIDisableByCondition(typeof(Setting), nameof(IsFindItMissing))]
+        [SettingsUISection(KSection, KAssetsGroup)]
+        public bool PickerOpensMenu
+        {
+            get => PickerOpensMenuWanted && FindItBridge.IsEnabled;
+            set
+            {
+                if (FindItBridge.IsEnabled) PickerOpensMenuWanted = value;
+            }
+        }
+
         private static bool IsFindItMissing() => !FindItBridge.IsEnabled;
 
         // --- Vanilla toolbar and tools ---
@@ -408,6 +442,8 @@ namespace BetterAssetMenu
             BrowseAllThemes = false;
             LockPlacedUnique = false;
             UseFindItWanted = true;
+            FindItButtonOpensMenuWanted = false;
+            PickerOpensMenuWanted = false;
             MenuStyle = MenuStyleMode.Radial;
             MenuScale = 1f;
             PaneScale = 1f;
@@ -475,6 +511,12 @@ namespace BetterAssetMenu
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.UseFindIt)), "Use Find It's catalogue" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.UseFindIt)), "Requires the Find It mod. Search and browse everything Find It lists, such as props, decals, trees and vehicles, not just what the vanilla toolbar has. Adds a Find It button to the menu, and a 'cat:' filter for Find It's categories. Greyed out when Find It isn't enabled." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.FindItButtonOpensMenu)), "Open this menu from Find It's button" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.FindItButtonOpensMenu)), "Requires the Find It mod. The magnifying glass in the toolbar opens this menu instead of Find It's panel, showing Find It's categories if 'Use Find It's catalogue' is on. Find It's keyboard shortcut still opens its own panel. Greyed out when Find It isn't enabled." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.PickerOpensMenu)), "Show Find It's picks in this menu" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.PickerOpensMenu)), "Requires the Find It mod, with 'Use Find It's catalogue' on. Picking something in the city with Find It's picker opens this menu on that asset instead of Find It's panel. The asset is ready to place: click outside the menu to place it. Greyed out when Find It isn't enabled." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.BrowseAllThemes)), "Show every theme and asset pack" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.BrowseAllThemes)), "When browsing the menu without searching, show assets from every theme and asset pack, such as North American buildings in a European city. Turn off to only show what the vanilla asset menu's theme and pack filters show. Picking an asset from another theme switches the vanilla theme filter to it, as in the vanilla asset menu." },

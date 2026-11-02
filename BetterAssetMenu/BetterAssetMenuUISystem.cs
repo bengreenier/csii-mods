@@ -174,6 +174,7 @@ namespace BetterAssetMenu
             // Before isOpen: the UI reads it when the open menu mounts.
             if (open) _openFocused.Update(focused);
             _isOpen.Update(open);
+            if (!open) ClearOpenPlace();
             _searchFocused = false;
             if (open)
             {

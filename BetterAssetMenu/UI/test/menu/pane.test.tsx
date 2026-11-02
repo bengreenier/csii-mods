@@ -3,8 +3,8 @@
 // detail side. Search, levels and the context menu are the wheel's; these
 // check the pane drives them the same way.
 import { describe, expect, it } from "vitest";
-import { MOD, setValue } from "../fakes/game";
-import { TREE_COUNT } from "../fixtures/city";
+import { MOD, setMap, setValue } from "../fakes/game";
+import { asset, TREE_COUNT } from "../fixtures/city";
 import {
     accept,
     backdrop,
@@ -252,5 +252,22 @@ describe("pane", () => {
         expect(input()).toBe(field);
         expect(input().value).toBe("road");
         expect(pane().contains(field)).toBe(true);
+    });
+});
+
+describe("pane opened from Find It's Picker", () => {
+    useMenuTest();
+
+    it("highlights the picked asset", () => {
+        start({ style: "pane" });
+        const assets = [asset("One"), asset("Two"), asset("Three")];
+        setValue(MOD, "findItCategories", [
+            { id: 1, name: "Props", icon: null, subCategories: [{ id: 11, name: "Props_Decals", icon: null, count: 3 }] },
+        ]);
+        setMap(MOD, "findItAssets", [[11, assets]]);
+        setValue(MOD, "findItActive", true);
+        setValue(MOD, "pickedSubCategory", 11);
+        setValue(MOD, "pickedAsset", assets[2].entity.index);
+        expect(highlightedIcon()).toBe(assets[2].icon);
     });
 });

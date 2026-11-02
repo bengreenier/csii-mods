@@ -5,7 +5,8 @@
 // it can be docked, dragged and made see-through.
 import { fireEvent } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { emit, MOD, setValue } from "../fakes/game";
+import { emit, MOD, setMap, setValue } from "../fakes/game";
+import { asset } from "../fixtures/city";
 import {
     accept,
     call,
@@ -223,5 +224,28 @@ describe("sidebar", () => {
         expect(box().style.backgroundColor).toBe("rgba(24, 33, 51, 0.6)");
         setValue(MOD, "sidebarTransparency", 0);
         expect(box().style.backgroundColor).toBe("rgb(24, 33, 51)");
+    });
+});
+
+describe("sidebar sent to a place by Find It", () => {
+    useMenuTest();
+
+    it("moves while already open, and again for another pick in the same subcategory", () => {
+        start({ style: "sidebar" });
+        const assets = [asset("One"), asset("Two"), asset("Three")];
+        setValue(MOD, "findItCategories", [
+            { id: 1, name: "Props", icon: null, subCategories: [{ id: 11, name: "Props_Decals", icon: null, count: 3 }] },
+        ]);
+        setMap(MOD, "findItAssets", [[11, assets]]);
+        setValue(MOD, "findItActive", true);
+        clearCalls();
+        setValue(MOD, "pickedSubCategory", 11);
+        setValue(MOD, "pickedAsset", assets[2].entity.index);
+        expect(highlightedIcon()).toBe(assets[2].icon);
+        expect(calls()).toContain(call(`${MOD}.openPlaceShown`));
+
+        setValue(MOD, "pickedAsset", -1);
+        setValue(MOD, "pickedAsset", assets[0].entity.index);
+        expect(highlightedIcon()).toBe(assets[0].icon);
     });
 });

@@ -4,8 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Colossal.UI.Binding;
 using Game.Prefabs;
 using Game.SceneFlow;
+using Game.UI;
 using Unity.Entities;
 
 namespace BetterAssetMenu
@@ -35,9 +37,21 @@ namespace BetterAssetMenu
         private const string kUtilType = "FindIt.Utilities.FindItUtil";
         // PrefabCategory.Any / PrefabSubCategory.Any: the list of everything.
         private const int kAny = -1;
+        private const string kUISystemType = "FindIt.Systems.FindItUISystem";
+        private const string kModType = "FindIt.Mod";
+        internal const string kPickerToolId = "FindIt.Picker";
+        private const string kIconTrigger = "FindItIconToggled";
+        private const string kPanelBinding = "ShowFindItPanel";
+        private const string kLockedBinding = "IsWindowLocked";
 
         private static bool? _enabled;
         private static bool _failed;
+        private static bool _iconButtonHooked;
+        private static bool? _pickerBound;
+        private static object _findItSettings;
+        private static PropertyInfo _openPanelOnPicker;
+        private static object _pickerPanelWas;
+        private static bool _pickerPanelSuppressed;
         private static PropertyInfo _categorizedPrefabs;
         private static PropertyInfo _isReady;
         private static Type _categoryType;
@@ -142,6 +156,97 @@ namespace BetterAssetMenu
                 // Only an icon: the entry still works without it.
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Routes Find It's toolbar magnifying glass through <paramref name="open"/>
+        /// (false: not handled). Its own behaviour still runs whenever its panel is
+        /// open or locked, or open declines. Find It has no hook for this, so it
+        /// swaps the callback of its FindItIconToggled trigger; if anything's
+        /// missing the button simply stays Find It's, and the catalogue is
+        /// unaffected. See docs/game-internals.md, "Find It".
+        /// </summary>
+        internal static void HookIconButton(Func<bool> open)
+        {
+            if (_iconButtonHooked || !IsEnabled) return;
+            try
+            {
+                var assembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == kAssemblyName);
+                var systemType = assembly?.GetType(kUISystemType);
+                var system = systemType == null ? null : World.DefaultGameObjectInjectionWorld?.GetExistingSystemManaged(systemType);
+                // Created with the world, so a miss here can be retried next load.
+                if (system == null) return;
+
+                _iconButtonHooked = true;
+                var bindings = typeof(UISystemBase).GetField("m_Bindings", BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?.GetValue(system) as List<IBinding>;
+                var callback = typeof(TriggerBinding).GetField("m_Callback", BindingFlags.NonPublic | BindingFlags.Instance);
+                var trigger = bindings?.OfType<TriggerBinding>().FirstOrDefault(b => b.name == kIconTrigger);
+                var panel = bindings?.OfType<ValueBinding<bool>>().FirstOrDefault(b => b.name == kPanelBinding);
+                var locked = bindings?.OfType<ValueBinding<bool>>().FirstOrDefault(b => b.name == kLockedBinding);
+                if (callback == null || trigger == null || panel == null || locked == null)
+                {
+                    Mod.LOG.Warn("Find It's button can't be redirected: its trigger or panel state wasn't found. It keeps opening Find It.");
+                    return;
+                }
+
+                var original = (Action)callback.GetValue(trigger);
+                callback.SetValue(trigger, (Action)(() =>
+                {
+                    if (panel.value || locked.value || !open()) original();
+                }));
+            }
+            catch (Exception e)
+            {
+                Mod.LOG.Warn(e, "Find It's button can't be redirected. It keeps opening Find It.");
+            }
+        }
+
+        /// <summary>
+        /// Finds what the Picker override needs: Find It's OpenPanelOnPicker option.
+        /// False if it's missing, and the Picker then stays Find It's. See
+        /// docs/game-internals.md, "Find It".
+        /// </summary>
+        internal static bool BindPicker()
+        {
+            if (_pickerBound.HasValue) return _pickerBound.Value;
+            if (!IsEnabled) return false;
+            try
+            {
+                var assembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == kAssemblyName);
+                _findItSettings = assembly?.GetType(kModType)?.GetProperty("Settings", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+                // Find It creates its settings while loading; try again later.
+                if (_findItSettings == null) return false;
+                _openPanelOnPicker = _findItSettings.GetType().GetProperty("OpenPanelOnPicker", BindingFlags.Public | BindingFlags.Instance);
+                _pickerBound = _openPanelOnPicker != null;
+                if (!_pickerBound.Value) Mod.LOG.Warn("Find It's picker can't be redirected: OpenPanelOnPicker wasn't found. It keeps opening Find It.");
+            }
+            catch (Exception e)
+            {
+                _pickerBound = false;
+                Mod.LOG.Warn(e, "Find It's picker can't be redirected. It keeps opening Find It.");
+            }
+            return _pickerBound ?? false;
+        }
+
+        /// <summary>
+        /// Turns Find It's OpenPanelOnPicker off while the override is in use, and
+        /// back to what it was afterwards. Only in memory, for as long as the
+        /// Picker is active: Find It's panel is closed then, so nothing saves it.
+        /// </summary>
+        internal static void SuppressPickerPanel(bool suppress)
+        {
+            if (suppress == _pickerPanelSuppressed || _pickerBound != true) return;
+            if (suppress)
+            {
+                _pickerPanelWas = _openPanelOnPicker.GetValue(_findItSettings);
+                _openPanelOnPicker.SetValue(_findItSettings, false);
+            }
+            else
+            {
+                _openPanelOnPicker.SetValue(_findItSettings, _pickerPanelWas);
+            }
+            _pickerPanelSuppressed = suppress;
         }
 
         // Resolves the members once. False (and the integration off) if Find
