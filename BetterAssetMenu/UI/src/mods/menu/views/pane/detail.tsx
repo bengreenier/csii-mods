@@ -3,18 +3,11 @@
 import { ChipList, useAssetChips } from "../../asset-chips";
 import { MenuItemIcon } from "../../item-icon";
 import { ItemPreview, ItemTitle } from "../../item-details";
-import { IDLE_EXCLUDE_HINT, IDLE_TYPE_HINT } from "../../menu-text";
+import { disabledReason, IDLE_EXCLUDE_HINT, IDLE_TYPE_HINT } from "../../menu-text";
 import { MenuItem } from "../../model";
 import { useMenuSession } from "../../session-context";
 import { PlaceLabel } from "./labels";
 import styles from "./pane.module.scss";
-
-// Why a disabled row can't be picked.
-function disabledReason(item: MenuItem): string | null {
-    if (!item.disabled) return null;
-    if (item.asset && !item.asset.locked && item.asset.unique && item.asset.placed) return "Already placed";
-    return "Not unlocked yet";
-}
 
 export const Detail = ({ item }: { item: MenuItem }) => {
     const { addFilter } = useMenuSession();

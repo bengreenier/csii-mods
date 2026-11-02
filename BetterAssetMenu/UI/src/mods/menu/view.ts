@@ -25,6 +25,11 @@ export interface MenuView {
     // session's.
     searchFieldClassName: string;
     placeholder?: string;
+    // Stays open while you build (the sidebar), instead of being modal:
+    // no backdrop, picking doesn't close it, and its search field may lose
+    // focus, which hands the keyboard back to the game. The session's
+    // behaviour changes; see MenuSession and docs/ui-architecture.md.
+    persistent?: boolean;
 }
 
 // Provided by the shell (always mounted) for the open menu.

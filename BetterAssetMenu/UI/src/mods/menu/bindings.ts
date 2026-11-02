@@ -8,6 +8,10 @@ export const GROUP = mod.id;
 
 export const isOpen$ = bindValue<boolean>(GROUP, "isOpen", false);
 
+// Whether the menu takes the keyboard as it opens: false when the sidebar
+// comes back by itself after the pause menu, options or a hidden UI.
+export const openFocused$ = bindValue<boolean>(GROUP, "openFocused", true);
+
 // True while the menu is open, and briefly after it closes (see BetterAssetMenuUISystem).
 export const isolateInput$ = bindValue<boolean>(GROUP, "isolateInput", false);
 
@@ -17,6 +21,7 @@ export const openAtCursor$ = bindValue<boolean>(GROUP, "openAtCursor", false);
 // "Menu style": which view draws the open menu (Setting.MenuStyleMode).
 export const menuStyle$ = bindValue<number>(GROUP, "menuStyle", 0);
 export const MENU_STYLE_PANE = 1;
+export const MENU_STYLE_SIDEBAR = 2;
 
 // "Preview image": which picture the wheel's hub or the pane's detail side
 // shows for an asset (Setting.HubImageMode; see HUB_IMAGE_* in item-details.tsx).
@@ -77,8 +82,21 @@ export const resetVanillaThemes$ = bindEvent<Entity>(GROUP, "resetVanillaThemes"
 // then drops its own session caches (BetterAssetMenuUISystem.Refresh.cs).
 export const dataRefreshed$ = bindEvent<void>(GROUP, "dataRefreshed");
 
-// Fired by C# when the "Accept search suggestion" key is pressed while open.
+// Fired by C# when the "Accept search suggestion" key is pressed while
+// typing in the open menu (the sidebar: only while its field has focus).
 export const acceptSuggestion$ = bindEvent<void>(GROUP, "acceptSuggestion");
+
+// Fired by C# when the "Open menu" key is pressed while the sidebar is open
+// and its field isn't focused: put the keyboard back in the field.
+export const focusSearch$ = bindEvent<void>(GROUP, "focusSearch");
+
+// A persistent view's search field gained or lost focus. C# isolates the
+// game's input only while it has it (BetterAssetMenuUISystem, UpdateInputIsolation).
+export const setSearchFocused = (focused: boolean) => trigger(GROUP, "setSearchFocused", focused);
+
+// Resend what changes while a persistent view stays open (unlocks, unique
+// placements, favorites); C# throttles it.
+export const refreshOpenMenu = () => trigger(GROUP, "refresh");
 
 // This city's favorite assets, in the order added (FavoritesSystem.cs, stored
 // in the save). Toolbar assets come with their menu and category; others (e.g.

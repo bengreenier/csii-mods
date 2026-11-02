@@ -193,6 +193,19 @@ It uses `useInputController` with `AlwaysActive` (numeric `2`) and `Disabled`
 which follows the game's own focus tree, and the menu's hidden `<input>` isn't
 part of that tree.
 
+### The sidebar: isolated only while typing
+
+The sidebar (a persistent view, `docs/ui-architecture.md`) stays open while
+its field is unfocused, and the game must have its input then. C# isolates
+while `IsTyping`: the menu is open and either it's a modal view or the
+sidebar's field reports focus (`setSearchFocused`). Every blur releases
+isolation through the same late path as closing (2 frames of clear
+`hasInputFieldFocus`), so "Pause Menu" is re-resolved with the keyboard back.
+The accept key is read only while `IsTyping`.
+
+Checked in game (1.6.2f1, 2026-11-01): after picking from the sidebar, or a
+click on the city, a single Escape cancels the tool or opens the pause menu.
+
 ### Caveats
 
 - **Transformer order:** the root applies transformers in attach order. The
@@ -230,6 +243,15 @@ What to check:
    `hasInputFieldFocus` and `isolateInput`. On the UI side, log
    `useContext(InputRootContext).stack._items`. Compare before opening, while
    open, and after closing with Escape.
+
+## Clicks and the game's main screen
+
+`game-main-screen` and its parent set `pointer-events: none`, so clicks on
+empty screen reach the city. Anything appended to `Game` inherits that and
+isn't hit-tested at all (clicks land on the city through it). The modal
+views' backdrop sets `pointer-events: auto`; the sidebar's zero-size root
+(`.overlay` in `shared.module.scss`) does too. With that set, clicks on the
+sidebar don't reach the active tool underneath.
 
 ## Keyboard focus and hasInputFieldFocus
 

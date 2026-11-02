@@ -14,7 +14,7 @@ import { buildCity, City, loadCity, openMenu } from "../fixtures/city";
 export const KEY = { TAB: 9, ENTER: 13, ESCAPE: 27, PAGE_UP: 33, PAGE_DOWN: 34, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40 };
 
 // Setting.MenuStyleMode values ("Menu style").
-export const STYLE = { radial: 0, pane: 1 } as const;
+export const STYLE = { radial: 0, pane: 1, sidebar: 2 } as const;
 const MOUSE_SECONDARY = 2;
 
 let consoleErrors: unknown[][] = [];
@@ -149,7 +149,7 @@ export function wheel(deltaY: number) {
     fireEvent.wheel(backdrop(), { deltaY });
 }
 
-/** The menu's outermost element (dims the screen; clicks close the menu). */
+/** The menu's outermost element (the wheel and pane: dims the screen, clicks close the menu; the sidebar: a zero-size root). */
 export function backdrop(): HTMLElement {
     // The field's ancestor right under the render container.
     let el: HTMLElement = input();
@@ -215,7 +215,7 @@ export function contextEntry(text: string): HTMLElement {
 
 // ---- The pane ---------------------------------------------------------------
 
-/** The pane (the view's box, holding the field). */
+/** The pane or the sidebar (the view's box, holding the field). */
 export function pane(): HTMLElement {
     const el = viewElement();
     if (!el || !el.contains(input())) throw new Error("no pane (is the menu drawn as the wheel?)");

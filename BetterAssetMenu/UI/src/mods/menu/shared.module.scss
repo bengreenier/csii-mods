@@ -13,8 +13,22 @@
 // re-evaluates the cursor on mouse move, so any per-element cursor would
 // show stale until the mouse moved.
 .backdrop,
-.backdrop * {
+.backdrop *,
+.overlay * {
     cursor: default;
+}
+
+// A persistent view's root (the sidebar): the view hangs from it, placed in
+// view pixels, and the city around it stays clickable. The game's main
+// screen sets `pointer-events: none` (clicks fall through to the city);
+// without `auto` here the view inherits it and can't be clicked at all.
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    pointer-events: auto;
 }
 
 // One metadata chip, in the hub (.hubChips) or a context menu (.contextChips).
