@@ -2,8 +2,9 @@
 
 How the menu's UI module (`BetterAssetMenu/UI/src/mods/menu/`) is split, so that
 another way of drawing it (a "view") can be added as one folder. There are
-two: the wheel (`views/radial/`) and the pane (`views/pane/`, a Raycast-style
-list), picked by the "Menu style" setting.
+three: the wheel (`views/radial/`), the pane (`views/pane/`, a Raycast-style
+list) and the sidebar (`views/sidebar/`, a list that stays open while you
+build; see "Persistent views" below), picked by the "Menu style" setting.
 
 ## Layers
 
@@ -59,6 +60,31 @@ Also shared by any view: `actions.ts` (selecting and placing), `navigation.ts`,
   input hook, the field's focus effect and its layout-effect blur interact
   with the game's input system (`docs/game-internals.md`).
 
+## Persistent views (the sidebar)
+
+A view with `persistent: true` (`view.ts`) isn't modal. The session changes
+how it behaves; hook order stays the same for every view (branches live
+inside effects and handlers):
+
+- **No backdrop.** The session's root is a zero-size `.overlay` with
+  `pointer-events: auto`. The game's main screen sets `pointer-events: none`,
+  so without it the view inherits that and can't be clicked at all.
+- **Picking doesn't close it.** Every pick goes through `finishPick()`
+  (`actions.ts`); the session sets it to blur the field instead.
+- **The field only has focus while you type.** Picking, Escape at the top
+  level, or a press outside the view blurs it, which hands the keyboard back
+  to the game. Presses inside the view keep it (`onRootMouseDown`). The
+  "Open menu" key refocuses it (`focusSearch$`). The field reports focus to
+  C# (`setSearchFocused`), which isolates input only while it's focused
+  (`docs/game-internals.md`, input isolation).
+- **Leaving the top level doesn't clear the tool** when Escape only blurs the
+  field: you may be placing something from it.
+- **It stays open across screens.** C# closes it on the pause menu, options
+  or a hidden UI, then reopens it, unfocused (`openFocused$`), on the way
+  back. Its title bar's close button and loading a city end that.
+- **It refreshes while open** (`refreshOpenMenu`, throttled in C#): when the
+  mouse comes back to it, and when its field is focused.
+
 ## Navigation
 
 `navigation.ts` holds the decisions as pure functions: `levelKey` (a level
@@ -91,4 +117,8 @@ Behaviour tests (`BetterAssetMenu/UI/test/menu/`) drive the menu through its pub
 surface. `test/menu/driver.tsx` finds the backdrop as the field's ancestor
 under the render container, the view as the field's next sibling (the wheel)
 or the backdrop child holding the field (the pane), and the context menu
-after the view. `start({ style: "pane" })` opens the pane.
+after the view. `start({ style: "pane" })` opens the pane, and
+`start({ style: "sidebar" })` the sidebar (`pane()` finds either).
+
+List views share `row-list.ts` (the highlight and scroll maths, given a
+`RowListGeometry`) and `place-labels.tsx` (`PlaceLabel`, `CrumbText`).

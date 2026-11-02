@@ -1,7 +1,15 @@
 import { useEffect, useRef } from "react";
 import { useValue } from "cs2/api";
 import { toolbar } from "cs2/bindings";
-import { dataRefreshed$, isOpen$, isolateInput$, MENU_STYLE_PANE, menuStyle$, resetVanillaThemes$ } from "./bindings";
+import {
+    dataRefreshed$,
+    isOpen$,
+    isolateInput$,
+    MENU_STYLE_PANE,
+    MENU_STYLE_SIDEBAR,
+    menuStyle$,
+    resetVanillaThemes$,
+} from "./bindings";
 import { useModalInput } from "./modal-input";
 import { useLocalization } from "./localization";
 import { clearSearchSessionCaches, usePrewarmFindItSearch } from "./search";
@@ -9,6 +17,7 @@ import { FindItCatalogueContext, useFindItCatalogueRoot } from "./find-it-catalo
 import { MenuView, MenuViewContext } from "./view";
 import { paneView } from "./views/pane";
 import { radialView } from "./views/radial";
+import { sidebarView } from "./views/sidebar";
 import { MenuSession } from "./session";
 
 // Always mounted (index.tsx): input isolation, the settings' utility events,
@@ -41,8 +50,15 @@ export const MenuShell = () => {
 function useViewOnOpen(isOpen: boolean): MenuView {
     const style = useValue(menuStyle$);
     const view = useRef<MenuView | null>(null);
-    if (!isOpen || !view.current) view.current = style === MENU_STYLE_PANE ? paneView : radialView;
+    if (!isOpen || !view.current) view.current = viewForStyle(style);
     return view.current;
+}
+
+// Setting.MenuStyleMode; anything unknown draws the wheel (its default).
+function viewForStyle(style: number): MenuView {
+    if (style === MENU_STYLE_PANE) return paneView;
+    if (style === MENU_STYLE_SIDEBAR) return sidebarView;
+    return radialView;
 }
 
 // "Refresh Better Asset Menu data" (settings): C# has resent everything; drop the

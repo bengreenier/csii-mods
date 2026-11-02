@@ -1,4 +1,5 @@
 // Wording shared by any view of the menu.
+import { MenuItem } from "./model";
 import { SearchResults } from "./search";
 
 export const IDLE_TYPE_HINT = "Type to search";
@@ -7,6 +8,13 @@ export const IDLE_EXCLUDE_HINT = "Use '-word' to exclude";
 export const exampleHint = (example: string) => `Hint: try "${example}"`;
 export const PAGING_HINT = "Scroll or PgUp/PgDn for more";
 export const BACK_HINT = "Back";
+
+// Why a disabled item can't be picked.
+export function disabledReason(item: MenuItem): string | null {
+    if (!item.disabled) return null;
+    if (item.asset && !item.asset.locked && item.asset.unique && item.asset.placed) return "Already placed";
+    return "Not unlocked yet";
+}
 
 export function matchSummary({ active, results, pending }: SearchResults, page: number, pageSize: number) {
     if (!active) return "Keep typing...";

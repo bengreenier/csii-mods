@@ -1,7 +1,16 @@
 import { KeyboardEvent, MouseEvent, MutableRefObject, WheelEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useValue } from "cs2/api";
 import { toolbar } from "cs2/bindings";
-import { acceptSuggestion$, close, findItActive$ } from "./bindings";
+import {
+    acceptSuggestion$,
+    close,
+    findItActive$,
+    focusSearch$,
+    openFocused$,
+    refreshOpenMenu,
+    setSearchFocused,
+} from "./bindings";
+import { setAfterPick } from "./actions";
 import { useContextActions } from "./context-actions";
 import { useAssetChips } from "./asset-chips";
 import { usePrefabTitle } from "./asset-data";
@@ -34,6 +43,10 @@ import shared from "./shared.module.scss";
 
 const BACK_DEBOUNCE_MS = 100;
 
+// A persistent view's field refocuses after a blur this soon after a mouse
+// press inside the view: clicking its rows or title bar keeps the keyboard.
+const KEEP_FOCUS_AFTER_PRESS_MS = 500;
+
 // A mouse wheel notch is one event, but trackpads send a burst; flip at most
 // one page per this interval.
 const PAGE_WHEEL_THROTTLE_MS = 150;
@@ -58,7 +71,8 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
     const commandsRef = useRef<ViewCommands>({});
     const [example] = useState(() => FILTER_EXAMPLES[Math.floor(Math.random() * FILTER_EXAMPLES.length)]);
     const inputRef = useRef<HTMLInputElement>(null);
-    const { Frame, searchFieldClassName, placeholder } = useMenuView();
+    const { Frame, searchFieldClassName, placeholder, persistent = false } = useMenuView();
+    const rootRef = useRef<HTMLDivElement>(null);
 
     // The right-click menu. Only one is open at a time; every input that
     // changes what's under it closes it (see closeContext's callers).
@@ -130,18 +144,79 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
                 setPath(step.path);
                 break;
             case "leaveMenu":
+                // A persistent view stays open: at the top, Escape only hands
+                // the keyboard back to the game, and leaves the tool alone.
+                if (persistent && step.close) {
+                    inputRef.current?.blur();
+                    break;
+                }
                 toolbar.clearAssetSelection();
                 if (step.close) close();
                 else setPath(ROOT);
                 break;
         }
-    }, [path, query]);
+    }, [path, query, persistent]);
 
     // The search field keeps keyboard focus while the menu is open. A focused
     // text field also makes the game ignore its keyboard shortcuts, so typing
     // doesn't move the camera etc.
     const focusInput = useCallback(() => inputRef.current?.focus(), []);
-    useEffect(focusInput, [focusInput]);
+    // As it opens, unless the sidebar is only coming back (openFocused$).
+    const openFocused = useValue(openFocused$);
+    const [focusOnOpen] = useState(openFocused);
+    useEffect(() => {
+        if (focusOnOpen) focusInput();
+    }, [focusInput, focusOnOpen]);
+
+    // A persistent view's field only has focus while you type in it; the game
+    // has the keyboard otherwise. C# isolates the game's input while it's
+    // focused (setSearchFocused). Picking something, Escape at the top, or a
+    // click outside the view hands the keyboard back; the "Open menu" key
+    // (focusSearch$) or a click in the field takes it again.
+    const keepFocusUntil = useRef(0);
+    const onFieldFocus = () => {
+        if (!persistent) return;
+        setSearchFocused(true);
+        refreshOpenMenu();
+    };
+    const onFieldBlur = () => {
+        // Clicking the wheel would otherwise steal focus (and hand the
+        // keyboard back to the game).
+        if (!persistent || Date.now() < keepFocusUntil.current) {
+            requestAnimationFrame(focusInput);
+            return;
+        }
+        setSearchFocused(false);
+    };
+    const onRootMouseDown = (e: MouseEvent) => {
+        if (!persistent || e.target === inputRef.current) return;
+        // Keep the field's focus through clicks on the view (where Gameface
+        // honours this; the blur handler refocuses where it doesn't).
+        e.preventDefault();
+        if (document.activeElement === inputRef.current) keepFocusUntil.current = Date.now() + KEEP_FOCUS_AFTER_PRESS_MS;
+    };
+    useEffect(() => {
+        if (!persistent) return;
+        setAfterPick(() => {
+            keepFocusUntil.current = 0;
+            inputRef.current?.blur();
+        });
+        const onFocusSearch = focusSearch$.subscribe(focusInput);
+        // A press outside the view (on the city or other UI): it stays,
+        // without the keyboard or its context menu.
+        const onWindowMouseDown = (e: globalThis.MouseEvent) => {
+            if (rootRef.current?.contains(e.target as Node)) return;
+            setContext(null);
+            keepFocusUntil.current = 0;
+            inputRef.current?.blur();
+        };
+        window.addEventListener("mousedown", onWindowMouseDown, true);
+        return () => {
+            setAfterPick(null);
+            onFocusSearch.dispose();
+            window.removeEventListener("mousedown", onWindowMouseDown, true);
+        };
+    }, [persistent, focusInput]);
 
     // The "Accept suggestion / pick result" key (rebindable, Enter by
     // default) is read on the C# side, since the focused field blocks game
@@ -158,12 +233,14 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
             // Swallowed while a context menu is open: it must never pick the
             // result behind the menu.
             if (contextOpen.current) return;
+            // C# only sends it while typing; this guards a stale focus report.
+            if (persistent && document.activeElement !== inputRef.current) return;
             if (complete()) return;
             if (commandsRef.current.accept?.()) return;
             submitRef.current?.();
         });
         return () => subscription.dispose();
-    }, [complete]);
+    }, [complete, persistent]);
 
     // Release focus when the menu closes. The game only clears its "text field
     // focused" state (which blocks keyboard actions like the pause menu) on a
@@ -227,10 +304,11 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
 
     // A left click that reaches the backdrop closes an open context menu, or
     // else the menu. Right-clicks on items stop before this, so one here
-    // missed every item.
+    // missed every item. A persistent view has no backdrop: clicks get here
+    // only from inside it, and it stays open.
     const onBackdropClick = () => {
         if (contextOpen.current) setContext(null);
-        else close();
+        else if (!persistent) close();
     };
     const onBackdropMouseUp = (e: MouseEvent) => {
         if (e.button === MOUSE_SECONDARY) setContext(null);
@@ -292,14 +370,22 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            // Clicking the wheel would otherwise steal focus (and hand
-            // the keyboard back to the game).
-            onBlur={() => requestAnimationFrame(focusInput)}
+            onFocus={onFieldFocus}
+            onBlur={onFieldBlur}
         />
     );
 
     return (
-        <div className={shared.backdrop} onClick={onBackdropClick} onMouseUp={onBackdropMouseUp} onWheel={onWheel}>
+        // A persistent view gets a zero-size root instead of the backdrop,
+        // so the city stays clickable around it.
+        <div
+            ref={rootRef}
+            className={persistent ? shared.overlay : shared.backdrop}
+            onClick={onBackdropClick}
+            onMouseDown={onRootMouseDown}
+            onMouseUp={onBackdropMouseUp}
+            onWheel={onWheel}
+        >
             <MenuSessionContext.Provider value={session}>
                 <Frame searchField={searchField}>{level}</Frame>
             </MenuSessionContext.Provider>

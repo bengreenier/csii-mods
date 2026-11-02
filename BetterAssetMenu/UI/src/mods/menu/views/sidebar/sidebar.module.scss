@@ -1,0 +1,298 @@
+// The sidebar (views/sidebar). Sizes shared with the code (layout.ts) are set
+// inline; the title bar's and field row's heights must match TITLE_HEIGHT and
+// FIELD_HEIGHT there. The background colour is inline too ("Sidebar
+// transparency"); everything drawn on it stays opaque.
+$line: rgba(255, 255, 255, 0.15);
+$highlight: rgba(64, 128, 224, 0.55);
+
+// Zero-size, placed in view pixels by SidebarFrame and scaled ("Sidebar
+// size"); the sidebar hangs from it.
+.anchor {
+    position: absolute;
+    width: 0;
+    height: 0;
+}
+
+.sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    border: 2rem solid rgba(255, 255, 255, 0.25);
+    border-radius: 6rem;
+    color: white;
+    overflow: hidden;
+}
+
+// Resize handles along its edges (SidebarFrame): over the content, invisible
+// until pointed at.
+$handle: 8rem;
+
+.resizeHandle {
+    position: absolute;
+
+    &:hover {
+        background-color: rgba(64, 128, 224, 0.55);
+    }
+}
+
+// More specific than the session root's `cursor: default` for everything.
+.sidebar .resizeLeft,
+.sidebar .resizeRight {
+    top: 0;
+    bottom: 0;
+    width: $handle;
+    cursor: ew-resize;
+}
+
+.resizeLeft {
+    left: 0;
+}
+
+.resizeRight {
+    right: 0;
+}
+
+.sidebar .resizeBottom {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: $handle;
+    cursor: ns-resize;
+}
+
+.sidebar .resizeCorner {
+    right: 0;
+    bottom: 0;
+    width: 16rem;
+    height: 16rem;
+    cursor: nwse-resize;
+}
+
+// Drag handle, with the dock and close buttons.
+.titleBar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 40rem;
+    padding: 0 6rem 0 14rem;
+    border-bottom: 2rem solid $line;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.title {
+    flex: 1;
+    font-size: 15rem;
+    font-weight: bold;
+    opacity: 0.85;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.titleButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32rem;
+    height: 28rem;
+    margin-left: 4rem;
+    padding: 0;
+    border: none;
+    border-radius: 4rem;
+    background-color: transparent;
+
+    &:hover {
+        background-color: $highlight;
+    }
+}
+
+.titleIcon {
+    width: 18rem;
+    height: 18rem;
+}
+
+.fieldRow {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 60rem;
+    padding: 0 12rem;
+}
+
+// The session's search field, visible here. Sized by its line and padding,
+// as vanilla's inputs are: with a fixed height, Gameface draws the text and
+// caret at the top of the box. 24 + 2 * 7 + 2 * 2 (border) = 42rem.
+.searchField {
+    flex: 1;
+    line-height: 24rem;
+    padding: 7rem 10rem;
+    border: 2rem solid rgba(255, 255, 255, 0.2);
+    border-radius: 4rem;
+    background-color: rgba(0, 0, 0, 0.3);
+    color: white;
+    font-size: 20rem;
+}
+
+// The completion hint, or an example query.
+.hint {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 14rem;
+    font-size: 13rem;
+    opacity: 0.7;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+// Rows are positioned absolutely (only the visible ones are mounted).
+.list {
+    position: relative;
+    overflow: hidden;
+    border-top: 2rem solid $line;
+}
+
+.row {
+    position: absolute;
+    left: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 10rem;
+    border: none;
+    background-color: transparent;
+    color: white;
+}
+
+.rowHighlighted {
+    background-color: $highlight;
+}
+
+.rowDisabled {
+    opacity: 0.4;
+}
+
+.rowGroupStart {
+    border-top: 2rem solid $line;
+}
+
+.rowIcon {
+    width: 30rem;
+    height: 30rem;
+    margin-right: 10rem;
+}
+
+// Vanilla centres button text.
+.rowTitle {
+    flex: 1;
+    text-align: left;
+    font-size: 17rem;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.rowAccessory {
+    margin-left: 10rem;
+    font-size: 14rem;
+    opacity: 0.6;
+}
+
+.scrollThumb {
+    position: absolute;
+    right: 2rem;
+    width: 6rem;
+    border-radius: 3rem;
+    background-color: rgba(255, 255, 255, 0.35);
+}
+
+// The highlighted row's picture beside its text.
+.detail {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 12rem;
+    border-top: 2rem solid $line;
+    overflow: hidden;
+}
+
+.detailPreview {
+    width: 140rem;
+    height: 140rem;
+    margin-right: 12rem;
+}
+
+.detailIcon {
+    width: 72rem;
+    height: 72rem;
+    margin: 8rem 20rem 0 8rem;
+}
+
+.detailText {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.detailTitle {
+    font-size: 18rem;
+    font-weight: bold;
+}
+
+.detailPlace {
+    margin-top: 4rem;
+    font-size: 13rem;
+    opacity: 0.7;
+}
+
+.detailReason {
+    margin-top: 4rem;
+    font-size: 13rem;
+    color: rgba(240, 160, 96, 1);
+}
+
+.detailIdle {
+    flex: 1;
+    margin-top: 24rem;
+    font-size: 15rem;
+    opacity: 0.7;
+    text-align: center;
+}
+
+.detailIdleFirst {
+    font-size: 18rem;
+    opacity: 1;
+}
+
+.footer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 12rem;
+    border-top: 2rem solid $line;
+    font-size: 13rem;
+}
+
+.trail {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.crumb {
+    white-space: nowrap;
+}
+
+.crumbSeparator {
+    margin: 0 6rem;
+    opacity: 0.6;
+}
+
+.footerText {
+    margin-left: 12rem;
+    opacity: 0.7;
+    white-space: nowrap;
+}

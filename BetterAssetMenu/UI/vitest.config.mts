@@ -6,6 +6,9 @@ import { defineConfig } from "vitest/config";
 const r = (p: string) => path.resolve(import.meta.dirname, p);
 
 export default defineConfig({
+    // Imported images as file URLs, as webpack emits them (asset/resource),
+    // not inlined data: URIs.
+    build: { assetsInlineLimit: 0 },
     resolve: {
         alias: [
             { find: /^mod\.json$/, replacement: r("mod.json") },

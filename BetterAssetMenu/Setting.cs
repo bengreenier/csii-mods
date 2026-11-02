@@ -16,12 +16,12 @@ namespace BetterAssetMenu
     [SettingsUITabOrder(KSection, KGuideSection)]
     // Main tab first (settings), then the Usage Guide, which reads top to bottom:
     // basics, then each filter.
-    [SettingsUIGroupOrder(KLayoutGroup, KRadialLayoutGroup, KPaneLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
-        KSearchQuickStartGroup, KSearchKeysGroup, KSearchRadialGroup, KSearchPaneGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
+    [SettingsUIGroupOrder(KLayoutGroup, KRadialLayoutGroup, KPaneLayoutGroup, KSidebarLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
+        KSearchQuickStartGroup, KSearchKeysGroup, KSearchRadialGroup, KSearchPaneGroup, KSearchSidebarGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
         KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
         KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
-    [SettingsUIShowGroupName(KLayoutGroup, KRadialLayoutGroup, KPaneLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
-        KSearchQuickStartGroup, KSearchKeysGroup, KSearchRadialGroup, KSearchPaneGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
+    [SettingsUIShowGroupName(KLayoutGroup, KRadialLayoutGroup, KPaneLayoutGroup, KSidebarLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
+        KSearchQuickStartGroup, KSearchKeysGroup, KSearchRadialGroup, KSearchPaneGroup, KSearchSidebarGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
         KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
         KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
     [SettingsUIKeyboardAction(Mod.KOpenActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
@@ -39,6 +39,7 @@ namespace BetterAssetMenu
         public const string KLayoutGroup = "Layout";
         public const string KRadialLayoutGroup = "RadialLayout";
         public const string KPaneLayoutGroup = "PaneLayout";
+        public const string KSidebarLayoutGroup = "SidebarLayout";
         public const string KAssetsGroup = "Assets";
         public const string KVanillaGroup = "Vanilla";
         public const string KKeybindingGroup = "KeyBinding";
@@ -62,6 +63,7 @@ namespace BetterAssetMenu
         public const string KSearchKeysGroup = "SearchKeys";
         public const string KSearchRadialGroup = "SearchRadial";
         public const string KSearchPaneGroup = "SearchPane";
+        public const string KSearchSidebarGroup = "SearchSidebar";
         public const string KSearchFavoritesGroup = "SearchFavorites";
         public const string KSearchFindItGroup = "SearchFindIt";
 
@@ -80,38 +82,45 @@ namespace BetterAssetMenu
             Radial = 0,
             // A search field over a list of rows and a detail side (views/pane).
             Pane = 1,
+            // A panel docked to a screen edge, or floating, that stays open
+            // while you build (views/sidebar).
+            Sidebar = 2,
         }
 
         [SettingsUISection(KSection, KLayoutGroup)]
         public MenuStyleMode MenuStyle { get; set; }
 
+        // The sidebar has its own position (SidebarPlacement).
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsSidebarStyle))]
         [SettingsUISection(KSection, KLayoutGroup)]
         public bool OpenAtCursor { get; set; }
 
         // Each style's layout settings show only while that style is chosen.
         // Re-checked live, and a group with nothing visible drops its header
         // (OptionsUISystem.Section.UpdateVisibility).
-        private bool IsPaneStyle() => MenuStyle == MenuStyleMode.Pane;
-        private bool IsRadialStyle() => MenuStyle != MenuStyleMode.Pane;
+        private bool IsNotRadialStyle() => MenuStyle != MenuStyleMode.Radial;
+        private bool IsNotPaneStyle() => MenuStyle != MenuStyleMode.Pane;
+        private bool IsNotSidebarStyle() => MenuStyle != MenuStyleMode.Sidebar;
+        private bool IsSidebarStyle() => MenuStyle == MenuStyleMode.Sidebar;
 
         // --- Radial menu layout ---
 
         // Scale factor for the whole wheel (1 = 100%), shown as a percentage like
         // the vanilla audio sliders.
         [SettingsUISlider(min = 50f, max = 200f, step = 5f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
-        [SettingsUIHideByCondition(typeof(Setting), nameof(IsPaneStyle))]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsNotRadialStyle))]
         [SettingsUISection(KSection, KRadialLayoutGroup)]
         public float MenuScale { get; set; }
 
         // Gap between the center and the first ring (1 = 100%; 0 = touching).
         [SettingsUISlider(min = 0f, max = 400f, step = 25f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
-        [SettingsUIHideByCondition(typeof(Setting), nameof(IsPaneStyle))]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsNotRadialStyle))]
         [SettingsUISection(KSection, KRadialLayoutGroup)]
         public float RingDistance { get; set; }
 
         // Gap between neighbouring buttons and between rings (1 = 100%; 0 = touching).
         [SettingsUISlider(min = 0f, max = 400f, step = 25f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
-        [SettingsUIHideByCondition(typeof(Setting), nameof(IsPaneStyle))]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsNotRadialStyle))]
         [SettingsUISection(KSection, KRadialLayoutGroup)]
         public float ItemSpacing { get; set; }
 
@@ -135,9 +144,60 @@ namespace BetterAssetMenu
 
         // Scale factor for the whole pane (1 = 100%), like MenuScale for the wheel.
         [SettingsUISlider(min = 50f, max = 200f, step = 5f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
-        [SettingsUIHideByCondition(typeof(Setting), nameof(IsRadialStyle))]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsNotPaneStyle))]
         [SettingsUISection(KSection, KPaneLayoutGroup)]
         public float PaneScale { get; set; }
+
+        // --- Sidebar layout ---
+
+        // Where the sidebar is. Sent to the UI as an int: keep the values in
+        // sync with PLACEMENT_* in UI/src/mods/menu/views/sidebar/bindings.ts.
+        // Also set by dragging the sidebar by its title bar (setSidebarPlacement).
+        public enum SidebarPlacementMode
+        {
+            DockedRight = 0,
+            DockedLeft = 1,
+            // Where it was last dropped (SidebarX, SidebarY).
+            Floating = 2,
+        }
+
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsNotSidebarStyle))]
+        [SettingsUISection(KSection, KSidebarLayoutGroup)]
+        public SidebarPlacementMode SidebarPlacement { get; set; }
+
+        // How much of the city shows through the sidebar's background (0 =
+        // solid). Text and icons stay opaque.
+        [SettingsUISlider(min = 0f, max = 90f, step = 5f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsNotSidebarStyle))]
+        [SettingsUISection(KSection, KSidebarLayoutGroup)]
+        public float SidebarTransparency { get; set; }
+
+        // Scale factor for the whole sidebar (1 = 100%), like PaneScale.
+        [SettingsUISlider(min = 50f, max = 200f, step = 5f, unit = Unit.kPercentage, scalarMultiplier = 100f)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsNotSidebarStyle))]
+        [SettingsUISection(KSection, KSidebarLayoutGroup)]
+        public float SidebarScale { get; set; }
+
+        // Width in the sidebar's own units (before SidebarScale); also set by
+        // dragging its edge. Keep the range in sync with MIN_WIDTH and
+        // MAX_WIDTH in UI/src/mods/menu/views/sidebar/layout.ts.
+        [SettingsUISlider(min = 320f, max = 800f, step = 10f, unit = Unit.kInteger)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsNotSidebarStyle))]
+        [SettingsUISection(KSection, KSidebarLayoutGroup)]
+        public int SidebarWidth { get; set; }
+
+        // The floating sidebar's height in the same units, set by dragging its
+        // bottom edge; 0 = the default. Docked, it fills the screen's edge.
+        [SettingsUIHidden]
+        public float SidebarHeight { get; set; }
+
+        // The floating sidebar's top-left corner, as fractions of the screen's
+        // width and height, so it survives a resolution change. Set by dragging.
+        [SettingsUIHidden]
+        public float SidebarX { get; set; }
+
+        [SettingsUIHidden]
+        public float SidebarY { get; set; }
 
         // --- Assets ---
 
@@ -329,6 +389,10 @@ namespace BetterAssetMenu
         public string SearchPaneText => string.Empty;
 
         [SettingsUIMultilineText]
+        [SettingsUISection(KGuideSection, KSearchSidebarGroup)]
+        public string SearchSidebarText => string.Empty;
+
+        [SettingsUIMultilineText]
         [SettingsUISection(KGuideSection, KSearchFavoritesGroup)]
         public string SearchFavoritesText => string.Empty;
 
@@ -347,6 +411,13 @@ namespace BetterAssetMenu
             MenuStyle = MenuStyleMode.Radial;
             MenuScale = 1f;
             PaneScale = 1f;
+            SidebarPlacement = SidebarPlacementMode.DockedRight;
+            SidebarTransparency = 0.15f;
+            SidebarScale = 1f;
+            SidebarWidth = 440;
+            SidebarHeight = 0f;
+            SidebarX = 0.6f;
+            SidebarY = 0.15f;
             RingDistance = 1f;
             ItemSpacing = 1f;
             OpenAtCursor = false;
@@ -374,6 +445,7 @@ namespace BetterAssetMenu
                 { _setting.GetOptionGroupLocaleID(Setting.KLayoutGroup), "Menu layout" },
                 { _setting.GetOptionGroupLocaleID(Setting.KRadialLayoutGroup), "Radial menu layout" },
                 { _setting.GetOptionGroupLocaleID(Setting.KPaneLayoutGroup), "Pane layout" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSidebarLayoutGroup), "Sidebar layout" },
                 { _setting.GetOptionGroupLocaleID(Setting.KAssetsGroup), "Assets" },
                 { _setting.GetOptionGroupLocaleID(Setting.KVanillaGroup), "Vanilla toolbar and tools" },
                 { _setting.GetOptionGroupLocaleID(Setting.KKeybindingGroup), "Key bindings" },
@@ -408,12 +480,28 @@ namespace BetterAssetMenu
                 { _setting.GetOptionDescLocaleID(nameof(Setting.BrowseAllThemes)), "When browsing the menu without searching, show assets from every theme and asset pack, such as North American buildings in a European city. Turn off to only show what the vanilla asset menu's theme and pack filters show. Picking an asset from another theme switches the vanilla theme filter to it, as in the vanilla asset menu." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.MenuStyle)), "Menu style" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.MenuStyle)), "How the menu looks when you open it. 'Radial' shows a wheel of buttons around a center that describes what you point at. 'Pane' shows a search field over a list you move through with the arrow keys, with details of the highlighted item beside it. Both search, browse and pick the same things." },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.MenuStyle)), "How the menu looks when you open it. 'Radial' shows a wheel of buttons around a center that describes what you point at. 'Pane' shows a search field over a list you move through with the arrow keys, with details of the highlighted item beside it. 'Sidebar' is a list like the pane's that stays open while you build, docked to the side of the screen or floating where you drag it. All of them search, browse and pick the same things." },
                 { _setting.GetEnumValueLocaleID(Setting.MenuStyleMode.Radial), "Radial" },
                 { _setting.GetEnumValueLocaleID(Setting.MenuStyleMode.Pane), "Pane" },
+                { _setting.GetEnumValueLocaleID(Setting.MenuStyleMode.Sidebar), "Sidebar" },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.PaneScale)), "Pane size" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.PaneScale)), "Scale the whole pane - search field, list and details - up or down. Changes apply the next time the menu opens." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.SidebarPlacement)), "Sidebar position" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.SidebarPlacement)), "Dock the sidebar to the right or left edge of the screen, or let it float. You can also drag it by its title bar: drop it near the left or right edge to dock it there, or anywhere else to float it, and it opens there next time." },
+                { _setting.GetEnumValueLocaleID(Setting.SidebarPlacementMode.DockedRight), "Docked right" },
+                { _setting.GetEnumValueLocaleID(Setting.SidebarPlacementMode.DockedLeft), "Docked left" },
+                { _setting.GetEnumValueLocaleID(Setting.SidebarPlacementMode.Floating), "Floating" },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.SidebarTransparency)), "Sidebar transparency" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.SidebarTransparency)), "How much of your city shows through the sidebar's background. 0% is solid. Text and icons stay fully visible." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.SidebarWidth)), "Sidebar width" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.SidebarWidth)), "How wide the sidebar is. You can also drag its inner edge (or, while it floats, its right edge, bottom edge or bottom-right corner) to resize it, and that size is kept for next time." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.SidebarScale)), "Sidebar size" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.SidebarScale)), "Scale the whole sidebar - search field, list and details - up or down. Changes apply the next time it opens." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.HubImage)), "Preview image" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.HubImage)), "The picture shown for something to build: in the middle of the wheel while you hover it, or beside the list in the pane. 'Preview' shows the larger preview image when there is one, as the vanilla asset panel does (for example, signature buildings), and the item's icon otherwise. 'Button icon' always shows the same image as the item's button." },
@@ -466,6 +554,7 @@ namespace BetterAssetMenu
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchKeysGroup), "Keys and mouse" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchRadialGroup), "Menu style: Radial" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchPaneGroup), "Menu style: Pane" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSearchSidebarGroup), "Menu style: Sidebar" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFavoritesGroup), "Favorites" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFindItGroup), "Find It" },
 
@@ -597,11 +686,11 @@ namespace BetterAssetMenu
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchKeysText)),
-                    "In both styles:\n" +
+                    "In every style:\n" +
                     "Enter - accept the search suggestion, if one is shown (what Enter does otherwise depends on the style, see below). You can change this key on the Main tab.\n" +
                     "Escape - clear what you typed; press again to go back a level, and from the top level to close the menu\n" +
                     "Right-click an item - more actions, like adding it to your favorites or copying its DLC or mod link\n" +
-                    "Clicking outside the menu - close it (picking something closes it too)"
+                    "Clicking outside the menu - close it (picking something closes it too), except for the sidebar, which stays open"
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchRadialText)),
@@ -621,6 +710,17 @@ namespace BetterAssetMenu
                     "Mouse wheel - scroll the list; moving the mouse over an item highlights it, and clicking picks it\n" +
                     "Click a detail under the picture, like 'theme: European', to add it to your search (right-click to exclude it).\n" +
                     "'Pane size' (Main tab, shown while this style is chosen) scales it."
+                },
+                {
+                    _setting.GetOptionLabelLocaleID(nameof(Setting.SearchSidebarText)),
+                    "A list like the pane's, with details of the highlighted item underneath, that stays open while you build. " +
+                    "Picking something starts placing it and gives the keyboard back to the game, so the camera keys work again.\n" +
+                    "The open menu key - while the sidebar is open, puts the cursor back in its search field\n" +
+                    "Clicking the city - gives the keyboard back to the game; the sidebar stays\n" +
+                    "Escape - clear what you typed; press again to go back a level, and from the top level to give the keyboard back to the game\n" +
+                    "X in the title bar - close the sidebar. Otherwise it stays: after the pause menu, the options or hiding the interface, it comes back without taking the keyboard.\n" +
+                    "Drag the title bar to move it: drop it near the left or right edge to dock it there, or anywhere else to float it. Drag its inner edge to make it wider or narrower; while it floats, its bottom edge and corner change its height too.\n" +
+                    "The keys in the list are the pane's (see above). 'Sidebar position', 'Sidebar transparency', 'Sidebar width' and 'Sidebar size' (Main tab, shown while this style is chosen) change how it looks."
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchFavoritesText)),
