@@ -2,8 +2,8 @@ import { useMemo } from "react";
 import { useMapValue, useValue } from "cs2/api";
 import { toolbar } from "cs2/bindings";
 import { entityKey } from "cs2/utils";
-import { placeDirectly, selectAsset, selectAssetCategory } from "../actions";
-import { allAssets$, browseAllThemes$, close, lockPlacedUnique$, platterParcels$, subCategories$ } from "../bindings";
+import { finishPick, placeDirectly, selectAsset, selectAssetCategory } from "../actions";
+import { allAssets$, browseAllThemes$, lockPlacedUnique$, platterParcels$, subCategories$ } from "../bindings";
 import { useLocalization } from "../localization";
 import { Label, LevelModel, MenuItem } from "../model";
 import { SearchScope, useAssetSearch } from "../search";
@@ -58,7 +58,7 @@ export const CategoryLevel = ({ menu, category, current, onOpenCategory, onBack 
                       ...assets.map((asset) =>
                           assetItem(asset, lockPlaced, () => {
                               selectAsset(asset.entity, true);
-                              close();
+                              finishPick();
                           })
                       ),
                       ...parcels.map((asset) => assetItem(asset, lockPlaced, () => placeDirectly(asset.entity))),

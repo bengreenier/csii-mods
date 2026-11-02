@@ -26,6 +26,14 @@ export const selectAsset = (asset: Entity, updateTool: boolean) => {
     markRadialSelection();
 };
 
+// What picking something does to the open menu: closes it, unless the view
+// stays open (the sidebar), which sets its own (see MenuSession).
+let afterPick: () => void = close;
+export function setAfterPick(handler: (() => void) | null) {
+    afterPick = handler ?? close;
+}
+export const finishPick = () => afterPick();
+
 // Mirrors what the vanilla toolbar button does on select
 // (see toolbar-button-strip.tsx in the game's UI bundle).
 export function activateToolbarItem(item: toolbar.ToolbarItem) {
@@ -49,7 +57,7 @@ export function selectAssetChain(menu: Entity, category: Entity, asset: Entity) 
     selectAssetMenu(menu);
     selectAssetCategory(category);
     selectAsset(asset, true);
-    close();
+    finishPick();
 }
 
 // Places an asset that isn't in the vanilla toolbar (Find It's catalogue)
@@ -59,5 +67,5 @@ export function placeDirectly(asset: Entity) {
     selectedInfo.clearSelection();
     map.disableMapTileView();
     activatePrefab(asset);
-    close();
+    finishPick();
 }

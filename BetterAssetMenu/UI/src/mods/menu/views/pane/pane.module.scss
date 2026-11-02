@@ -31,11 +31,13 @@ $highlight: rgba(64, 128, 224, 0.55);
     padding: 0 16rem;
 }
 
-// The session's search field, visible here.
+// The session's search field, visible here. Sized by its line and padding,
+// as vanilla's inputs are: with a fixed height, Gameface draws the text and
+// caret at the top of the box. 28 + 2 * 8 + 2 * 2 (border) = 48rem.
 .searchField {
     flex: 1;
-    height: 48rem;
-    padding: 0 12rem;
+    line-height: 28rem;
+    padding: 8rem 12rem;
     border: 2rem solid rgba(255, 255, 255, 0.2);
     border-radius: 4rem;
     background-color: rgba(0, 0, 0, 0.3);

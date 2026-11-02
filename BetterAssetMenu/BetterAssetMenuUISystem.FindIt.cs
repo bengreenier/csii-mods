@@ -56,6 +56,7 @@ namespace BetterAssetMenu
             AddBinding(_openAtFindIt = new ValueBinding<bool>(kGroup, "openAtFindIt", false));
             AddBinding(_pickedAsset = new ValueBinding<int>(kGroup, "pickedAsset", -1));
             AddBinding(_pickedSubCategory = new ValueBinding<int>(kGroup, "pickedSubCategory", -1));
+            AddBinding(new TriggerBinding(kGroup, "openPlaceShown", ClearOpenPlace));
             AddBinding(_findItCategories = new RawValueBinding(kGroup, "findItCategories", WriteFindItCategories));
             AddBinding(_findItAssets = new RawMapBinding<int>(kGroup, "findItAssets", WriteFindItAssets));
             // Places any prefab directly, as Find It does: for assets that
@@ -168,7 +169,18 @@ namespace BetterAssetMenu
                 return;
             _pickedSubCategory.Update(subCategory);
             _pickedAsset.Update(entity.Index);
-            SetOpen(true);
+            // The sidebar stays beside the city with the tool on, so it leaves
+            // the keyboard to the game; the modal views take it as usual.
+            SetOpen(true, focused: Mod.Settings?.MenuStyle != Setting.MenuStyleMode.Sidebar);
+        }
+
+        // One-shot requests: cleared once the UI has acted on them, or on close.
+        // The sidebar stays open, so the same one can come again.
+        private void ClearOpenPlace()
+        {
+            _openAtFindIt.Update(false);
+            _pickedAsset.Update(-1);
+            _pickedSubCategory.Update(-1);
         }
 
         // Find It's magnifying glass was clicked. False leaves it to Find It:

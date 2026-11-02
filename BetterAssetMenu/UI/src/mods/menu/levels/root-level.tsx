@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { useValue } from "cs2/api";
 import { toolbar } from "cs2/bindings";
-import { activateToolbarItem, TOOLBAR_ITEM_TYPE_MENU } from "../actions";
-import { close, findItActive$ } from "../bindings";
+import { activateToolbarItem, finishPick, TOOLBAR_ITEM_TYPE_MENU } from "../actions";
+import { findItActive$ } from "../bindings";
 import { isBulldozer, useBulldozerPlacement } from "../bulldozer";
 import { FAVORITE_COLOR, FAVORITE_ICON, FAVORITES_TITLE } from "../favorites";
 import { FIND_IT_ICON, FIND_IT_TITLE } from "../find-it";
@@ -40,7 +40,7 @@ export const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenFindIt }: RootLev
                     onSelect: () => {
                         activateToolbarItem(item);
                         if (item.type === TOOLBAR_ITEM_TYPE_MENU) onOpenMenu(item);
-                        else close();
+                        else finishPick();
                     },
                 }))
             ).concat({
