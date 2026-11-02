@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/bengreenier/csii-mods/compare/better-asset-menu-v1.1.1...better-asset-menu-v1.2.0) (2026-11-02)
+
+
+### Features
+
+* open Better Asset Menu from Find It's button and picker ([#13](https://github.com/bengreenier/csii-mods/issues/13)) ([3e9ddb1](https://github.com/bengreenier/csii-mods/commit/3e9ddb14f903ac5f8a4ace6cadc69236e210f381))
+* sidebar menu style that stays open while you build ([#11](https://github.com/bengreenier/csii-mods/issues/11)) ([a67c22e](https://github.com/bengreenier/csii-mods/commit/a67c22e2af0b0bf2d5d0f3d147f7933b2c815d2d))
+
 ## [1.1.1](https://github.com/bengreenier/csii-mods/compare/better-asset-menu-v1.1.0...better-asset-menu-v1.1.1) (2026-10-11)
 
 
