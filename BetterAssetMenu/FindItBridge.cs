@@ -44,7 +44,9 @@ namespace BetterAssetMenu
         private const string kPanelBinding = "ShowFindItPanel";
         private const string kLockedBinding = "IsWindowLocked";
 
-        private static bool? _enabled;
+        private static bool _enabled;
+        private static float _nextDetect;
+        private const float kDetectInterval = 1f;
         private static bool _failed;
         private static bool _iconButtonHooked;
         private static bool? _pickerBound;
@@ -62,14 +64,29 @@ namespace BetterAssetMenu
 
         /// <summary>
         /// Find It is enabled in the playset (as Find It itself detects other
-        /// mods). Mods load one by one, and Find It may load after us, so this
-        /// is only cached once Settle() is called after all have loaded;
-        /// before that it's checked again each time.
+        /// mods). Mods load one by one, and Find It may load after us, even
+        /// minutes later: local mods load first, then the game can load the
+        /// Paradox Mods playset again once it has synced, after the main menu.
+        /// So only "enabled" is cached (a loaded mod stays loaded until a
+        /// restart); "not enabled" is checked again, at most once a second.
         /// </summary>
-        internal static bool IsEnabled => _enabled ?? Detect();
+        internal static bool IsEnabled
+        {
+            get
+            {
+                if (_enabled) return true;
+                var now = UnityEngine.Time.realtimeSinceStartup;
+                if (now < _nextDetect) return false;
+                _nextDetect = now + kDetectInterval;
+                return _enabled = Detect();
+            }
+        }
 
-        /// <summary>Caches IsEnabled; call once every mod has loaded.</summary>
-        internal static void Settle() => _enabled ??= Detect();
+        /// <summary>Checks again now, e.g. once a load completes.</summary>
+        internal static void Settle()
+        {
+            if (!_enabled) _enabled = Detect();
+        }
 
         private static bool Detect() =>
             GameManager.instance?.modManager?.ListModsEnabled().Any(x => x.StartsWith(kAssemblyName + ", ")) ?? false;
