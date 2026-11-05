@@ -49,6 +49,7 @@ namespace BetterAssetMenu
             // the world before any save is loaded or written.
             updateSystem.World.GetOrCreateSystemManaged<FavoritesSystem>();
             updateSystem.UpdateAt<BetterAssetMenuUISystem>(SystemUpdatePhase.UIUpdate);
+            updateSystem.UpdateAt<FindItDetectSystem>(SystemUpdatePhase.UIUpdate);
             // Both run inside ToolSystem.OnUpdate: the first after the game's tools
             // (ToolUpdate phase, before vanilla applies the tool's info view), the
             // fallback right after it's applied. See ToolInfoviewSystem.cs.

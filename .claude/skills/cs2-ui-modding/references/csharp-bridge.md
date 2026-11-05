@@ -189,8 +189,9 @@ A time window ("changes within 0.5 s of our click") is brittle. Avoid it.
   that loads later. It only lists *loaded* mods, and the Paradox Mods playset
   can load minutes after the main menu (local `Mods` folder mods load first,
   then the synced playset via `ModManager.Initialize(reinitialize: true)`).
-  So never cache "not enabled": cache only a positive answer, and re-check a
-  negative one, throttled (e.g. once a second).
+  There's no event for it, so never cache "not enabled" for good: re-check at
+  each `OnGameLoadingComplete` and when your options become visible (Better
+  Asset Menu's `FindItDetectSystem`), and cache only a positive answer.
 - **Read their data without a compile-time reference:** find the assembly in
   `AppDomain.CurrentDomain.GetAssemblies()`, get their public static state by
   reflection, and compile `Expression` getters once for per-item properties.

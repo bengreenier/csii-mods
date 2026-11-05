@@ -45,8 +45,6 @@ namespace BetterAssetMenu
         private const string kLockedBinding = "IsWindowLocked";
 
         private static bool _enabled;
-        private static float _nextDetect;
-        private const float kDetectInterval = 1f;
         private static bool _failed;
         private static bool _iconButtonHooked;
         private static bool? _pickerBound;
@@ -67,22 +65,13 @@ namespace BetterAssetMenu
         /// mods). Mods load one by one, and Find It may load after us, even
         /// minutes later: local mods load first, then the game can load the
         /// Paradox Mods playset again once it has synced, after the main menu.
-        /// So only "enabled" is cached (a loaded mod stays loaded until a
-        /// restart); "not enabled" is checked again, at most once a second.
+        /// So this is the last answer from Settle(), which FindItDetectSystem
+        /// calls as each load completes and as the Options screen opens. Once
+        /// true it stays true (a loaded mod stays loaded until a restart).
         /// </summary>
-        internal static bool IsEnabled
-        {
-            get
-            {
-                if (_enabled) return true;
-                var now = UnityEngine.Time.realtimeSinceStartup;
-                if (now < _nextDetect) return false;
-                _nextDetect = now + kDetectInterval;
-                return _enabled = Detect();
-            }
-        }
+        internal static bool IsEnabled => _enabled;
 
-        /// <summary>Checks again now, e.g. once a load completes.</summary>
+        /// <summary>Checks again now, unless Find It was already found.</summary>
         internal static void Settle()
         {
             if (!_enabled) _enabled = Detect();
