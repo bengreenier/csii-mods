@@ -129,8 +129,9 @@ namespace BetterAssetMenu
         }
 
         // From OnGameLoadingComplete: Find It's index for this load is built.
-        // The first one (the main menu) comes after every mod has loaded, so
-        // Find It's presence is settled then.
+        // Checks for Find It again first (FindItDetectSystem does too, but
+        // its order against this system isn't fixed): the playset can load
+        // after the main menu, so this load may be the first to see it.
         private void OnFindItLoadComplete()
         {
             FindItBridge.Settle();

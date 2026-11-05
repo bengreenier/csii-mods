@@ -546,9 +546,15 @@ compile-time reference, since it's optional.
 - **Detection:** `GameManager.instance.modManager.ListModsEnabled()` has an
   entry starting with `"FindIt, "` (the way Find It detects RoadBuilder).
   Mods load one at a time, and Find It may load **after** us (it does:
-  "BetterAssetMenu" loads before "FindIt"), so the answer isn't cached until the
-  first `OnGameLoadingComplete` (the main menu, after every mod has loaded);
-  until then it's re-checked on each call.
+  "BetterAssetMenu" loads before "FindIt"). It can also load **minutes later**:
+  `ListModsEnabled()` only lists *loaded* mods, and with mods in the local
+  `Mods` folder the game loads those first, reaches the main menu, then loads
+  the synced Paradox Mods playset (`ModManager.Initialize(reinitialize: true)`,
+  a second "Active Playset" block in Modding.log), and there's no event for
+  that. So `FindItDetectSystem` (all modes) re-checks as each load completes
+  and as the Options screen opens (where the options are greyed out without
+  it); nothing polls. Once found, it stays found (code mods don't unload
+  without a restart).
 - **Setting:** the saved choice is the hidden `UseFindItWanted` (default on).
   The visible `UseFindIt` is `[Exclude]`d from the settings file: it shows
   ticked only when wanted and Find It is enabled, and is greyed out (and

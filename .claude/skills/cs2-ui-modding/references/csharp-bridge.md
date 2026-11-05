@@ -186,8 +186,12 @@ A time window ("changes within 0.5 s of our click") is brittle. Avoid it.
 - **Detect** with `GameManager.instance.modManager.ListModsEnabled()`: entries
   start with the assembly name, e.g. `"FindIt, "`. Mods load one at a time
   (alphabetically in practice), so a check during your `OnLoad` can miss a mod
-  that loads later. Only cache the answer at your first
-  `OnGameLoadingComplete` (the main menu), after every mod has loaded.
+  that loads later. It only lists *loaded* mods, and the Paradox Mods playset
+  can load minutes after the main menu (local `Mods` folder mods load first,
+  then the synced playset via `ModManager.Initialize(reinitialize: true)`).
+  There's no event for it, so never cache "not enabled" for good: re-check at
+  each `OnGameLoadingComplete` and when your options become visible (Better
+  Asset Menu's `FindItDetectSystem`), and cache only a positive answer.
 - **Read their data without a compile-time reference:** find the assembly in
   `AppDomain.CurrentDomain.GetAssemblies()`, get their public static state by
   reflection, and compile `Expression` getters once for per-item properties.
