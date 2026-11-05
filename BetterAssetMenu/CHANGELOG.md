@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/bengreenier/csii-mods/compare/better-asset-menu-v1.2.0...better-asset-menu-v1.2.1) (2026-11-05)
+
+
+### Bug Fixes
+
+* detect Find It when the playset loads after the main menu ([#14](https://github.com/bengreenier/csii-mods/issues/14)) ([c5c491d](https://github.com/bengreenier/csii-mods/commit/c5c491df609cfdd269807d9e2822dad6072d86fa))
+
 ## [1.2.0](https://github.com/bengreenier/csii-mods/compare/better-asset-menu-v1.1.1...better-asset-menu-v1.2.0) (2026-11-02)
 
 
