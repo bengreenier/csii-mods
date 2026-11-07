@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/bengreenier/csii-mods/compare/better-asset-menu-v1.2.1...better-asset-menu-v1.3.0) (2026-11-07)
+
+
+### Features
+
+* option to search everything from any level ([#16](https://github.com/bengreenier/csii-mods/issues/16)) ([b8ef3cb](https://github.com/bengreenier/csii-mods/commit/b8ef3cbec3a238184cb5676347ba7f97b0fc009b))
+
 ## [1.2.1](https://github.com/bengreenier/csii-mods/compare/better-asset-menu-v1.2.0...better-asset-menu-v1.2.1) (2026-11-05)
 
 
