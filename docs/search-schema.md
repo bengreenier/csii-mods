@@ -140,6 +140,9 @@ What a search covers depends on where you are in the menu:
 With Find It's catalogue in use, top-ring search also covers everything Find
 It lists (see Find It).
 
+Turning off **Search only where you are** (Options > Assets) makes every
+level except Favorites search what the top ring does.
+
 Tabs that aren't unlocked are skipped at the top ring.
 
 ## Half-typed and invalid input
@@ -380,7 +383,8 @@ on, not just the vanilla toolbar. How it reads Find It is in
   usual.
 - **Searching:** from the top ring, the whole catalogue after the toolbar
   categories: duplicates keep their toolbar entry, and toolbar assets win
-  ties in ranking. Inside the Find It level, only what's in view.
+  ties in ranking. Inside the Find It level, only what's in view (unless
+  Search only where you are is off).
 - **`cat:`** narrows to Find It categories, e.g. `cat: decals`,
   `cat: props cat: residential`. Assets get a `cat:` chip.
 - **Favorites:** anything can be a favorite. Assets outside the vanilla
