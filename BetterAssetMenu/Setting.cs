@@ -207,6 +207,12 @@ namespace BetterAssetMenu
         [SettingsUISection(KSection, KAssetsGroup)]
         public bool SearchAllThemes { get; set; }
 
+        // On: inside a tab, category or Find It's level, search only covers
+        // that. Off: it covers everything, as from the top level. Favorites
+        // always searches only the favorites.
+        [SettingsUISection(KSection, KAssetsGroup)]
+        public bool SearchWithinLevel { get; set; }
+
         // The same choice for browsing a category in the wheel (no search typed).
         [SettingsUISection(KSection, KAssetsGroup)]
         public bool BrowseAllThemes { get; set; }
@@ -439,6 +445,7 @@ namespace BetterAssetMenu
             HideVanillaToolbar = true;
             BulldozerInRadial = true;
             SearchAllThemes = true;
+            SearchWithinLevel = true;
             BrowseAllThemes = false;
             LockPlacedUnique = false;
             UseFindItWanted = true;
@@ -505,6 +512,9 @@ namespace BetterAssetMenu
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.SearchAllThemes)), "Search every theme and asset pack" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.SearchAllThemes)), "Search finds assets from every theme and asset pack, such as North American buildings in a European city. Turn off to only find what the vanilla asset menu's theme and pack filters show. For browsing without searching, see 'Show every theme and asset pack'." },
+
+                { _setting.GetOptionLabelLocaleID(nameof(Setting.SearchWithinLevel)), "Search only where you are" },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.SearchWithinLevel)), "Inside a tab, a category or the Find It level, search only finds what's in it. Turn off to search everything from anywhere in the menu, as the top level does. Favorites always searches only your favorites." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.LockPlacedUnique)), "Disable placed unique buildings" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.LockPlacedUnique)), "Dim unique buildings, such as signature buildings, once one is placed in your city, and don't let them be picked from the menu, as the vanilla asset menu does. When off, they can always be picked. Favorites are never greyed out this way. Things you haven't unlocked yet are always greyed out." },
@@ -635,7 +645,7 @@ namespace BetterAssetMenu
                     "'road' also finds streets, so 'road ped' finds the pedestrian streets.\n" +
                     "\n" +
                     "Where you search matters. From the top ring you search every unlocked tab at once. " +
-                    "Inside a tab or category, you only search that tab or category."
+                    "Inside a tab or category, you only search that tab or category, unless 'Search only where you are' is off."
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchFiltersText)),

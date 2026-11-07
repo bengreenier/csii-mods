@@ -59,6 +59,8 @@ namespace BetterAssetMenu
                 () => Mod.Settings?.BulldozerInRadial ?? true));
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "searchAllThemes",
                 () => Mod.Settings?.SearchAllThemes ?? true));
+            AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "searchWithinLevel",
+                () => Mod.Settings?.SearchWithinLevel ?? true));
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "browseAllThemes",
                 () => Mod.Settings?.BrowseAllThemes ?? false));
             AddUpdateBinding(new GetterValueBinding<bool>(kGroup, "lockPlacedUnique",

@@ -23,7 +23,8 @@ interface FindItLevelProps {
 // The Find It catalogue: categories, then subcategories, then assets. A
 // category with one subcategory goes straight to its assets (as vanilla hides
 // the tab bar then). Assets are placed directly (placeDirectly). Typing
-// searches what's in view: everything, a category, or a subcategory.
+// searches what's in view: everything, a category, or a subcategory (unless
+// "Search only where you are" is off; see useAssetSearch).
 export const FindItLevel = ({ category, sub, onOpen, onBack }: FindItLevelProps) => {
     const { query } = useMenuSession();
     const loc = useLocalization();

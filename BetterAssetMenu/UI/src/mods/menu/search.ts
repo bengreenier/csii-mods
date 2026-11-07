@@ -13,6 +13,7 @@ import {
     findItCategories$,
     platterParcels$,
     searchAllThemes$,
+    searchWithinLevel$,
     subCategories$,
 } from "./bindings";
 import { useFavoriteKeys } from "./favorites";
@@ -174,17 +175,24 @@ export function clearSearchSessionCaches() {
  * `favoritesOnly` narrows that to this city's favorites (the Favorites level),
  * using the same lookup as is:favorite. `findIt` adds Find It subcategories
  * while its catalogue is in use: all of them by default at the root.
+ * With "Search only where you are" off (searchWithinLevel$), every level
+ * searches what the root does, whatever `scope` and `findIt` it passes.
  * Nothing toolbar-side is subscribed until the first query; after that it
  * stays subscribed (and indexed) while the calling level is mounted.
  */
 export function useAssetSearch(
     query: string,
     loc: l10n.Localization,
-    groups: toolbar.ToolbarGroup[],
-    scope: SearchScope[] | "all",
+    levelGroups: toolbar.ToolbarGroup[],
+    levelScope: SearchScope[] | "all",
     favoritesOnly = false,
-    findIt: number[] | "all" = scope === "all" ? "all" : EMPTY
+    levelFindIt: number[] | "all" = levelScope === "all" ? "all" : EMPTY
 ): SearchResults {
+    const everywhere = !useValue(searchWithinLevel$);
+    const allGroups = useValue(toolbar.toolbarGroups$);
+    const scope = everywhere ? "all" : levelScope;
+    const groups = everywhere ? allGroups : levelGroups;
+    const findIt = everywhere ? "all" : levelFindIt;
     const searching = query.trim().length > 0;
     // Clearing the query and typing again would otherwise resubscribe every
     // category (C# resends them all) and rebuild the index.

@@ -113,6 +113,17 @@ describe("Find It", () => {
         expect(itemIcons()).toEqual(["icon/OakLarge.svg", "icon/PineLarge.svg"]);
     });
 
+    it("searches the whole catalogue and toolbar inside the level when scoped search is off", () => {
+        withFindIt();
+        setValue(MOD, "searchWithinLevel", false);
+        click(item(FIND_IT));
+        click(item("icon/fi-trees.svg"));
+        type("decalone");
+        expect(itemIcons()).toEqual(["icon/DecalOne.svg"]);
+        type("gravel");
+        expect(itemIcons()).toEqual(["icon/GravelRoad.svg"]);
+    });
+
     it("adds the catalogue to top-level search, after the toolbar", () => {
         const { decals } = withFindIt();
         type("decalone");
