@@ -25,10 +25,14 @@ Find It support.
   decals, trees, fences, vehicles...) is searchable and browsable from the same
   menu. Find It isn't required. Options make its toolbar button, and its
   picker's picks, open this menu instead of its panel.
-- **Two menu styles.** *Radial*: a wheel around your cursor or the screen
+- **Three menu styles.** *Radial*: a wheel around your cursor or the screen
   center, with a preview in the middle. *Pane*: a keyboard-first list with a
-  big preview; click a detail to add it to your search, right-click to exclude
-  it. Both search, browse and place the same things.
+  big preview. *Sidebar*: a docked or floating list that stays open while you
+  build. All three search, browse and place the same things.
+- **Search by source mod.** Find assets by their Paradox Mods ID or mod title,
+  including quoted names with spaces. Mod chips show the title when available;
+  click one in the pane, sidebar or right-click menu to filter by its exact ID,
+  or right-click it to exclude that mod.
 - **Favorites per city.** Right-click anything to favorite it. Each city keeps
   its own list in its save file.
 - **Collections.** Make your own named lists of assets, kept in one city's save
@@ -38,8 +42,8 @@ Find It support.
   default), scale the menu, hide the vanilla toolbar, stop picks from switching
   on info views, and copy an asset's DLC or mod link.
 
-The mod's settings include a **Usage Guide** tab that walks through every
-filter and key with examples.
+**Options > Better Asset Menu > Usage Guide** walks through every filter and
+key with examples, including **mod: (modid:) - source mod name or ID**.
 
 ## Search examples
 
@@ -57,10 +61,19 @@ filter and key with examples.
 | `zone: residential zone: high` | high-density housing |
 | `theme: european`, `pack:` | a regional style or a content pack |
 | `dlc: none`, `is: mod` | base game only, or only mod content |
+| `mod: 94094`, `modid: 94094` | assets from that exact Paradox Mods ID |
+| `mod: japan`, `mod: "Japan Pack"` | assets from mods whose titles contain that word or phrase |
+| `mod: "Japan Pack",155606 -mod: 94094` | either name or ID, excluding mod 94094 |
 | `in: parks bench` | search inside a single tab |
 | `cat: decals` | a Find It category |
 
 Filters combine: `school is: ok` shows the schools you can build right now.
+Mod names come from local game metadata and the synced Paradox Mods cache, not
+online requests. If a title isn't available, use the ID; **Main > Utilities >
+Refresh Better Asset Menu data** reloads cached titles. Numeric IDs match
+exactly, while names match case-insensitive substrings. Quote names containing
+spaces or commas; commas outside quotes mean either value.
+
 The full language is specified in [docs/search-schema.md](../docs/search-schema.md).
 
 ## Development
@@ -71,7 +84,7 @@ The full language is specified in [docs/search-schema.md](../docs/search-schema.
 *.cs                 C# side: the UI system and its bindings, settings,
                      favorites, Find It bridge
 UI/                  the UI module (React + TypeScript, built with webpack)
-  src/mods/menu/     the menu: shell, levels, and the radial and pane views
+  src/mods/menu/     the menu: shell, levels, and radial, pane and sidebar views
   test/              Vitest unit and behaviour tests (see test/README.md)
   scripts/           static checks and the post-game-update check
 Properties/          Paradox Mods listing: PublishConfiguration.xml, images

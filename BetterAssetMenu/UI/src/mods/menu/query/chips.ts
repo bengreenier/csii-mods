@@ -25,6 +25,8 @@ export interface ChipSource {
     // Names and col: slugs of the player's collections the asset is in.
     collections: { name: string; slug: string }[];
     mod: boolean;
+    modId: string | null;
+    modName: string | null;
     // Display texts; null when the asset has none.
     themeTitle: string | null;
     packTitles: string[];
@@ -67,6 +69,7 @@ export function assetChips(src: ChipSource): Chip[] {
     if (src.unique) is(src.placed ? "placed" : "unique");
     if (src.mod) is("mod");
     for (const c of src.collections) add("col", c.name, c.slug);
+    if (src.modId) add("mod", src.modName || src.modId, src.modId);
 
     // cat: the subcategory's own word ("Props_Decals" -> "decals").
     if (src.findItCategory) {

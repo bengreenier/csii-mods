@@ -100,6 +100,8 @@ export function createRecordFactory(
                 zone: meta?.zone ?? null,
                 level: meta?.level ?? 0,
                 dlcIcon: asset.dlc,
+                modId: meta?.modId ?? null,
+                modName: meta?.modName ?? null,
                 unique: asset.unique,
                 placed: asset.placed,
                 highlight: asset.highlight,
@@ -186,6 +188,8 @@ export class Suggestions {
     private cats = new Set<string>();
     private zones = new Set<string>();
     private dlcs = new Set<string>();
+    private modIds = new Set<string>();
+    private modNames = new Set<string>();
     private sizes = new Map<string, number>();
     private widths = new Set<number>();
     private netWidths = new Set<number>();
@@ -202,6 +206,8 @@ export class Suggestions {
         words(r.catLc, this.cats);
         words(r.zoneLc, this.zones);
         if (r.dlcLc) this.dlcs.add(r.dlcLc);
+        if (r.modId) this.modIds.add(r.modId);
+        if (r.modNameLc) this.modNames.add(r.modNameLc);
         if (r.lotWidth > 0) {
             this.sizes.set(`${r.lotWidth}x${r.lotDepth}`, r.lotWidth * r.lotDepth);
             this.widths.add(r.lotWidth);
@@ -218,6 +224,8 @@ export class Suggestions {
         into(this.cats, other.cats);
         into(this.zones, other.zones);
         into(this.dlcs, other.dlcs);
+        into(this.modIds, other.modIds);
+        into(this.modNames, other.modNames);
         other.sizes.forEach((area, text) => this.sizes.set(text, area));
         into(this.widths, other.widths);
         into(this.netWidths, other.netWidths);
@@ -240,6 +248,8 @@ export class Suggestions {
             widths: [...numbers(this.widths), ...new Set([...this.netWidths].sort((a, b) => a - b).map(netWidthLabel))],
             depths: numbers(this.depths),
             levels: numbers(this.levels),
+            modIds: [...this.modIds].sort((a, b) => a.length - b.length || a.localeCompare(b)),
+            modNames: sorted(this.modNames),
         };
     }
 }

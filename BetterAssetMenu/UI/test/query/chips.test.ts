@@ -10,6 +10,8 @@ const source = (over: Partial<ChipSource> = {}): ChipSource => ({
     favorite: false,
     collections: [],
     mod: false,
+    modId: null,
+    modName: null,
     themeTitle: null,
     packTitles: [],
     dlcName: null,
@@ -74,6 +76,27 @@ describe("assetChips (docs: Hub display, chip table)", () => {
         ]);
     });
 
+    it("shows an ID chip only when an ID is available, after the mod flag", () => {
+        expect(shown({ mod: true, modId: "98765" })).toEqual([
+            "is: mod => is: mod",
+            "mod: 98765 => mod: 98765",
+        ]);
+        expect(shown({ mod: true })).toEqual(["is: mod => is: mod"]);
+        expect(shown({ modId: "98765" })).toEqual(["mod: 98765 => mod: 98765"]);
+    });
+
+    it("keeps collection and source mod chips together", () => {
+        expect(shown({ collections: [{ name: "Park Props", slug: "park-props" }], modId: "94094", modName: "Japan Pack" })).toEqual([
+            "col: Park Props => col: park-props",
+            "mod: Japan Pack => mod: 94094",
+        ]);
+    });
+
+    it("shows the mod name but clicks search the exact ID", () => {
+        expect(shown({ modId: "98765", modName: "Japan Pack" })).toEqual(["mod: Japan Pack => mod: 98765"]);
+        expect(shown({ modName: "Japan Pack" })).toEqual([]);
+    });
+
     it("shows a unique building as unique, or placed once placed", () => {
         expect(shown({ unique: true })).toEqual(["is: unique => is: unique"]);
         expect(shown({ unique: true, placed: true })).toEqual(["is: placed => is: placed"]);
@@ -92,7 +115,7 @@ describe("assetChips (docs: Hub display, chip table)", () => {
 
     it("produces tokens the parser accepts as filters", () => {
         const chips = assetChips(
-            source({ favorite: true, zone: "office", lotWidth: 2, lotDepth: 2, netWidth: 16, level: 2, dlcName: "OfficeEvolution" })
+            source({ modId: "98765", favorite: true, zone: "office", lotWidth: 2, lotDepth: 2, netWidth: 16, level: 2, dlcName: "OfficeEvolution" })
         );
         for (const chip of chips) {
             expect(parseQ(chip.token, context()).tokens.map((t) => t.status)).toEqual(["filter"]);

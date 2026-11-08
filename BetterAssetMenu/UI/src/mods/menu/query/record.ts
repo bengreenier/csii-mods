@@ -24,6 +24,9 @@ export interface RecordSource {
     // Asset.dlc icon path, if any. Mod assets get the Paradox Mods icon instead
     // of a DLC's (ToolbarUISystem.BindAsset).
     dlcIcon: string | null;
+    // Paradox Mods platform ID, if the prefab has one.
+    modId: string | null;
+    modName: string | null;
     unique: boolean;
     placed: boolean;
     highlight: boolean;
@@ -52,6 +55,8 @@ export interface AssetRecord {
     dlcLc: string;
     // From a mod (Paradox Mods), not the base game or a DLC.
     mod: boolean;
+    modId: string | null;
+    modNameLc: string;
     unique: boolean;
     placed: boolean;
     isNew: boolean;
@@ -94,6 +99,8 @@ export function buildRecord(src: RecordSource, order: number): AssetRecord {
         level: src.level,
         dlcLc: mod ? "" : dlc,
         mod,
+        modId: src.modId,
+        modNameLc: (src.modName ?? "").toLowerCase(),
         unique: src.unique,
         placed: src.placed,
         isNew: src.highlight,

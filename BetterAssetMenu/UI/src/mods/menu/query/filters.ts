@@ -17,6 +17,9 @@ export interface FilterContext {
     depths: string[];
     // "1".."5", ascending.
     levels: string[];
+    // Paradox Mods IDs in scope, sorted numerically.
+    modIds: string[];
+    modNames: string[];
     // Entity keys of this city's favorites (is:favorite). Not part of the
     // records, so adding or removing a favorite doesn't rebuild them.
     favoriteKeys: ReadonlySet<string>;
@@ -190,6 +193,20 @@ export const FILTERS: FilterDef[] = [
     },
     { ...numberFilter("depth", (r) => r.lotDepth, (ctx) => ctx.depths, true), aliases: ["d"] },
     numberFilter("level", (r) => r.level, (ctx) => ctx.levels),
+    {
+        key: "mod",
+        aliases: ["modid"],
+        suggest: (ctx) => [
+            ...ctx.modIds,
+            ...ctx.modNames.filter((n) => !n.includes('"')).map((n) => /[\s,]/.test(n) ? `"${n}"` : n),
+        ],
+        compile: (atoms, ctx) => {
+            const id = (a: string) => /^\d+$/.test(a);
+            if (!atoms.every((a) => id(a) ? /^[1-9]\d*$/.test(a) : ctx.modNames.some((n) => n.includes(a)))) return null;
+            // Numeric IDs stay exact; names are case-insensitive substrings.
+            return (r) => atoms.some((a) => id(a) ? r.modId === a : r.modNameLc.includes(a));
+        },
+    },
     {
         key: "dlc",
         suggest: (ctx) => ["none", ...ctx.dlcs],

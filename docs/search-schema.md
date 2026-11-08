@@ -15,8 +15,8 @@ further. This document is the specification. The implementation lives in
    unknown filters are shown dimmed or struck through and **ignored**. They
    never filter anything out.
 4. **Layout-friendly characters only:** `:` `-` `,` `"`.
-5. **English only** for filter keys and values (asset names themselves use the
-   game's language).
+5. **English keys and fixed values.** Asset names use the game's language;
+   source mod names retain their Paradox Mods titles.
 6. **Fast.** Everything except `fx:` runs off an index built once when the
    game data changes. "cheap (C#)" filters read data the mod's C# sends once
    per game load (`assetMeta`, see `game-internals.md`). Each keystroke is one parse plus one linear pass.
@@ -28,7 +28,8 @@ query    := token (whitespace token)*
 token    := ['-'] ( phrase | filter | word )     leading '-' excludes / negates
 phrase   := '"' chars ['"']                       an unclosed quote runs to the end
 filter   := KEY ':' [space] value?                KEY must be exactly a known key
-value    := atom (',' atom)*                      comma = OR
+value    := atom (',' atom)*                      comma outside quotes = OR
+atom     := word | '"' chars ['"']                 quoted filter values may contain spaces
 word     := any other run of non-whitespace
 ```
 
@@ -36,13 +37,16 @@ word     := any other run of non-whitespace
 - Keys must be typed in full (`theme:`, not `th:`). Hints complete them.
   The exceptions are the short forms (`FilterDef.aliases` in
   `query/filters.ts`): `s:` for `size:`, `w:` for `width:` and `d:` for
-  `depth:`. They behave exactly like the full key; hints and chips still
-  show the full key.
+  `depth:`, and `modid:` for `mod:`. They behave exactly like the full key;
+  hints and chips still show the full key.
 - A space after the colon is allowed: `is: ok` is the same as `is:ok`. The
-  value is then the next word, unless that word starts with `-` or `"`, which
-  begin a new token. Examples in the hub use the spaced form.
+  value is then the next word or quoted value; a leading `-` begins a new
+  token. For example, `mod: "Japan Pack"` is one filter. A standalone quoted
+  phrase (without a filter key) still searches asset names. Examples in the hub
+  use the spaced form.
 - Values match by **prefix**: `is:u` means `is:unique`, and `theme:eu` matches
   "European". A prefix that fits several values matches any of them.
+  Numeric filters (`mod:`, `level:`, lot dimensions) match exact values instead.
 - `-` only negates at the **start** of a token: `-park` excludes, `2-lane` is a
   plain word.
 - A lone `-` or `"` is ignored.
@@ -80,6 +84,7 @@ Titles come from the localization key `Assets.NAME[<prefab name>]`.
 | | `favorite` | are in this city's favorites (see Favorites) | cheap |
 | `theme:` | a theme word, e.g. `european`, `north`, `american` | belong to that theme (word prefix over the theme's name and title) | cheap |
 | `pack:` | an asset pack word, e.g. a pack's name or title | belong to that asset pack (word prefix over the pack's name and title) | cheap (C#) |
+| `mod:` (or `modid:`) | a Paradox Mods ID (`98765`), part of a mod name (`japan`), or a quoted name (`"Japan Pack"`) | have that exact platform ID or a cached mod title containing the name, ignoring case. Numeric IDs are not prefix-matched. Commas outside quotes OR names and/or IDs (`"Japan Pack",98765`). Type `mod:` for IDs and quoted name suggestions in scope. | cheap (C#) |
 | `cat:` | a Find It category word, e.g. `props`, `decals`, `trees`, `fences`, `service` | are in a Find It category or subcategory with a word starting with the value (enum name split on `_` and camelCase, plus Find It's titles). Only while Find It's catalogue is in use (see Find It). | cheap (C#) |
 | `zone:` | `residential`, `commercial`, `industrial`, `office`, and densities `low`, `medium`, `high` | are zoned buildings (e.g. signature buildings) or zone types (the Zones tab) of that zone type or density. Plain industrial has no density. | cheap (C#) |
 | `size:` (or `s:`) | `WxD` in cells, e.g. `2x3` | are buildings on a lot W cells wide (frontage) and D deep (and, with Platter, its parcels of that size). Not rotated: `2x3` doesn't match a 3x2 lot. | cheap (C#) |
@@ -112,6 +117,8 @@ The direction of an `fx:` effect (positive or negative) is not considered.
 | `theme:european` | European-theme assets |
 | `dlc:none` / `-dlc:none` | Base game only / DLC and mod content only |
 | `is:mod` / `-is:mod` | Mod assets only / no mod assets |
+| `mod:98765` / `-mod:98765` | Assets from that exact Paradox Mods ID / exclude them |
+| `mod:japan` / `mod: "Japan Pack"` | Assets from mods whose cached titles contain that word / phrase |
 | `is:favorite in:parks` | Your favorites in the Parks tab (from the top ring) |
 | `in:health` | Everything in Healthcare & Deathcare (useful from the top ring) |
 | `zone:office` | Office signature buildings and office zones |
@@ -230,7 +237,15 @@ Under the title, the hovered asset's filterable metadata shows as chips, one
 per filter value it matches, e.g. `is: favorite`, `theme: European`,
 `pack: ...`, `dlc: Office Evolution`, `zone: residential`, `zone: high`, `size: 2x3`,
 `level: 3`, `fx: crime accumulation`, and `col: <name>` for each collection
-it's in. The order is `is:` flags, then collections, then theme,
+it's in. Assets with a Paradox Mods ID also show `mod: Japan Pack` when the mod's
+display name is cached, or `mod: 98765` otherwise.
+In the detail panel or context menu, clicking either chip adds the exact ID filter,
+right-clicking excludes it (the radial hub's chips are display-only). Name matching
+never depends on online requests; unknown titles fall back to ID-only search.
+
+Verified in game (1.6.3f1, 2026-11-07): `mod: "Japan Pack"` and `mod:94094`
+both returned 460 assets; named chips added or excluded the exact mod ID.
+The order is `is:` flags, then collections, mod ID, Find It category, theme,
 pack, DLC, zone, size, level and effects. The hub is a circle, so chips are
 limited to two rows, 160 wide: `HubChips` (`views/radial/hub-chips.tsx`) measures where each one lands
 (before paint) and replaces whatever doesn't fit with `+N`. Values over 18
@@ -249,6 +264,8 @@ valid filter values:
 |---|---|---|
 | `is: favorite` | `is: favorite` | `-is: favorite` |
 | `col: Park Props` | `col: park-props` (the name's one-word form) | `-col: park-props` |
+| `mod: Japan Pack` (ID 94094) | `mod: 94094` | `-mod: 94094` |
+| `mod: 98765` (name unavailable) | `mod: 98765` | `-mod: 98765` |
 | `theme: North American` | `theme: north` (first word; values are single words) | `-theme: north` |
 | `pack: <title>` | `pack: <first word of the title>` | negated |
 | `dlc: Office Evolution` | `dlc: officeevolution` | negated |
@@ -297,21 +314,27 @@ A player-facing version of this reference is built into the mod's settings,
 under **Options > Better Asset Menu > Usage Guide**. It comes from `LocaleEn` in
 `Setting.cs`, with one read-only text block per section, in this order
 (`SettingsUIGroupOrder`):
-- quick start (both menu styles);
-- keys and mouse (what both styles share);
-- "Menu style: Radial" and "Menu style: Pane": each style's own keys and
-  layout settings;
+- quick start (all three menu styles);
+- keys and mouse (what all styles share);
+- "Menu style: Radial", "Menu style: Pane" and "Menu style: Sidebar": each
+  style's own keys and layout settings;
 - searching by name;
 - favorites;
+- collections (including `col:` / `collection:`);
 - Find It;
-- filters in general (including the short forms `s:`, `w:`, `d:`);
-- one section each for `is:`, `in:`, `theme:`, `pack:`, `dlc:`,
+- filters in general (including `s:`, `w:`, `d:`, `modid:` and quoted values);
+- one section each for `is:`, `mod:` (names, IDs, suggestions, exclusions,
+  chips, offline fallback and Refresh), `in:`, `theme:`, `pack:`, `dlc:`,
   `zone:` (with `size:` / `width:` / `depth:` / `level:`, and their short
   forms `s:` / `w:` / `d:`) and `fx:`;
 - combining searches.
 
-The Main tab groups the settings as Menu layout (both styles), Radial menu
-layout or Pane layout (only the chosen style's shows), Assets, Vanilla
+The `mod:` section is `Setting.SearchModText`, grouped under `KSearchModGroup`;
+its title and body are in `LocaleEn`. Verified rendered in the actual settings
+pane on 1.6.3f1 (2026-11-07), including quotes, chip behavior and Refresh help.
+
+The Main tab groups the settings as Menu layout (all styles), Radial menu
+layout, Pane layout or Sidebar layout (only the chosen style's shows), Assets, Vanilla
 toolbar and tools, Key bindings, and Utilities.
 
 Everything shown in-game writes filters in the spaced `key: value` form, and
@@ -528,7 +551,7 @@ steps back a level; Escape and clicking the hub do.
 | `find-it.ts` / `FindItBridge.cs` / `BetterAssetMenuUISystem.FindIt.cs` | Find It integration: reading its catalogue, bindings, titles and `cat:` text | no |
 | `query/aliases.ts` | One-way word aliases for text matching (`road` also matches `street`) | yes |
 | `query/lexer.ts` | `tokenize()`: tokens with negation/quote info; never throws | yes |
-| `query/filters.ts` | Filter registry (`is`, `theme`, `pack`, `zone`, `size`, `width`, `depth`, `level`, `dlc`, `in`, `fx`) and their short forms (`aliases`: `s`, `w`, `d`): compile, validate, suggest | yes |
+| `query/filters.ts` | Filter registry (`is`, `theme`, `pack`, `cat`, `col`, `mod`, `zone`, `size`, `width`, `depth`, `level`, `dlc`, `in`, `fx`) and aliases (`s`, `w`, `d`, `collection`, `modid`): compile, validate, suggest | yes |
 | `query/parser.ts` | `parse()`: words, phrases, excludes, filters, token statuses, hint | yes |
 | `query/record.ts` | `AssetRecord`, `buildRecord()`, `fxTerms()`, word-prefix matching | yes |
 | `query/evaluate.ts` | `evaluate()`: filter, rank, pending/need-details | yes |

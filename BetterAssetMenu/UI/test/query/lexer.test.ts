@@ -35,9 +35,14 @@ describe("tokenize", () => {
         expect(bodies("is:  ok school")).toEqual(["is:ok", "school"]);
     });
 
-    it("doesn't join a value that starts a new '-' or quoted token", () => {
+    it("doesn't join a value that starts a new '-' token", () => {
         expect(bodies("is: -park")).toEqual(["is:", "park"]);
-        expect(bodies('is: "bus"')).toEqual(["is:", "bus"]);
+    });
+
+    it("keeps quoted filter values together, including commas and unfinished quotes", () => {
+        expect(bodies('mod: "Japan Pack" park')).toEqual(['mod:"Japan Pack"', "park"]);
+        expect(bodies('-mod:"Japan Pack",98765')).toEqual(['mod:"Japan Pack",98765']);
+        expect(bodies('mod: "Japan, Pack')).toEqual(['mod:"Japan, Pack']);
     });
 
     it("leaves a trailing 'key:' alone when nothing follows", () => {

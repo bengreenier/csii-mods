@@ -471,10 +471,26 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
     which needs `ZonePropertiesData` on the zone prefab. It always returns
     Low for plain industrial, so no density is sent there.
 - **Level (`level:`):** `SpawnableBuildingData.m_Level`.
-- **Paradox Mods ID (`modId`, "Copy Paradox Mods link"):**
+- **Paradox Mods ID (`modId`, `mod:` / `modid:` search, metadata chip, "Copy Paradox Mods link"):**
   `prefab.asset.GetMeta().platformID`. `PrefabBase` adds `ModPrerequisiteData`
   exactly when that's set, which is also when `BindAsset` shows the Paradox
   Mods icon. Find It uses the same ID for its mods.paradoxplaza.com links.
+- **Paradox Mods title (`modName`, nullable):** `ModNameLookup` snapshots titles
+  once per `BuildAssetMeta`, keyed by the same `platformID`. Native
+  `GameManager.instance.modManager` is enumerable over `ModInfo`; each
+  `ModInfo.asset.GetMeta()` has `platformID` and `displayName` (the latter is
+  the title, unlike `ModInfo.name`, which is the executable's full name).
+  The manager only registers `ExecutableAsset.GetModAssets()`, so it does not
+  cover asset-only packs such as Japan Pack (`94094`). Missing titles are
+  filled from `EnvPath.kCacheDataPath/Mods/pdx_mods_cache.json`, whose root
+  `items` array has `id` and `displayName`, using the game's `Colossal.Json`
+  parser. Native titles win; unresolved titles stay null and IDs/links survive.
+  Missing or malformed caches and individual bad native assets are guarded;
+  no per-prefab disk reads or network requests. `PdxSdkPlatform` also exposes
+  `GetModsInActivePlayset[Async]` / `GetLocalModDetails`, but these are async SDK
+  operations, unsuitable for blocking in a binding writer. After a game update,
+  re-decompile `ModManager` (`GetEnumerator`, `RegisterMods`), `SourceMeta`,
+  `PdxSdkPlatform`, and re-check the cache schema.
 - **Mods (`is:mod`):** no C# needed. `ToolbarUISystem.BindAsset` sets
   `Asset.dlc` to `Media/Glyphs/ParadoxModsCloud.svg` for prefabs with
   `ModPrerequisiteData`, overriding any DLC icon.
@@ -804,7 +820,7 @@ data"** button (Utilities, needs a city; `BetterAssetMenuUISystem.Refresh.cs`).
 | Unfiltered asset lists | C# `allAssets` | whenever the menu opens |
 | Nested categories | C# `subCategories` | whenever the menu opens |
 | Platter's parcel sizes | C# `platterParcels` | once per load (looked up at loading complete, or on menu open until Platter's prefabs exist), and on Refresh |
-| `assetMeta` (packs, lot, zone, level, net width, mod ID, Find It category) | C# | on load, when the Find It snapshot changes, when Platter's sizes are found, and on Refresh |
+| `assetMeta` (packs, lot, zone, level, net width, mod ID/title, Find It category) | C# | on load, when the Find It snapshot changes, when Platter's sizes are found, and on Refresh |
 | DLC Steam app IDs | C# `dlcSteamApps` | once per session, and on Refresh |
 | Find It snapshot | C# `findItCategories` / `findItAssets` | on load, and on Refresh (in place) |
 | `fx:` effect terms | UI `FX_CACHE` (search.ts) | on Refresh (the `dataRefreshed` event) |
@@ -919,7 +935,9 @@ messages mostly exist to flag breakage after a game update.
 | `Global collections not saved: ... left as is` (warning) | A change to all-cities collections after the file couldn't be read at start; it holds until the game closes |
 | `Removed Better Asset Menu data from this city` | The "Remove Better Asset Menu data from this city" button was confirmed; `Remove Better Asset Menu data skipped: no city loaded` if there was no city |
 | `Could not resolve DLC Steam app IDs; DLC assets get no store link` (warning) | The game's DLC data couldn't be read (after a game update?); DLC assets offer no "Copy Steam store link" |
-| `Could not read the Paradox Mods ID of <prefab>; ...` (warning, once) | An asset's mod metadata couldn't be read; that asset (and any other failing one) gets no "Copy Paradox Mods link" |
+| `Could not read the Paradox Mods ID of <prefab>; ...` (warning, once) | An asset's mod metadata couldn't be read; that asset (and any other failing one) gets no ID search, ID chip or "Copy Paradox Mods link" |
+| `Could not read a native mod title; ...` (warning, once) | A native mod title lookup failed; the local Paradox Mods cache is still tried |
+| `Could not read cached Paradox Mods names; ...` (warning, once) | Optional cached titles couldn't be loaded; native titles and ID search/links still work |
 | `Find It <version>: read N catalogue entries (M subcategories) in T ms` | Once per load with the Find It integration on |
 | `Refresh Better Asset Menu data requested`, `Refreshed Better Asset Menu data`, and with Find It `Find It <version>: rebuilt N catalogue entries ...` | The "Refresh Better Asset Menu data" button was pressed |
 | `Find It integration off: <what> (Find It <version>)...` (warning) | Find It's internals didn't look as expected (after a Find It update?); the menu works without it |

@@ -1,7 +1,7 @@
 // Parses a query into words/phrases/filters plus per-token display status and
 // a completion hint. Pure; never throws. Spec: docs/search-schema.md.
 import { FilterContext, FilterDef, FILTERS, FILTERS_BY_KEY, Predicate } from "./filters";
-import { tokenize } from "./lexer";
+import { filterValues, tokenize, unquoteValue } from "./lexer";
 
 export type TokenStatus =
     | "text" // a word or phrase that filters by name
@@ -83,10 +83,7 @@ export function parse(input: string, ctx: FilterContext): ParsedQuery {
             push("unknown");
             continue;
         }
-        const atoms = body
-            .slice(colon + 1)
-            .split(",")
-            .filter(Boolean);
+        const atoms = filterValues(body.slice(colon + 1)).map(unquoteValue).filter(Boolean);
         if (atoms.length === 0) {
             push("incomplete");
             continue;
@@ -135,14 +132,14 @@ function hintFor(input: string, ctx: FilterContext): Hint | null {
 
     // Complete the value after the last comma.
     const valuePart = body.slice(colon + 1);
-    const comma = valuePart.lastIndexOf(",");
-    const partial = valuePart.slice(comma + 1);
-    const options = def.suggest(ctx).filter((v) => v.startsWith(partial) && v !== partial);
+    const rawPartial = filterValues(valuePart).slice(-1)[0];
+    const partial = unquoteValue(rawPartial);
+    const options = def.suggest(ctx).filter((v) => unquoteValue(v).startsWith(partial) && unquoteValue(v) !== partial);
     if (options.length === 0) return null;
     return {
         text: (partial ? "> " : "") + options.slice(0, MAX_HINT_VALUES).join(" / "),
         // The partial value is always at the very end of the input (keeps any
         // space the user typed after the colon).
-        completion: input.slice(0, input.length - partial.length) + options[0],
+        completion: input.slice(0, input.length - rawPartial.length) + options[0],
     };
 }

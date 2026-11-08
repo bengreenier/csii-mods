@@ -31,6 +31,8 @@ namespace BetterAssetMenu
             public int Level;
             // Paradox Mods ID of the mod the asset comes from; null otherwise.
             public string ModId;
+            // Human-readable source mod title; null if it cannot be resolved.
+            public string ModName;
             // NetGeometryData.m_DefaultWidth in metres for networks (roads,
             // tracks, paths, ...); 0 otherwise.
             public float NetWidth;
@@ -101,6 +103,8 @@ namespace BetterAssetMenu
                 writer.PropertyName("modId");
                 if (meta.ModId != null) writer.Write(meta.ModId);
                 else writer.WriteNull();
+                writer.PropertyName("modName");
+                WriteNullable(writer, meta.ModName);
                 writer.PropertyName("netWidth");
                 writer.Write(meta.NetWidth);
                 writer.PropertyName("findItCategory");
@@ -113,6 +117,8 @@ namespace BetterAssetMenu
         private List<AssetMeta> BuildAssetMeta()
         {
             var result = new List<AssetMeta>();
+            // One snapshot per rebuild, not a cache-file read for each prefab.
+            var modNames = ModNameLookup.Build();
             using var toolbarEntities = _toolbarAssetQuery.ToEntityArray(Allocator.Temp);
             // Toolbar assets, plus everything in Find It's catalogue while the
             // integration is on (most of it isn't in the toolbar).
@@ -145,6 +151,8 @@ namespace BetterAssetMenu
                 }
                 meta.Zone = GetZoneWords(zonePrefab);
                 meta.ModId = GetModId(entity);
+                if (meta.ModId != null && modNames.TryGetValue(meta.ModId, out var modName))
+                    meta.ModName = modName;
                 if (EntityManager.TryGetComponent(entity, out NetGeometryData net) && net.m_DefaultWidth > 0)
                     meta.NetWidth = net.m_DefaultWidth;
                 meta.FindItCategory = FindItCategoryOf(entity);
