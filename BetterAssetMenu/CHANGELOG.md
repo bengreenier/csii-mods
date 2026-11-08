@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.0](https://github.com/bengreenier/csii-mods/compare/better-asset-menu-v1.3.0...better-asset-menu-v1.4.0) (2026-11-08)
+
+
+### Features
+
+* collections - named asset lists, per city or for all cities ([#18](https://github.com/bengreenier/csii-mods/issues/18)) ([f0899d4](https://github.com/bengreenier/csii-mods/commit/f0899d412b58c0fc7e3674a1030e2ec04387d27e))
+* search assets by mod name or ID ([#19](https://github.com/bengreenier/csii-mods/issues/19)) ([8ea6d49](https://github.com/bengreenier/csii-mods/commit/8ea6d4907e587e7bb6c46c8624278a0255ea0178))
+
 ## [1.3.0](https://github.com/bengreenier/csii-mods/compare/better-asset-menu-v1.2.1...better-asset-menu-v1.3.0) (2026-11-07)
 
 
