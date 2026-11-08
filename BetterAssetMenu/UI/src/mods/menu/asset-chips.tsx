@@ -42,6 +42,8 @@ export function useAssetChips(asset: toolbar.Asset | null): Chip[] {
             favorite: favoriteKeys.has(key),
             collections: (collectionsByAsset.get(key) ?? []).map((c) => ({ name: c.name, slug: collectionSlug(c.name) })),
             mod,
+            modId: meta?.modId ?? null,
+            modName: meta?.modName ?? null,
             themeTitle: theme ? themeTitle(loc, theme.name) : asset.theme ? spaced(iconName(asset.theme)) : null,
             packTitles: meta?.packs.map((p) => assetTitle(loc, p)) ?? [],
             dlcName: asset.dlc && !mod ? iconName(asset.dlc) : null,

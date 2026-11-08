@@ -15,7 +15,7 @@ const matches = (key: string, value: string, over: Parameters<typeof record>[0],
 describe("filter registry", () => {
     it("has the documented keys", () => {
         expect(FILTERS.map((f) => f.key).sort()).toEqual(
-            ["cat", "col", "depth", "dlc", "fx", "in", "is", "level", "pack", "size", "theme", "width", "zone"].sort()
+            ["cat", "col", "depth", "dlc", "fx", "in", "is", "level", "mod", "pack", "size", "theme", "width", "zone"].sort()
         );
     });
 
@@ -131,6 +131,37 @@ describe("size:, width:, depth:, level:", () => {
     it("0 means none: depth:0 and level:0 match nothing", () => {
         expect(matches("depth", "0", {})).toBe(false);
         expect(matches("level", "0", {})).toBe(false);
+    });
+});
+
+describe("mod:", () => {
+    it("matches exact IDs, not prefixes, and ORs commas", () => {
+        expect(matches("mod", "98765", { modId: "98765" })).toBe(true);
+        expect(matches("modid", "98765,12345", { modId: "12345" })).toBe(true);
+        expect(matches("mod", "987", { modId: "98765" })).toBe(false);
+        expect(matches("mod", "9007199254740993", { modId: "9007199254740993" })).toBe(true);
+        expect(matches("mod", "9007199254740992", { modId: "9007199254740993" })).toBe(false);
+        expect(matches("mod", "98765", {})).toBe(false);
+        expect(matches("mod", "98765", { dlcIcon: "Media/Glyphs/ParadoxModsCloud.svg" })).toBe(false);
+    });
+
+    it("matches cached name substrings, and falls back to IDs when names are absent", () => {
+        expect(matches("mod", "japan", { modName: "Japan Pack" })).toBe(true);
+        expect(matches("mod", "japan pack", { modName: "Japan Pack" })).toBe(true);
+        expect(matches("mod", "japan", { modId: "94094" })).toBe(false);
+        expect(matches("mod", "office", { modName: "JP City Office" })).toBe(true);
+        expect(matches("mod", "japan,98765", { modId: "98765" })).toBe(true);
+        expect(matches("mod", "japan", { modName: "Other Pack" })).toBe(false);
+        expect(compile("mod", "unknown pack")).toBeNull();
+    });
+
+    it("rejects invalid IDs and accepts IDs not currently in scope", () => {
+        for (const value of ["abc", "0", "12m", "1.5", "98765,abc"]) expect(compile("mod", value)).toBeNull();
+        expect(compile("mod", "12345")).not.toBeNull();
+        expect(parseQ("modid: 98765").tokens[0].status).toBe("filter");
+        const q = parseQ("-mod: 98765");
+        expect(q.filters[0].negated).toBe(true);
+        expect(FILTERS_BY_KEY.get("mod")!.suggest(context())).toEqual(["98765", '"japan pack"', '"jp city office"']);
     });
 });
 

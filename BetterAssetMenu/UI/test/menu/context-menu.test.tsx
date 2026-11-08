@@ -88,6 +88,7 @@ describe("opening", () => {
             { entity: city.assets.highway.entity, packs: [], lotWidth: 0, lotDepth: 0, level: 0, netWidth: 0, zone: null, findItCategory: null, modId: "98765" },
         ]);
         rightClick(item("icon/Highway.svg"));
+        expect(contextMenuTexts()).toContain("mod: 98765");
         clearCalls();
         click(contextEntry("Copy Paradox Mods link"));
         expect(calls()).toEqual([call("app.setClipboard", "https://mods.paradoxplaza.com/mods/98765/Windows")]);

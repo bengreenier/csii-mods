@@ -53,6 +53,8 @@ export interface AssetMeta {
     findItCategory: string | null;
     // Paradox Mods ID of the mod the asset comes from; null otherwise.
     modId: string | null;
+    // Cached Paradox Mods display name; absent if unavailable.
+    modName?: string | null;
 }
 export const assetMeta$ = bindValue<AssetMeta[]>(GROUP, "assetMeta", []);
 

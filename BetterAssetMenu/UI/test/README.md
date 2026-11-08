@@ -23,6 +23,19 @@ Run from `BetterAssetMenu/UI`:
   binding that was never set (and has no fallback) throws. Tests drive the
   fake game through `fakes/game.ts`.
 
+## Mod search coverage
+
+`query/filters.test.ts`, `query/lexer.test.ts`, `query/parser.test.ts` and
+`query/chips.test.ts` cover exact IDs, cached title matching, quoted values,
+commas, suggestions, exclusions and name-to-ID chip tokens.
+`menu/mod-id.test.tsx` exercises the complete metadata-to-search-and-chip path
+in the radial, pane and sidebar views, including ID-only fallback.
+
+In-game checks also verified matching names/IDs and chip clicks, plus the
+rendered **Options > Better Asset Menu > Usage Guide > mod: (modid:)** help.
+See `docs/search-schema.md` for the behavior and `docs/game-internals.md` for
+the C# title lookup and cache fallback.
+
 ## Writing a behaviour test
 
 ```tsx

@@ -65,6 +65,16 @@ describe("parse: token statuses (docs: Half-typed and invalid input)", () => {
         expect(q.filters.map((f) => f.def.key)).toEqual(["size", "width", "depth"]);
     });
 
+    it("keeps quoted mod names as filters, not asset-name phrases", () => {
+        const q = parseQ('mod: "Japan Pack" -modid:"JP City Office"');
+        expect(q.phrases).toEqual([]);
+        expect(q.words).toEqual([]);
+        expect(q.filters.map((f) => [f.def.key, f.negated])).toEqual([["mod", false], ["mod", true]]);
+        expect(statuses('mod: ""')).toEqual([['mod: ""', "incomplete"]]);
+        expect(statuses('mod:"jap')).toEqual([['mod:"jap', "filter"]]);
+        expect(statuses('mod:"unknown pack"')).toEqual([['mod:"unknown pack"', "invalid"]]);
+    });
+
     it("ignores empty comma atoms", () => {
         expect(statuses("is:new,")).toEqual([["is:new,", "filter"]]);
         expect(statuses("is:,")).toEqual([["is:,", "incomplete"]]);
@@ -111,6 +121,12 @@ describe("parse: hints", () => {
             completion: "school zone:residential",
         });
         expect(parseQ("is:new,un").hint).toEqual({ text: "> unique", completion: "is:new,unique" });
+    });
+
+    it("quotes completed names, preserving exclusions and preceding comma values", () => {
+        expect(parseQ('road -mod: jap').hint).toEqual({ text: '> "japan pack"', completion: 'road -mod: "japan pack"' });
+        expect(parseQ('mod:98765,"jp ci').hint).toEqual({ text: '> "jp city office"', completion: 'mod:98765,"jp city office"' });
+        expect(parseQ('mod:"japan pack"').hint).toBeNull();
     });
 
     it("gives no hint for a complete value or after a finished token", () => {

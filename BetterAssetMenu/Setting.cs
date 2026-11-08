@@ -18,11 +18,11 @@ namespace BetterAssetMenu
     // basics, then each filter.
     [SettingsUIGroupOrder(KLayoutGroup, KRadialLayoutGroup, KPaneLayoutGroup, KSidebarLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
         KSearchQuickStartGroup, KSearchKeysGroup, KSearchRadialGroup, KSearchPaneGroup, KSearchSidebarGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchCollectionsGroup, KSearchFindItGroup,
-        KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
+        KSearchFiltersGroup, KSearchIsGroup, KSearchModGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
         KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
     [SettingsUIShowGroupName(KLayoutGroup, KRadialLayoutGroup, KPaneLayoutGroup, KSidebarLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
         KSearchQuickStartGroup, KSearchKeysGroup, KSearchRadialGroup, KSearchPaneGroup, KSearchSidebarGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchCollectionsGroup, KSearchFindItGroup,
-        KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
+        KSearchFiltersGroup, KSearchIsGroup, KSearchModGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
         KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
     [SettingsUIKeyboardAction(Mod.KOpenActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
     [SettingsUIMouseAction(Mod.KOpenActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
@@ -53,6 +53,7 @@ namespace BetterAssetMenu
         public const string KSearchNamesGroup = "SearchNames";
         public const string KSearchFiltersGroup = "SearchFilters";
         public const string KSearchIsGroup = "SearchIs";
+        public const string KSearchModGroup = "SearchMod";
         public const string KSearchThemeGroup = "SearchTheme";
         public const string KSearchPackGroup = "SearchPack";
         public const string KSearchZoneGroup = "SearchZone";
@@ -393,6 +394,10 @@ namespace BetterAssetMenu
         public string SearchIsText => string.Empty;
 
         [SettingsUIMultilineText]
+        [SettingsUISection(KGuideSection, KSearchModGroup)]
+        public string SearchModText => string.Empty;
+
+        [SettingsUIMultilineText]
         [SettingsUISection(KGuideSection, KSearchThemeGroup)]
         public string SearchThemeText => string.Empty;
 
@@ -604,6 +609,7 @@ namespace BetterAssetMenu
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchNamesGroup), "Searching by name" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFiltersGroup), "Filters" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchIsGroup), "is: - what you can build" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSearchModGroup), "mod: (modid:) - source mod name or ID" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchThemeGroup), "theme: - building style" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchPackGroup), "pack: - asset packs" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchZoneGroup), "zone:, size: (s:), width: (w:), depth: (d:), level: - zones and lots" },
@@ -632,8 +638,9 @@ namespace BetterAssetMenu
                     "You don't need to click anything to search: open the menu and start typing. " +
                     "The menu narrows to matching buildings, roads and props as you type, and Enter picks one, ready to place. " +
                     "Without typing, you can browse the same menus and categories as the vanilla toolbar.\n" +
-                    "The menu comes in two styles ('Menu style' on the Main tab): Radial, a wheel of buttons you point at, " +
-                    "and Pane, a list you move through with the arrow keys. Both search, browse and pick the same things; " +
+                    "The menu comes in three styles ('Menu style' on the Main tab): Radial, a wheel of buttons you point at; " +
+                    "Pane, a list you move through with the arrow keys; and Sidebar, a list that stays open while you build. " +
+                    "All three search, browse and pick the same things; " +
                     "their own keys are described below.\n" +
                     "\n" +
                     "Try it now: open the menu and type 'park'.\n" +
@@ -665,7 +672,10 @@ namespace BetterAssetMenu
                     "You don't need to remember the values: start typing a filter and suggestions appear " +
                     "(in the middle of the wheel, or under the search field in the pane). Press Enter to accept one. " +
                     "Values can also be shortened, so 'is: u' means 'is: unique'. " +
-                    "Filter names must be typed in full, except for the short forms 's:', 'w:' and 'd:' (see zones and lots below).\n" +
+                    "Filter names must be typed in full, except for 's:', 'w:' and 'd:' (see zones and lots below), " +
+                    "'collection:' for 'col:', and 'modid:' for 'mod:'.\n" +
+                    "Double quotes keep a filter value containing spaces together, like 'mod: \"Japan Pack\"'. " +
+                    "Numeric IDs and lot dimensions match exactly; they are not shortened like word values.\n" +
                     "\n" +
                     "A filter you haven't finished, or one the menu doesn't recognise, is shown faded or " +
                     "crossed out and simply ignored - it never hides your results."
@@ -680,7 +690,25 @@ namespace BetterAssetMenu
                     "'is: mod' - things that come from mods (Paradox Mods)\n" +
                     "'is: favorite' - things in this city's favorites\n" +
                     "\n" +
-                    "Try 'is: unique -is: placed' to find the unique buildings still waiting for a spot."
+                    "Try 'is: unique -is: placed' to find the unique buildings still waiting for a spot. " +
+                    "To find one particular mod instead of all mod assets, use 'mod:' (see below)."
+                },
+                {
+                    _setting.GetOptionLabelLocaleID(nameof(Setting.SearchModText)),
+                    "'mod: 94094' - assets with that exact Paradox Mods ID, when available. 'modid:' is an alias for 'mod:'.\n" +
+                    "'mod: japan' - assets whose source mod's title contains that word, ignoring case. " +
+                    "Use double quotes for a name with spaces: 'mod: \"Japan Pack\"'.\n" +
+                    "Type 'mod:' to see IDs and names in the current search scope; accept a suggestion with Enter. " +
+                    "ID matching is exact: a shortened ID does not match a longer one.\n" +
+                    "Use '-mod: japan' or '-mod: 94094' to exclude a mod. " +
+                    "Combine names and IDs with commas and no space outside the quotes: 'mod: \"Japan Pack\",155606'. " +
+                    "A comma inside quotes is part of the name, not a separator.\n" +
+                    "The mod chip shows the source mod's title, or its ID if the title isn't available. " +
+                    "In the pane, sidebar or right-click menu, click the chip to add its exact ID to the search; " +
+                    "right-click it to exclude that ID. The radial center's chips are display-only.\n" +
+                    "Titles come from the game's local mod metadata and cache, with no online lookup. " +
+                    "If a title is missing, searching by ID still works. " +
+                    "'Refresh Better Asset Menu data' (Main tab, Utilities) reloads the cached titles along with the asset data."
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchThemeText)),
