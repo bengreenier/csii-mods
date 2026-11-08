@@ -20,6 +20,9 @@ export interface FilterContext {
     // Entity keys of this city's favorites (is:favorite). Not part of the
     // records, so adding or removing a favorite doesn't rebuild them.
     favoriteKeys: ReadonlySet<string>;
+    // The player's collections (col:): each one's slug (collectionSlug in
+    // collections.ts) and asset keys. Not in the records either.
+    collections: ReadonlyArray<{ slug: string; keys: ReadonlySet<string> }>;
 }
 
 // `fx` is undefined for filters that don't need prefab details.
@@ -196,6 +199,19 @@ export const FILTERS: FilterDef[] = [
             // "none" is the base game: neither a DLC nor a mod (see is:mod).
             return (r) =>
                 atoms.some((a) => ("none".startsWith(a) && r.dlcLc === "" && !r.mod) || (r.dlcLc !== "" && r.dlcLc.includes(a)));
+        },
+    },
+    {
+        // The player's collections, by name ("col: parks"): one word of the
+        // name, or its slug with dashes for spaces ("col: park-props").
+        key: "col",
+        aliases: ["collection"],
+        suggest: (ctx) => ctx.collections.map((c) => c.slug),
+        compile: (atoms, ctx) => {
+            const slugs = ctx.collections.map((c) => c.slug);
+            if (!atoms.every((a) => knownWordPrefix(slugs, a))) return null;
+            const wanted = ctx.collections.filter((c) => atoms.some((a) => hasWordPrefix(c.slug, a)));
+            return (r) => wanted.some((c) => c.keys.has(r.key));
         },
     },
     {

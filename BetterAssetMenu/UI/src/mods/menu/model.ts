@@ -15,7 +15,7 @@ export interface Label {
 
 export interface MenuItem extends Label {
     // Stable identity in the menu; defaults to the entity's key. Items that
-    // aren't prefabs (e.g. Favorites) set their own.
+    // aren't prefabs (e.g. Favorites, collections) set their own.
     key?: string;
     icon: string;
     // Shown if `icon` fails to load (e.g. a Find It icon from a host that
@@ -31,7 +31,8 @@ export interface MenuItem extends Label {
     context?: ContextTarget;
     // The asset behind a leaf item: its metadata chips show on hover.
     asset?: toolbar.Asset;
-    // Selecting it opens another level (a menu, category, Favorites, Find It)
+    // Selecting it opens another level (a menu, category, Favorites,
+    // Collections, Find It)
     // instead of picking something to build.
     opens?: boolean;
     // Where an asset shown outside its own category lives (search results,
@@ -56,6 +57,13 @@ export interface LevelModel {
     // Shown instead of the search hints while there are no items (and
     // nothing is typed), e.g. an empty Favorites level. One line each.
     emptyMessage?: string[];
+    // A prompt level (naming a collection, confirming a delete): what to
+    // say instead of any hints, results or empty message, one line each.
+    // The search field holds the answer, not a search.
+    prompt?: string[];
+    // The accept key (Enter by default) on a prompt level, instead of picking
+    // the only match. No completion hint is offered there.
+    onSubmit?: () => void;
     search: SearchResults;
     // Present on every level but the root: step back (the hub click).
     onBack?: () => void;

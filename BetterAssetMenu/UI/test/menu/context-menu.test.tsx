@@ -36,7 +36,13 @@ describe("opening", () => {
     it("opens on an asset with its name, chips and actions", () => {
         openSmallRoads();
         rightClick(item("icon/SmallRoad.svg"));
-        expect(contextMenuTexts()).toEqual(["SmallRoad", "width: 2u", "Add to favorites"]);
+        expect(contextMenuTexts()).toEqual([
+            "SmallRoad",
+            "width: 2u",
+            "Add to favorites",
+            "Add to new collection (this city)...",
+            "Add to new collection (all cities)...",
+        ]);
     });
 
     it("needs the press and release on the same item", () => {

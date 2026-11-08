@@ -30,7 +30,7 @@ const FAVORITES_ICON = "Media/Glyphs/StarFilled.svg";
 describe("top level", () => {
     useMenuTest();
 
-    it("shows the toolbar's items, then Favorites", () => {
+    it("shows the toolbar's items, then Favorites and Collections", () => {
         start();
         expect(itemIcons()).toEqual([
             "icon/Roads.svg",
@@ -38,6 +38,7 @@ describe("top level", () => {
             "icon/Trees.svg",
             "icon/Bulldozer.svg",
             FAVORITES_ICON,
+            "Media/Editor/Folder.svg",
         ]);
     });
 

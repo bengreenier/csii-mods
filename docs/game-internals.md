@@ -527,6 +527,24 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
   first; everything after that (unknown version, unreadable lines) runs on the
   already-read string inside try/catch and at worst costs favorites. Resolving
   IDs to prefabs happens later, when the list is sent to the UI.
+- **Collections** (`CollectionsSystem`) follow the same rules in a block of
+  their own, so the favorites block never changed format: one `int` and one
+  `string`, whose v1 lines are `#<id>/<name>` (both URL-escaped) starting a
+  collection, then its assets as `PrefabID.ToUrlSegment()`. Only city
+  collections go in the save. Ids start with `c` (city) or `g` (all cities),
+  and each store drops the other kind's ids when reading. All-cities
+  collections live in `EnvPath.kUserDataPath/ModsData/BetterAssetMenu/collections.txt`
+  (the format version on the first line, then the same lines), read once when
+  the system is created and rewritten (through a `.tmp` file) on every change.
+  A save from before collections has no block, so `SetDefaults` runs.
+  `ResetCityData` clears only city collections. The UI gets
+  `BetterAssetMenu.collections`: `{ id, name, global, assets }`, with `assets`
+  in the favorites' shape, sent when `Revision` changes and on menu open.
+  Triggers: `createCollection(name, global, firstAsset)` (`Entity.Null` for
+  none; the asset goes in at once, as the UI never learns the new id),
+  `renameCollection(id, name)`, `deleteCollection(id)`,
+  `addToCollection(id, asset)`, `removeFromCollection(id, asset)`. Empty or
+  taken names (either kind, ignoring case) are refused.
 - **UI:** `BetterAssetMenu.favorites` (raw value binding) sends each resolved
   favorite as `{ asset, menu, category }`: `asset` is written by
   `ToolbarUISystem.BindAsset`, and `menu` / `category` come from
@@ -873,6 +891,7 @@ messages mostly exist to flag breakage after a game update.
 |---|---|
 | `OnLoad`, `Current mod asset at ...`, `OnDispose` | Normal mod lifecycle, once per session |
 | `Reset key bindings` | The "Reset key bindings" button was used |
+| `City collections saved: N` / `City collections loaded: N` / `Global collections loaded: N` | As for favorites; global ones once per game start |
 | `Favorites saved: N` / `Favorites loaded: N` | Once per save (autosaves too) / load of a city. `(K unreadable, skipped)` if some lines couldn't be parsed |
 | `Favorites not loaded: unknown format version N` (warning) | The save was written by a newer version of the mod; the city loads with no favorites |
 | `Favorites could not be read from the save; starting empty` (error) | The favorites block was unreadable; the city still loads |

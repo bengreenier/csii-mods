@@ -17,11 +17,11 @@ namespace BetterAssetMenu
     // Main tab first (settings), then the Usage Guide, which reads top to bottom:
     // basics, then each filter.
     [SettingsUIGroupOrder(KLayoutGroup, KRadialLayoutGroup, KPaneLayoutGroup, KSidebarLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
-        KSearchQuickStartGroup, KSearchKeysGroup, KSearchRadialGroup, KSearchPaneGroup, KSearchSidebarGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
+        KSearchQuickStartGroup, KSearchKeysGroup, KSearchRadialGroup, KSearchPaneGroup, KSearchSidebarGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchCollectionsGroup, KSearchFindItGroup,
         KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
         KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
     [SettingsUIShowGroupName(KLayoutGroup, KRadialLayoutGroup, KPaneLayoutGroup, KSidebarLayoutGroup, KAssetsGroup, KVanillaGroup, KKeybindingGroup, KUtilitiesGroup,
-        KSearchQuickStartGroup, KSearchKeysGroup, KSearchRadialGroup, KSearchPaneGroup, KSearchSidebarGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchFindItGroup,
+        KSearchQuickStartGroup, KSearchKeysGroup, KSearchRadialGroup, KSearchPaneGroup, KSearchSidebarGroup, KSearchNamesGroup, KSearchFavoritesGroup, KSearchCollectionsGroup, KSearchFindItGroup,
         KSearchFiltersGroup, KSearchIsGroup, KSearchInGroup, KSearchThemeGroup, KSearchPackGroup, KSearchDlcGroup,
         KSearchZoneGroup, KSearchFxGroup, KSearchCombiningGroup)]
     [SettingsUIKeyboardAction(Mod.KOpenActionName, ActionType.Button, usages: new[] { Usages.kDefaultUsage, Usages.kToolUsage, Usages.kCancelableToolUsage, Usages.kDiscardableToolUsage })]
@@ -65,6 +65,7 @@ namespace BetterAssetMenu
         public const string KSearchPaneGroup = "SearchPane";
         public const string KSearchSidebarGroup = "SearchSidebar";
         public const string KSearchFavoritesGroup = "SearchFavorites";
+        public const string KSearchCollectionsGroup = "SearchCollections";
         public const string KSearchFindItGroup = "SearchFindIt";
 
         public Setting(IMod mod) : base(mod)
@@ -344,7 +345,8 @@ namespace BetterAssetMenu
         }
 
         // Clears everything the mod stores in the loaded city's save (see
-        // FavoritesSystem.ResetCityData); takes effect when the city is saved.
+        // FavoritesSystem and CollectionsSystem.ResetCityData; global
+        // collections stay); takes effect when the city is saved.
         // Last in Utilities (declaration order is display order) as the only
         // destructive one; [SettingsUIConfirmation] asks first, with the
         // GetOptionWarningLocaleID text from LocaleEn.
@@ -362,6 +364,7 @@ namespace BetterAssetMenu
                     return;
                 }
                 World.DefaultGameObjectInjectionWorld?.GetExistingSystemManaged<FavoritesSystem>()?.ResetCityData();
+                World.DefaultGameObjectInjectionWorld?.GetExistingSystemManaged<CollectionsSystem>()?.ResetCityData();
                 Mod.LOG.Info("Removed Better Asset Menu data from this city");
             }
         }
@@ -437,6 +440,10 @@ namespace BetterAssetMenu
         public string SearchFavoritesText => string.Empty;
 
         [SettingsUIMultilineText]
+        [SettingsUISection(KGuideSection, KSearchCollectionsGroup)]
+        public string SearchCollectionsText => string.Empty;
+
+        [SettingsUIMultilineText]
         [SettingsUISection(KGuideSection, KSearchFindItGroup)]
         public string SearchFindItText => string.Empty;
 
@@ -498,8 +505,8 @@ namespace BetterAssetMenu
                 { _setting.GetOptionDescLocaleID(nameof(Setting.ResetVanillaThemes)), "Set the vanilla asset menu's theme filter back to your city's default theme, as it is after loading the city. Picking an asset from another theme switches that filter to the asset's theme. Any asset you are placing is deselected. Only works while a city is loaded." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.RemoveCityData)), "Remove Better Asset Menu data from this city" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.RemoveCityData)), "Clear everything Better Asset Menu stores in this city's save, which is your favorites. Save the city afterwards to keep the change; loading it without saving brings the data back. The save then only has an empty Better Asset Menu section, which the game skips if the mod is not installed. To remove even that, disable the mod and save the city again. Only works while a city is loaded." },
-                { _setting.GetOptionWarningLocaleID(nameof(Setting.RemoveCityData)), "Remove all Better Asset Menu data, including your favorites, from this city? Save the city afterwards to keep the change." },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.RemoveCityData)), "Clear everything Better Asset Menu stores in this city's save: your favorites and this city's collections. Collections kept for all cities stay. Save the city afterwards to keep the change; loading it without saving brings the data back. The save then only has an empty Better Asset Menu section, which the game skips if the mod is not installed. To remove even that, disable the mod and save the city again. Only works while a city is loaded." },
+                { _setting.GetOptionWarningLocaleID(nameof(Setting.RemoveCityData)), "Remove all Better Asset Menu data, including your favorites and this city's collections, from this city? Save the city afterwards to keep the change." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.RefreshData)), "Refresh Better Asset Menu data" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.RefreshData)), "If anything in the menu or its search looks out of date or missing, press this instead of reloading the city. It rebuilds everything the menu keeps about assets, including Find It's catalogue when Find It is enabled, and search updates right after. Only works while a city is loaded." },
@@ -608,6 +615,7 @@ namespace BetterAssetMenu
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchPaneGroup), "Menu style: Pane" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchSidebarGroup), "Menu style: Sidebar" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFavoritesGroup), "Favorites" },
+                { _setting.GetOptionGroupLocaleID(Setting.KSearchCollectionsGroup), "Collections" },
                 { _setting.GetOptionGroupLocaleID(Setting.KSearchFindItGroup), "Find It" },
 
                 // Help text for the Usage Guide tab. Plain ASCII only (the game
@@ -741,7 +749,7 @@ namespace BetterAssetMenu
                     "In every style:\n" +
                     "Enter - accept the search suggestion, if one is shown (what Enter does otherwise depends on the style, see below). You can change this key on the Main tab.\n" +
                     "Escape - clear what you typed; press again to go back a level, and from the top level to close the menu\n" +
-                    "Right-click an item - more actions, like adding it to your favorites or copying its DLC or mod link\n" +
+                    "Right-click an item - more actions, like adding it to your favorites or a collection, or copying its DLC or mod link\n" +
                     "Clicking outside the menu - close it (picking something closes it too), except for the sidebar, which stays open"
                 },
                 {
@@ -780,6 +788,17 @@ namespace BetterAssetMenu
                     "Your favorites are under the star at the top level (at the end of the top ring in the wheel, at the bottom of the list in the pane).\n" +
                     "Each city keeps its own favorites, saved with the city. Typing while in Favorites searches only your favorites. " +
                     "To remove one, right-click it and choose 'Remove from favorites'."
+                },
+                {
+                    _setting.GetOptionLabelLocaleID(nameof(Setting.SearchCollectionsText)),
+                    "Collections are your own named lists of things to build, like 'Park props' or 'Downtown'. " +
+                    "They're under the folder at the top level, next to Favorites.\n" +
+                    "To make one, pick 'New collection' there, or right-click anything you can place and choose 'Add to new collection'. " +
+                    "Type its name in the search field and press Enter; Escape cancels.\n" +
+                    "A collection is kept either in this city's save, or for all cities (shared by every city you play).\n" +
+                    "Right-click anything to add it to a collection, or to remove it again. Right-click a collection to rename or delete it.\n" +
+                    "Typing in Collections finds collections by name, and the things in them. " +
+                    "'col: parks' finds what's in any collection with a word starting with 'parks' in its name, from anywhere in the menu."
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchFindItText)),

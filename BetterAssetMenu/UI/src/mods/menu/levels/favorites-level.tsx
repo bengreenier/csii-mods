@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useValue } from "cs2/api";
 import { toolbar } from "cs2/bindings";
 import { favorites$ } from "../bindings";
-import { FAVORITES_EMPTY_MESSAGE } from "../favorites";
+import { FAVORITES_EMPTY_MESSAGE, useFavoriteKeys } from "../favorites";
 import { useLocalization } from "../localization";
 import { LevelModel } from "../model";
 import { useAssetSearch } from "../search";
@@ -20,7 +20,7 @@ export const FavoritesLevel = ({ onBack }: FavoritesLevelProps) => {
     const { query } = useMenuSession();
     const favorites = useValue(favorites$);
     const groups = useValue(toolbar.toolbarGroups$);
-    const search = useAssetSearch(query, useLocalization(), groups, "all", true);
+    const search = useAssetSearch(query, useLocalization(), groups, "all", useFavoriteKeys());
     const items = useMemo(() => favoriteItems(favorites), [favorites]);
     const resultItems = useResultItems(search.results, true);
     const level = useMemo<LevelModel>(

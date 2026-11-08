@@ -8,6 +8,7 @@ const source = (over: Partial<ChipSource> = {}): ChipSource => ({
     placed: false,
     isNew: false,
     favorite: false,
+    collections: [],
     mod: false,
     themeTitle: null,
     packTitles: [],

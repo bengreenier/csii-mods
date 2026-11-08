@@ -17,9 +17,20 @@ export interface Path {
     // The Find It level: its categories, then a category's subcategories,
     // then a subcategory's assets (BetterAssetMenuUISystem.FindIt.cs).
     findIt?: FindItPlace;
+    // The Collections level, or one collection (by id) in it.
+    collections?: { id?: string };
+    // Asking for a collection's name, or to confirm deleting one: the search
+    // field takes the answer, and Back returns to `from`.
+    prompt?: Prompt;
 }
 
 export type FindItPlace = { category?: FindItCategory; sub?: FindItSubCategory };
+
+export type Prompt =
+    // A new collection, with `asset` in it unless null.
+    | { kind: "create"; global: boolean; asset: Entity | null; from: Path }
+    | { kind: "rename"; id: string; name: string; from: Path }
+    | { kind: "delete"; id: string; name: string; from: Path };
 
 export const ROOT: Path = {};
 export const menuPath = (menu: toolbar.ToolbarItem): Path => ({ menu });
@@ -30,12 +41,20 @@ export const categoryPath = (path: Path, category: toolbar.AssetCategory): Path 
     parent: path.category,
 });
 export const favoritesPath = (): Path => ({ favorites: true });
+// A prompt as asked for; MenuSession adds where it was asked from.
+type WithoutFrom<T> = T extends unknown ? Omit<T, "from"> : never;
+export type PromptRequest = WithoutFrom<Prompt>;
+
 export const findItPath = (place: FindItPlace = {}): Path => ({ findIt: place });
+export const collectionsPath = (id?: string): Path => ({ collections: id === undefined ? {} : { id } });
+export const promptPath = (prompt: Prompt): Path => ({ prompt });
 
 // A stable key per place, so each level remounts (and starts on its first
 // page) when the place changes.
 export function levelKey(path: Path): string {
+    if (path.prompt) return `prompt:${path.prompt.kind}`;
     if (path.favorites) return "favorites";
+    if (path.collections) return `collections:${path.collections.id ?? ""}`;
     if (path.findIt) return `findIt:${path.findIt.category?.id ?? ""}:${path.findIt.sub?.id ?? ""}`;
     if (path.menu && path.category) return `category:${entityKey(path.category.entity)}`;
     if (path.menu) return `menu:${entityKey(path.menu.entity)}`;
@@ -46,7 +65,8 @@ export function levelKey(path: Path): string {
 export type BackStep =
     | { kind: "closeContext" }
     | { kind: "clearQuery" }
-    | { kind: "goTo"; path: Path }
+    // `clearQuery`: the query was a prompt's answer, not a search.
+    | { kind: "goTo"; path: Path; clearQuery?: boolean }
     // Clears the vanilla asset selection, then goes to the root, or closes the
     // menu if already there.
     | { kind: "leaveMenu"; close: boolean };
@@ -57,12 +77,16 @@ export type BackStep =
 // the root also resets it (in case a tool was active) and closes.
 export function backStep({ path, query, contextOpen }: { path: Path; query: string; contextOpen: boolean }): BackStep {
     if (contextOpen) return { kind: "closeContext" };
+    // One Back cancels a prompt, typed answer and all.
+    if (path.prompt) return { kind: "goTo", path: path.prompt.from, clearQuery: true };
     if (query) return { kind: "clearQuery" };
     // A nested category goes back to the one it was opened from.
     if (path.category)
         return { kind: "goTo", path: path.parent ? { menu: path.menu, category: path.parent } : { menu: path.menu } };
     // Favorites never opened a vanilla menu, so there's nothing to reset.
     if (path.favorites) return { kind: "goTo", path: ROOT };
+    // Collections too; a collection goes back to the list.
+    if (path.collections) return { kind: "goTo", path: path.collections.id !== undefined ? collectionsPath() : ROOT };
     // Find It: up one step; nothing vanilla to reset.
     if (path.findIt) {
         const { category, sub } = path.findIt;
@@ -82,18 +106,37 @@ export function backStep({ path, query, contextOpen }: { path: Path; query: stri
 export const withoutFindIt = (path: Path, findItActive: boolean): Path =>
     !findItActive && path.findIt ? ROOT : path;
 
+// The place to show when the open collection no longer exists (deleted), or
+// the same path. A prompt about it falls back the same way.
+export function withoutMissingCollection(path: Path, exists: (id: string) => boolean): Path {
+    const id = path.collections?.id;
+    if (id !== undefined && !exists(id)) return collectionsPath();
+    const p = path.prompt;
+    if (p && p.kind !== "create" && !exists(p.id)) return withoutMissingCollection(p.from, exists);
+    return path;
+}
+
 // One step of where the menu is, for a breadcrumb. Views resolve the titles:
 // prefabs (menus, categories) by entity, Find It's by name.
 export type Crumb =
     | { kind: "prefab"; entity: Entity; name: string }
     | { kind: "favorites" }
+    | { kind: "collections" }
+    // Views look the current name up by id (it may be renamed meanwhile).
+    | { kind: "collection"; id: string }
     | { kind: "findIt"; name?: string };
 
 // Where `path` is, outermost first; empty at the root. Levels skipped on the
 // way in (see backStep) are left out: a single-subcategory Find It category
 // shows as its subcategory only.
 export function trail(path: Path): Crumb[] {
+    // A prompt shows where it was asked from.
+    if (path.prompt) return trail(path.prompt.from);
     if (path.favorites) return [{ kind: "favorites" }];
+    if (path.collections) {
+        const { id } = path.collections;
+        return id === undefined ? [{ kind: "collections" }] : [{ kind: "collections" }, { kind: "collection", id }];
+    }
     if (path.findIt) {
         const { category, sub } = path.findIt;
         const crumbs: Crumb[] = [{ kind: "findIt" }];

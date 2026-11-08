@@ -1,0 +1,219 @@
+// @vitest-environment jsdom
+// Collections (docs/search-schema.md, "Collections"): the top-level entry,
+// a collection's level, making, renaming and deleting one through the
+// search field's prompt, the context menu's add/remove, col: and its chips.
+import { describe, expect, it } from "vitest";
+import { MOD } from "../fakes/game";
+import { setCollections } from "../fixtures/city";
+import {
+    accept,
+    call,
+    calls,
+    click,
+    contextEntry,
+    contextMenuTexts,
+    escape,
+    hubLines,
+    input,
+    item,
+    itemIcons,
+    paneLines,
+    rightClick,
+    start,
+    type,
+    useMenuTest,
+} from "./driver";
+
+const FOLDER = "Media/Editor/Folder.svg";
+const NO_ASSET = { index: 0, version: 0 };
+
+// A row (pane) or wheel button by the text it shows.
+function row(text: string): HTMLElement {
+    const found = Array.from(document.querySelectorAll<HTMLElement>("button")).find((b) => b.textContent?.includes(text));
+    if (!found) throw new Error(`no row "${text}"; rows: ${rowTexts().join(" | ")}`);
+    return found;
+}
+const rowTexts = () => Array.from(document.querySelectorAll("button")).map((b) => b.textContent ?? "");
+
+describe("Collections", () => {
+    useMenuTest();
+
+    it("sits at the top level after Favorites and offers to make one while empty", () => {
+        start({ style: "pane" });
+        click(item(FOLDER));
+        expect(rowTexts()).toEqual(["New collection (this city)", "New collection (all cities)"]);
+    });
+
+    it("lists city collections, then global ones, and opens one", () => {
+        const city = start({ style: "pane" });
+        setCollections(
+            [
+                { name: "Roads I like", assets: [city.assets.gravelRoad, city.assets.smallRoad] },
+                { name: "Parks", global: true, assets: [city.assets.parkB] },
+            ],
+            city
+        );
+        click(item(FOLDER));
+        expect(rowTexts().slice(0, 2)).toEqual(["Roads I like>", "Parks (all cities)>"]);
+        click(row("Roads I like"));
+        expect(itemIcons()).toEqual(["icon/GravelRoad.svg", "icon/SmallRoad.svg"]);
+        expect(paneLines()).toContain("Roads I like");
+        // Back: the list, then the top level.
+        escape();
+        expect(rowTexts()[0]).toBe("Roads I like>");
+        escape();
+        expect(itemIcons()).toContain(FOLDER);
+    });
+
+    it("picks a collection's asset like a favorite", () => {
+        const city = start({ style: "pane" });
+        setCollections([{ name: "Roads", assets: [city.assets.gravelRoad] }], city);
+        click(item(FOLDER));
+        click(row("Roads"));
+        click(item("icon/GravelRoad.svg"));
+        expect(calls()).toContain(call("toolbar.selectAsset", city.assets.gravelRoad.entity, true));
+    });
+
+    it("makes an empty collection with the typed name", () => {
+        start({ style: "pane" });
+        click(item(FOLDER));
+        click(row("New collection (this city)"));
+        expect(input().value).toBe("");
+        expect(paneLines()).toContain("Type a name for the new collection");
+        type("  Bus   stops ");
+        expect(paneLines()).toContain("Enter: create 'Bus stops'");
+        accept();
+        expect(calls()).toContain(call(`${MOD}.createCollection`, "Bus stops", false, NO_ASSET));
+        // Back where it was asked, with the field cleared.
+        expect(input().value).toBe("");
+        expect(rowTexts()[0]).toBe("Bus stops>");
+    });
+
+    it("makes a collection with the right-clicked asset in it", () => {
+        const city = start({ style: "pane" });
+        click(item("icon/Parks.svg"));
+        rightClick(item("icon/ParkA.svg"));
+        click(contextEntry("Add to new collection (all cities)..."));
+        expect(paneLines()).toContain("Kept for all cities");
+        type("Parks");
+        accept();
+        expect(calls()).toContain(call(`${MOD}.createCollection`, "Parks", true, city.assets.parkA.entity));
+        expect(itemIcons()).toContain("icon/ParkA.svg");
+    });
+
+    it("won't take a name that's already used, or none", () => {
+        const city = start({ style: "pane" });
+        setCollections([{ name: "Parks", assets: [] }], city);
+        click(item(FOLDER));
+        click(row("New collection (this city)"));
+        accept();
+        type("parks");
+        expect(paneLines()).toContain("There's already a collection called 'parks'");
+        accept();
+        expect(calls().filter((c) => c.includes("createCollection"))).toEqual([]);
+    });
+
+    it("cancels a prompt with one Escape, typed name and all", () => {
+        start({ style: "pane" });
+        click(item(FOLDER));
+        click(row("New collection (this city)"));
+        type("Half a na");
+        escape();
+        expect(input().value).toBe("");
+        expect(rowTexts()).toContain("New collection (this city)");
+        expect(calls().filter((c) => c.includes("createCollection"))).toEqual([]);
+    });
+
+    it("never accepts a search completion as the name", () => {
+        start({ style: "pane" });
+        click(item(FOLDER));
+        click(row("New collection (this city)"));
+        type("is");
+        accept();
+        expect(calls()).toContain(call(`${MOD}.createCollection`, "is", false, NO_ASSET));
+    });
+
+    it("adds to and removes from a collection from the context menu", () => {
+        const city = start();
+        setCollections([{ id: "c1", name: "Parks", assets: [] }], city);
+        click(item("icon/Parks.svg"));
+        rightClick(item("icon/ParkA.svg"));
+        click(contextEntry("Add to 'Parks'"));
+        expect(calls()).toContain(call(`${MOD}.addToCollection`, "c1", city.assets.parkA.entity));
+        rightClick(item("icon/ParkA.svg"));
+        expect(contextMenuTexts()).toContain("col: Parks");
+        click(contextEntry("Remove from 'Parks'"));
+        expect(calls()).toContain(call(`${MOD}.removeFromCollection`, "c1", city.assets.parkA.entity));
+        rightClick(item("icon/ParkA.svg"));
+        expect(contextMenuTexts()).toContain("Add to 'Parks'");
+    });
+
+    it("finds a collection's assets with col:, by any word of its name", () => {
+        const city = start();
+        setCollections([{ name: "Green Space", assets: [city.assets.parkB, city.assets.gravelRoad] }], city);
+        type("col: space");
+        expect(itemIcons()).toEqual(["icon/GravelRoad.svg", "icon/ParkB.svg"]);
+        type("col: green-space road");
+        expect(itemIcons()).toEqual(["icon/GravelRoad.svg"]);
+    });
+
+    it("shows a chip per collection that adds col: with the name's one-word form", () => {
+        const city = start();
+        setCollections([{ name: "Green Space", assets: [city.assets.parkA] }], city);
+        click(item("icon/Parks.svg"));
+        rightClick(item("icon/ParkA.svg"));
+        click(contextEntry("col: Green Space"));
+        expect(input().value).toBe("col: green-space ");
+    });
+
+    it("finds collections by name in the Collections level, ahead of their assets", () => {
+        const city = start({ style: "pane" });
+        setCollections(
+            [
+                { name: "Parks", assets: [city.assets.gravelRoad] },
+                { name: "Roads", assets: [city.assets.parkA] },
+            ],
+            city
+        );
+        click(item(FOLDER));
+        type("park");
+        // The collection called Parks, then ParkA (in Roads).
+        expect(itemIcons()).toEqual([FOLDER, "icon/ParkA.svg"]);
+    });
+
+    it("renames and deletes a collection from its context menu", () => {
+        const city = start({ style: "pane" });
+        setCollections([{ id: "c7", name: "Parks", assets: [] }], city);
+        click(item(FOLDER));
+        rightClick(row("Parks"));
+        expect(contextMenuTexts()).toEqual(["Parks", "Rename...", "Delete collection..."]);
+        click(contextEntry("Rename..."));
+        expect(input().value).toBe("Parks");
+        type("Green");
+        accept();
+        expect(calls()).toContain(call(`${MOD}.renameCollection`, "c7", "Green"));
+        rightClick(row("Green"));
+        click(contextEntry("Delete collection..."));
+        expect(paneLines()).toContain("Delete 'Green'?");
+        accept();
+        expect(calls()).toContain(call(`${MOD}.deleteCollection`, "c7"));
+        expect(rowTexts()).toEqual(["New collection (this city)", "New collection (all cities)"]);
+    });
+
+    it("leaves a collection that's deleted while open", () => {
+        const city = start({ style: "pane" });
+        setCollections([{ id: "c1", name: "Parks", assets: [city.assets.parkA] }], city);
+        click(item(FOLDER));
+        click(row("Parks"));
+        setCollections([], city);
+        expect(rowTexts()).toEqual(["New collection (this city)", "New collection (all cities)"]);
+    });
+
+    it("prompts in the wheel's hub too", () => {
+        start();
+        click(item(FOLDER));
+        click(item("Media/Glyphs/Plus.svg"));
+        type("Trees");
+        expect(hubLines()).toEqual(["Trees", "Enter: create 'Trees'", "Kept in this city's save", "Esc: cancel"]);
+    });
+});

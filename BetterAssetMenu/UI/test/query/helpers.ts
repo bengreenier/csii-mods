@@ -47,6 +47,7 @@ export const context = (over: Partial<FilterContext> = {}): FilterContext => ({
     depths: ["2", "3"],
     levels: ["1", "2", "3", "4", "5"],
     favoriteKeys: new Set(),
+    collections: [],
     ...over,
 });
 

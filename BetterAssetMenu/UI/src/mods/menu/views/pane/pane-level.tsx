@@ -38,7 +38,7 @@ const KEY_DOWN = 40;
 // Levels build a new LevelModel whenever anything in it changes, so this
 // depends on its fields, never on `level` itself.
 export const PaneLevel = ({ level }: LevelViewProps) => {
-    const { items, grouped, search, emptyMessage, onBack } = level;
+    const { items, grouped, search, emptyMessage, prompt, onBack } = level;
     const { query, example, commandsRef, contextKey, openContext, closeContext, complete, trail, focusAsset } =
         useMenuSession();
     const secondaryClick = useSecondaryClick(itemKey, openContext);
@@ -134,8 +134,15 @@ export const PaneLevel = ({ level }: LevelViewProps) => {
     const [first, end] = mountedRows(offset, count);
     const rows: MenuItem[] = items.slice(first, end);
     const thumb = scrollThumb(offset, count);
-    const hint = query ? search.parsed.hint?.text ?? "" : exampleHint(example);
-    const summary = search.active ? matchSummary(search, 0, Infinity) : count === 1 ? "1 item" : `${count} items`;
+    // A prompt level says only its prompt.
+    const hint = prompt ? prompt[0] : query ? search.parsed.hint?.text ?? "" : exampleHint(example);
+    const summary = prompt
+        ? ""
+        : search.active
+          ? matchSummary(search, 0, Infinity)
+          : count === 1
+            ? "1 item"
+            : `${count} items`;
 
     return (
         <>
@@ -194,7 +201,9 @@ export const PaneLevel = ({ level }: LevelViewProps) => {
                     ) : (
                         <IdleDetail
                             lines={
-                                !query && emptyMessage
+                                prompt
+                                    ? prompt.slice(1)
+                                    : !query && emptyMessage
                                     ? emptyMessage
                                     : search.active
                                       ? [matchSummary(search, 0, Infinity)]

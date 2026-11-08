@@ -15,7 +15,7 @@ const matches = (key: string, value: string, over: Parameters<typeof record>[0],
 describe("filter registry", () => {
     it("has the documented keys", () => {
         expect(FILTERS.map((f) => f.key).sort()).toEqual(
-            ["cat", "depth", "dlc", "fx", "in", "is", "level", "pack", "size", "theme", "width", "zone"].sort()
+            ["cat", "col", "depth", "dlc", "fx", "in", "is", "level", "pack", "size", "theme", "width", "zone"].sort()
         );
     });
 

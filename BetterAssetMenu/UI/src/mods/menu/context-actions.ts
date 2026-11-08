@@ -4,9 +4,19 @@ import { useCallback, useMemo } from "react";
 import { useValue } from "cs2/api";
 import { entityKey } from "cs2/utils";
 import { useAssetMetaByKey } from "./asset-data";
-import { addFavorite, dlcSteamApps$, removeFavorite, setClipboard } from "./bindings";
+import { addFavorite, addToCollection, dlcSteamApps$, removeFavorite, removeFromCollection, setClipboard } from "./bindings";
+import {
+    ACTION_COLOR,
+    COLLECTION_ICON,
+    DELETE_ICON,
+    NEW_COLLECTION_ICON,
+    REMOVE_ICON,
+    RENAME_ICON,
+    useCollections,
+} from "./collections";
 import { ContextAction, ContextTarget } from "./context-menu";
 import { FAVORITE_COLOR, FAVORITE_ICON, UNFAVORITE_ICON, useFavoriteKeys } from "./favorites";
+import { PromptRequest } from "./navigation";
 import { dlcStoreUrl, modPageUrl } from "./store-links";
 
 export type ContextActionProvider = (target: ContextTarget) => ContextAction[];
@@ -14,8 +24,11 @@ export type ContextActionProvider = (target: ContextTarget) => ContextAction[];
 // The icon vanilla shows for mod assets (Asset.dlc).
 const MOD_ICON = "Media/Glyphs/ParadoxModsCloud.svg";
 
-export function useContextActions(): ContextActionProvider {
+// `onPrompt` asks for a collection's name, or to confirm deleting one
+// (MenuSession shows the prompt level).
+export function useContextActions(onPrompt: (prompt: PromptRequest) => void): ContextActionProvider {
     const favoriteKeys = useFavoriteKeys();
+    const collections = useCollections();
     // For Paradox Mods IDs.
     const metaByKey = useAssetMetaByKey();
     const dlcSteamApps = useValue(dlcSteamApps$);
@@ -47,6 +60,42 @@ export function useContextActions(): ContextActionProvider {
                                   onSelect: () => addFavorite(entity),
                               },
                     ];
+                    // Each collection: add, or remove if it's in it already.
+                    const inCollections = new Set((collections.byAsset.get(key) ?? []).map((c) => c.id));
+                    for (const c of collections.list) {
+                        actions.push(
+                            inCollections.has(c.id)
+                                ? {
+                                      id: `collection:${c.id}`,
+                                      label: `Remove from '${c.name}'`,
+                                      icon: REMOVE_ICON,
+                                      iconColor: ACTION_COLOR,
+                                      onSelect: () => removeFromCollection(c.id, entity),
+                                  }
+                                : {
+                                      id: `collection:${c.id}`,
+                                      label: `Add to '${c.name}'`,
+                                      icon: COLLECTION_ICON,
+                                      onSelect: () => addToCollection(c.id, entity),
+                                  }
+                        );
+                    }
+                    actions.push(
+                        {
+                            id: "newCollection",
+                            label: "Add to new collection (this city)...",
+                            icon: NEW_COLLECTION_ICON,
+                            iconColor: ACTION_COLOR,
+                            onSelect: () => onPrompt({ kind: "create", global: false, asset: entity }),
+                        },
+                        {
+                            id: "newGlobalCollection",
+                            label: "Add to new collection (all cities)...",
+                            icon: NEW_COLLECTION_ICON,
+                            iconColor: ACTION_COLOR,
+                            onSelect: () => onPrompt({ kind: "create", global: true, asset: entity }),
+                        }
+                    );
                     const modId = metaByKey.get(key)?.modId;
                     const dlcUrl = dlcStoreUrl(dlc, steamAppIds);
                     if (modId) {
@@ -66,8 +115,27 @@ export function useContextActions(): ContextActionProvider {
                     }
                     return actions;
                 }
+                case "collection": {
+                    const { id, name } = target.collection;
+                    return [
+                        {
+                            id: "rename",
+                            label: "Rename...",
+                            icon: RENAME_ICON,
+                            iconColor: ACTION_COLOR,
+                            onSelect: () => onPrompt({ kind: "rename", id, name }),
+                        },
+                        {
+                            id: "delete",
+                            label: "Delete collection...",
+                            icon: DELETE_ICON,
+                            iconColor: ACTION_COLOR,
+                            onSelect: () => onPrompt({ kind: "delete", id, name }),
+                        },
+                    ];
+                }
             }
         },
-        [favoriteKeys, metaByKey, steamAppIds]
+        [favoriteKeys, collections, metaByKey, steamAppIds, onPrompt]
     );
 }

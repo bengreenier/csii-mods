@@ -169,10 +169,58 @@ export function setFavorites(list: Asset[], city: City) {
     setValue(MOD, "favorites", favorites);
 }
 
+// Collections, city ones then global ones (CollectionsSystem.cs).
+type Placed = { asset: Asset; menu: Entity | null; category: Entity | null };
+interface FakeCollection {
+    id: string;
+    name: string;
+    global: boolean;
+    assets: Placed[];
+}
+let collections: FakeCollection[] = [];
+let nextCollectionId = 1;
+
+const placed = (a: Asset, city: City): Placed => ({ asset: a, ...(city.placeOf(a.entity) ?? { menu: null, category: null }) });
+
+export function setCollections(list: { id?: string; name: string; global?: boolean; assets: Asset[] }[], city: City) {
+    collections = list.map((c) => ({
+        id: c.id ?? `${c.global ? "g" : "c"}${nextCollectionId++}`,
+        name: c.name,
+        global: !!c.global,
+        assets: c.assets.map((a) => placed(a, city)),
+    }));
+    setValue(MOD, "collections", collections);
+}
+
+// As C# sends them: city ones first.
+const sortedCollections = () => [...collections.filter((c) => !c.global), ...collections.filter((c) => c.global)];
+
 /** The C# side of the mod's triggers, as far as the UI can observe it. */
 function installCSharp(city: City) {
     favorites = [];
     setValue(MOD, "favorites", favorites);
+    collections = [];
+    setValue(MOD, "collections", collections);
+    const find = (target: Entity) => city.allAssets().find((a) => a.entity.index === target.index);
+    const update = (change: (c: FakeCollection) => FakeCollection | null, id: string) => {
+        collections = collections.flatMap((c) => (c.id !== id ? [c] : [change(c)].filter((x): x is FakeCollection => !!x)));
+        setValueQuietly(MOD, "collections", sortedCollections());
+    };
+    onTrigger(MOD, "createCollection", (name: string, global: boolean, first: Entity) => {
+        const asset = find(first);
+        const made = { id: `${global ? "g" : "c"}${nextCollectionId++}`, name, global, assets: asset ? [placed(asset, city)] : [] };
+        collections = [...collections, made];
+        setValueQuietly(MOD, "collections", sortedCollections());
+    });
+    onTrigger(MOD, "renameCollection", (id: string, name: string) => update((c) => ({ ...c, name }), id));
+    onTrigger(MOD, "deleteCollection", (id: string) => update(() => null, id));
+    onTrigger(MOD, "addToCollection", (id: string, target: Entity) => {
+        const asset = find(target);
+        if (asset) update((c) => ({ ...c, assets: [...c.assets, placed(asset, city)] }), id);
+    });
+    onTrigger(MOD, "removeFromCollection", (id: string, target: Entity) =>
+        update((c) => ({ ...c, assets: c.assets.filter((a) => a.asset.entity.index !== target.index) }), id)
+    );
     onTrigger(MOD, "close", () => {
         // C# closes the menu, then ends input isolation a few frames later.
         setValueQuietly(MOD, "isOpen", false);

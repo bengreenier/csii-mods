@@ -42,6 +42,7 @@ namespace BetterAssetMenu
             RefreshAssetMeta();
             RefreshAllAssets();
             RefreshFavorites();
+            RefreshCollections();
             _dataRefreshed.Trigger();
             Mod.LOG.Info("Refreshed Better Asset Menu data");
         }

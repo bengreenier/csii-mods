@@ -42,7 +42,7 @@ export const assetElsewhereItems = (items: AssetElsewhere[], lockPlaced: boolean
         },
     }));
 
-// Favorites are never disabled for being placed.
+// Favorites (and collections' assets) are never disabled for being placed.
 export const favoriteItems = (favorites: Favorite[]) => assetElsewhereItems(favorites, false);
 
 // Menu items for search results, memoized. `neverLockPlaced` for the
@@ -65,8 +65,9 @@ function resultItem(result: SearchResult, lockPlaced: boolean): MenuItem {
     return item;
 }
 
-// The top ring's item for the Favorites level.
+// The top ring's items for the Favorites and Collections levels.
 export const FAVORITES_KEY = "betterAssetMenu.favorites";
+export const COLLECTIONS_KEY = "betterAssetMenu.collections";
 export const FIND_IT_KEY = "betterAssetMenu.findIt";
 
 export const FAVORITES_LABEL: Label = { entity: NO_ENTITY, name: FAVORITES_TITLE, title: FAVORITES_TITLE };

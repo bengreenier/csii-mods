@@ -45,9 +45,10 @@ namespace BetterAssetMenu
             AssetDatabase.global.LoadSettings(nameof(BetterAssetMenu), _setting, new Setting(this));
             Settings = _setting;
 
-            // Holds per-save data only (no updates); created here so it's in
+            // Hold per-save data only (no updates); created here so they're in
             // the world before any save is loaded or written.
             updateSystem.World.GetOrCreateSystemManaged<FavoritesSystem>();
+            updateSystem.World.GetOrCreateSystemManaged<CollectionsSystem>();
             updateSystem.UpdateAt<BetterAssetMenuUISystem>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<FindItDetectSystem>(SystemUpdatePhase.UIUpdate);
             // Both run inside ToolSystem.OnUpdate: the first after the game's tools

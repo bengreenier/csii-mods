@@ -4,19 +4,24 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { toolbar } from "cs2/bindings";
 import classNames from "classnames";
+import { Collection } from "./bindings";
 import { ChipList } from "./asset-chips";
 import { Chip } from "./query/chips";
 import styles from "./shared.module.scss";
 import { TintedIcon } from "./tinted-icon";
 
-// What was right-clicked. Only assets have actions so far; add a kind here and
-// handle it in the action provider (context-actions.ts) to give other items a
-// menu.
+// What was right-clicked: an asset, or a collection (in the Collections
+// level). Add a kind here and handle it in the action provider
+// (context-actions.ts) to give other items a menu.
 export interface AssetContextTarget {
     kind: "asset";
     asset: toolbar.Asset;
 }
-export type ContextTarget = AssetContextTarget;
+export interface CollectionContextTarget {
+    kind: "collection";
+    collection: Collection;
+}
+export type ContextTarget = AssetContextTarget | CollectionContextTarget;
 
 export interface ContextAction {
     id: string;

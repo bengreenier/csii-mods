@@ -59,9 +59,9 @@ describe("Find It", () => {
         expect(queryItem(FIND_IT)).toBeNull();
     });
 
-    it("sits next to Favorites and opens its categories", () => {
+    it("sits after Favorites and Collections and opens its categories", () => {
         withFindIt();
-        expect(itemIcons().slice(-2)).toEqual(["Media/Glyphs/StarFilled.svg", FIND_IT]);
+        expect(itemIcons().slice(-3)).toEqual(["Media/Glyphs/StarFilled.svg", "Media/Editor/Folder.svg", FIND_IT]);
         click(item(FIND_IT));
         expect(itemIcons()).toEqual(["icon/fi-props.svg", "icon/fi-trees.svg"]);
     });

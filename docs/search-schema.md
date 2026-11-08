@@ -87,6 +87,7 @@ Titles come from the localization key `Assets.NAME[<prefab name>]`.
 | `depth:` (or `d:`) | a number of cells, e.g. `4` or `4u` | are buildings with that lot depth | cheap (C#) |
 | `level:` | a number, e.g. `1`, `3,4` | are zoned buildings of that level | cheap (C#) |
 | `dlc:` | `none`, or part of a DLC's icon name, e.g. `sanfrancisco` | `none` = base game (no DLC, not a mod); otherwise the asset's DLC icon file name contains the value. Mod assets are not a DLC here: use `is:mod`. | cheap |
+| `col:` (or `collection:`) | a word of a collection's name, e.g. `parks`, or its one-word form, e.g. `park-props` for "Park Props" (lowercase, spaces as dashes) | are in one of your collections whose one-word form has a word starting with the value (see Collections) | cheap |
 | `in:` | a tab or category name, e.g. `health`, `roads`, `parks` | live in a toolbar tab or asset category whose name has a word starting with the value | cheap |
 | `fx:` | an effect word, e.g. `crime`, `wellbeing`, `health`, `entertainment`, `attractiveness`, `park`, `beach` | have an effect of that kind: a city-wide or local modifier (types split on camelCase, so `CrimeAccumulation` gives `crime` and `accumulation`), a leisure provider type, or a wellbeing/health happiness effect | **details** |
 
@@ -135,13 +136,15 @@ What a search covers depends on where you are in the menu:
 | Inside a tab | All assets across that tab's categories |
 | Inside a category | That category's assets |
 | Favorites | This city's favorites (those that search covers; see below) |
+| Collections | Collections by name, then the assets in any collection |
+| A collection | That collection's assets |
 | Find It level | What's in view: the whole catalogue, a category, or a subcategory |
 
 With Find It's catalogue in use, top-ring search also covers everything Find
 It lists (see Find It).
 
 Turning off **Search only where you are** (Options > Assets) makes every
-level except Favorites search what the top ring does.
+level except Favorites and Collections search what the top ring does.
 
 Tabs that aren't unlocked are skipped at the top ring.
 
@@ -226,7 +229,8 @@ thumbnail otherwise; "Button icon" always uses the button's thumbnail.
 Under the title, the hovered asset's filterable metadata shows as chips, one
 per filter value it matches, e.g. `is: favorite`, `theme: European`,
 `pack: ...`, `dlc: Office Evolution`, `zone: residential`, `zone: high`, `size: 2x3`,
-`level: 3`, `fx: crime accumulation`. The order is `is:` flags, then theme,
+`level: 3`, `fx: crime accumulation`, and `col: <name>` for each collection
+it's in. The order is `is:` flags, then collections, then theme,
 pack, DLC, zone, size, level and effects. The hub is a circle, so chips are
 limited to two rows, 160 wide: `HubChips` (`views/radial/hub-chips.tsx`) measures where each one lands
 (before paint) and replaces whatever doesn't fit with `+N`. Values over 18
@@ -244,6 +248,7 @@ valid filter values:
 | Chip | Click adds | Right click adds |
 |---|---|---|
 | `is: favorite` | `is: favorite` | `-is: favorite` |
+| `col: Park Props` | `col: park-props` (the name's one-word form) | `-col: park-props` |
 | `theme: North American` | `theme: north` (first word; values are single words) | `-theme: north` |
 | `pack: <title>` | `pack: <first word of the title>` | negated |
 | `dlc: Office Evolution` | `dlc: officeevolution` | negated |
@@ -361,6 +366,47 @@ added. Favorites are stored in each save (`FavoritesSystem.cs`; see
 - **Clearing them all:** Options > Better Asset Menu > Utilities > "Remove Radial
   Menu data from this city", then save the city.
 
+## Collections
+
+Collections are lists of assets the player makes and names
+(`CollectionsSystem.cs`; see `game-internals.md`, "Per-save data"). Each is
+either **this city's** (stored in the save, like favorites) or for **all
+cities** (stored in `ModsData/BetterAssetMenu/collections.txt` in the game's
+user data folder). Names are unique, ignoring case, across both kinds, and
+capped at 40 characters.
+
+- **Collections level:** a **Collections** entry (folder icon) follows
+  Favorites on the top ring. It lists this city's collections, then the
+  all-cities ones (titled "<name> (all cities)"), each opening a level with its
+  assets in the order added, then "New collection (this city)" and "New
+  collection (all cities)". An empty collection stays until deleted.
+- **Adding and removing:** an asset's right-click menu has "Add to '<name>'"
+  or "Remove from '<name>'" for every collection, then "Add to new collection
+  (this city)..." and "(all cities)...", which make a collection with the
+  asset already in it.
+- **Naming (the prompt):** making or renaming a collection, or deleting one,
+  opens a prompt level (`PromptLevel`; `Path.prompt` in `navigation.ts`). The
+  search field takes the name: it starts empty (renaming: with the old name)
+  and gets the keyboard, even in the sidebar. The hub, or the pane's hint and
+  detail, say what Enter will do: "Enter: create '<name>'", or why it won't
+  (no name yet, or one that's taken). Enter (the accept key) acts, without
+  ever offering a search completion, and returns to where the prompt was
+  opened. One Escape cancels, typed name and all. Deleting asks "Delete
+  '<name>'?"; Enter deletes.
+- **Right-clicking a collection** (in the Collections level) offers
+  "Rename..." and "Delete collection...".
+- **Searching:** in the Collections level, typing finds collections whose name
+  has every typed word, ahead of the assets in any collection. In a
+  collection, only its assets. Anywhere, `col:` narrows to collections'
+  assets, and assets get a `col:` chip per collection. Top-ring search
+  itself only finds assets, never collections.
+- **Picking** an asset in a collection works as in Favorites: its tab,
+  category and asset are selected, and placed unique buildings are never
+  greyed out.
+- **Deleted while open:** the menu steps back to the Collections level.
+- "Remove Better Asset Menu data from this city" clears this city's
+  collections; all-cities ones stay.
+
 Any level with more items than fit in the first three rings is paged like
 search results, and the hub shows which items are on screen ("1-61 of 80").
 
@@ -387,8 +433,8 @@ on, not just the vanilla toolbar. How it reads Find It is in
   Search only where you are is off).
 - **`cat:`** narrows to Find It categories, e.g. `cat: decals`,
   `cat: props cat: residential`. Assets get a `cat:` chip.
-- **Favorites:** anything can be a favorite. Assets outside the vanilla
-  toolbar are placed directly from Favorites too, even with Find It off.
+- **Favorites and collections:** anything can be in them. Assets outside the
+  vanilla toolbar are placed directly from them too, even with Find It off.
 - **Off:** turning the setting off (or disabling Find It) removes the entry,
   the catalogue and `cat:` data at once; everything else is unchanged.
 
@@ -397,11 +443,14 @@ on, not just the vanilla toolbar. How it reads Find It is in
 Right-clicking a wheel item opens a small menu of actions for it at the cursor
 (`context-menu.tsx`). Which actions an item offers is decided in one place,
 `useContextActions` in `context-actions.ts`, by the item's `context` target
-(only assets so far). An item with no actions opens nothing. An asset's menu
+(assets, and collections in the Collections level). An item with no actions
+opens nothing. An asset's menu
 starts with its name (`usePrefabTitle`, as the hub title) and all of its
 metadata chips (see Hub display), then a divider and its actions:
 
 - "Add to favorites" or "Remove from favorites";
+- "Add to '<name>'" or "Remove from '<name>'" per collection, then "Add to
+  new collection (this city)..." and "(all cities)..." (see Collections);
 - for a mod asset, "Copy Paradox Mods link"
   (`https://mods.paradoxplaza.com/mods/<id>/Windows`, `modId` from `assetMeta`);
 - for a DLC asset, "Copy Steam store link": the DLC's Steam page
@@ -492,6 +541,8 @@ steps back a level; Escape and clicking the hub do.
 | `views/radial/query-layout.ts` | `layoutQuery`: fits the typed query into the hub (font size, lines, front truncation) | yes |
 | `localization.ts` | `useLocalization` (the runtime name of the typings' `useCachedLocalization`) | no |
 | `favorites.ts` | Shared favorites bits: `useFavoriteKeys`, icons, texts (Favorites level, context actions, `is:favorite`) | no |
+| `collections.ts` | Shared collections bits: `useCollections` (each asset's collections, `col:` data), slugs, names, icons | no |
+| `levels/collections-level.tsx` | The Collections level, a collection's level, and the prompt level (naming, renaming, deleting) | no |
 
 ### Adding a filter
 
