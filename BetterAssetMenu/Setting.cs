@@ -210,7 +210,7 @@ namespace BetterAssetMenu
 
         // On: inside a tab, category or Find It's level, search only covers
         // that. Off: it covers everything, as from the top level. Favorites
-        // always searches only the favorites.
+        // and Collections always search only what's in them.
         [SettingsUISection(KSection, KAssetsGroup)]
         public bool SearchWithinLevel { get; set; }
 
@@ -219,7 +219,8 @@ namespace BetterAssetMenu
         public bool BrowseAllThemes { get; set; }
 
         // On: unique buildings already placed are dimmed and can't be picked
-        // (vanilla's rule). Off: they stay pickable. Favorites never dim them.
+        // (vanilla's rule). Off: they stay pickable. Favorites and collections
+        // never dim them.
         [SettingsUISection(KSection, KAssetsGroup)]
         public bool LockPlacedUnique { get; set; }
 
@@ -521,10 +522,10 @@ namespace BetterAssetMenu
                 { _setting.GetOptionDescLocaleID(nameof(Setting.SearchAllThemes)), "Search finds assets from every theme and asset pack, such as North American buildings in a European city. Turn off to only find what the vanilla asset menu's theme and pack filters show. For browsing without searching, see 'Show every theme and asset pack'." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.SearchWithinLevel)), "Search only where you are" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.SearchWithinLevel)), "Inside a tab, a category or the Find It level, search only finds what's in it. Turn off to search everything from anywhere in the menu, as the top level does. Favorites always searches only your favorites." },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.SearchWithinLevel)), "Inside a tab, a category or the Find It level, search only finds what's in it. Turn off to search everything from anywhere in the menu, as the top level does. Favorites and Collections always search only what's in them." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.LockPlacedUnique)), "Disable placed unique buildings" },
-                { _setting.GetOptionDescLocaleID(nameof(Setting.LockPlacedUnique)), "Dim unique buildings, such as signature buildings, once one is placed in your city, and don't let them be picked from the menu, as the vanilla asset menu does. When off, they can always be picked. Favorites are never greyed out this way. Things you haven't unlocked yet are always greyed out." },
+                { _setting.GetOptionDescLocaleID(nameof(Setting.LockPlacedUnique)), "Dim unique buildings, such as signature buildings, once one is placed in your city, and don't let them be picked from the menu, as the vanilla asset menu does. When off, they can always be picked. Favorites and collections are never greyed out this way. Things you haven't unlocked yet are always greyed out." },
 
                 { _setting.GetOptionLabelLocaleID(nameof(Setting.UseFindIt)), "Use Find It's catalogue" },
                 { _setting.GetOptionDescLocaleID(nameof(Setting.UseFindIt)), "Requires the Find It mod. Search and browse everything Find It lists, such as props, decals, trees and vehicles, not just what the vanilla toolbar has. Adds a Find It button to the menu, and a 'cat:' filter for Find It's categories. Greyed out when Find It isn't enabled." },
@@ -785,30 +786,37 @@ namespace BetterAssetMenu
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchFavoritesText)),
                     "Right-click anything you can place, while browsing or in search results, and choose 'Add to favorites'. " +
-                    "Your favorites are under the star at the top level (at the end of the top ring in the wheel, at the bottom of the list in the pane).\n" +
+                    "Your favorites are under the star at the top level, after the toolbar's tabs (near the end of the top ring in the wheel, near the bottom of the list in the pane and sidebar).\n" +
                     "Each city keeps its own favorites, saved with the city. Typing while in Favorites searches only your favorites. " +
                     "To remove one, right-click it and choose 'Remove from favorites'."
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchCollectionsText)),
                     "Collections are your own named lists of things to build, like 'Park props' or 'Downtown'. " +
-                    "They're under the folder at the top level, next to Favorites.\n" +
-                    "To make one, pick 'New collection' there, or right-click anything you can place and choose 'Add to new collection'. " +
-                    "Type its name in the search field and press Enter; Escape cancels.\n" +
-                    "A collection is kept either in this city's save, or for all cities (shared by every city you play).\n" +
-                    "Right-click anything to add it to a collection, or to remove it again. Right-click a collection to rename or delete it.\n" +
-                    "Typing in Collections finds collections by name, and the things in them. " +
-                    "'col: parks' finds what's in any collection with a word starting with 'parks' in its name, from anywhere in the menu."
+                    "They're under the folder at the top level, right after Favorites.\n" +
+                    "Each collection is kept either in this city's save, or for all cities: shared by every city you play, " +
+                    "and shown as 'name (all cities)'. You choose when you make it.\n" +
+                    "To make one, pick 'New collection (this city)' or 'New collection (all cities)' in Collections. " +
+                    "Or right-click anything you can place and choose 'Add to new collection', which puts it straight in. " +
+                    "Type the name in the search field and press Enter (the 'Accept suggestion / pick result' key); Escape cancels. " +
+                    "Afterwards you're back where you were, with your search as it was. Names can't be used twice.\n" +
+                    "Right-click anything to add it to a collection, or to remove it again. " +
+                    "Right-click a collection in Collections to rename or delete it.\n" +
+                    "Typing in Collections finds collections by name, then the things in any of them; inside a collection, only its things.\n" +
+                    "'col: parks' - from anywhere in the menu, things in any collection with a word in its name starting with 'parks'. " +
+                    "For a name with spaces, write them as dashes: 'col: park-props'. " +
+                    "Each collection a highlighted item is in shows as a 'col:' detail, which you can click to search by it.\n" +
+                    "'Remove Better Asset Menu data from this city' (Main tab) clears this city's collections, but not those for all cities."
                 },
                 {
                     _setting.GetOptionLabelLocaleID(nameof(Setting.SearchFindItText)),
                     "With the Find It mod enabled and 'Use Find It's catalogue' on (Main tab, on by default), the menu " +
                     "can reach everything Find It lists: props, decals, trees, vehicles and more, not just the vanilla toolbar.\n" +
-                    "The Find It entry at the top level, next to Favorites, browses Find It's categories. " +
+                    "The Find It entry at the top level, after Favorites and Collections, browses Find It's categories. " +
                     "Searching from the top level includes the whole catalogue; between equally good matches, toolbar items come first.\n" +
                     "'cat: decals' - things in a Find It category, e.g. 'cat: props', 'cat: trees' or 'cat: fences'. " +
                     "Combine them to narrow down: 'cat: props cat: residential'.\n" +
-                    "Anything from Find It can be added to your favorites too."
+                    "Anything from Find It can be added to your favorites and collections too."
                 },
 
                 { _setting.GetBindingKeyLocaleID(Mod.KOpenActionName), "Open menu" },

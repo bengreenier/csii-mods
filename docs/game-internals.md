@@ -33,7 +33,7 @@ group) is still in the sections below.
 - [Tool info views ("Show info views for menu selections")](#tool-info-views-show-info-views-for-menu-selections)
 - [The bulldozer ("Bulldozer in the menu")](#the-bulldozer-bulldozer-in-the-menu)
 - [Search filter data (assetMeta)](#search-filter-data-assetmeta)
-- [Per-save data (favorites)](#per-save-data-favorites)
+- [Per-save data (favorites, collections)](#per-save-data-favorites-collections)
 - [Find It](#find-it)
 - [Nested categories (ExtraLib / Extra Assets Importer)](#nested-categories-extralib--extra-assets-importer)
 - [Platter](#platter)
@@ -483,9 +483,10 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
   compare. A missing component type fails
   the C# build rather than failing silently.
 
-## Per-save data (favorites)
+## Per-save data (favorites, collections)
 
-`FavoritesSystem` stores the favorites inside each save.
+`FavoritesSystem` stores the favorites inside each save, and
+`CollectionsSystem` this city's collections (see Collections, below).
 
 - **How it gets into the save:** the game's `SerializerSystem` builds a
   `SystemSerializerLibrary` from every system in the world that implements
@@ -527,30 +528,38 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
   first; everything after that (unknown version, unreadable lines) runs on the
   already-read string inside try/catch and at worst costs favorites. Resolving
   IDs to prefabs happens later, when the list is sent to the UI.
-- **Collections** (`CollectionsSystem`) follow the same rules in a block of
-  their own, so the favorites block never changed format: one `int` and one
-  `string`, whose v1 lines are `#<id>/<name>` (both URL-escaped) starting a
-  collection, then its assets as `PrefabID.ToUrlSegment()`. Only city
-  collections go in the save. Ids start with `c` (city) or `g` (all cities),
-  and each store drops the other kind's ids when reading. All-cities
-  collections live in `EnvPath.kUserDataPath/ModsData/BetterAssetMenu/collections.json`:
-  `{ "version": 1, "collections": [{ "id", "name", "assets": [{ "type",
-  "name", "hash" }] }] }`, read and written with the game's `Colossal.Json`
-  (`JSON.Load` + `JSON.MakeInto<T>`, `JSON.Dump`; public fields). `PrefabID`
-  keeps its parts private, so they come from splitting its `ToUrlSegment()`;
-  `hash` is empty for a prefab without one. The file is read once when the
-  system is created and rewritten (through a `.tmp` file, then
-  `File.Replace`) on every change; a leftover `.tmp` is read if the file
-  itself is missing.
-  A save from before collections has no block, so `SetDefaults` runs.
-  `ResetCityData` clears only city collections. The UI gets
-  `BetterAssetMenu.collections`: `{ id, name, global, assets }`, with `assets`
-  in the favorites' shape, sent when `Revision` changes and on menu open.
-  Triggers: `createCollection(name, global, firstAsset)` (`Entity.Null` for
-  none; the asset goes in at once, as the UI never learns the new id),
-  `renameCollection(id, name)`, `deleteCollection(id)`,
-  `addToCollection(id, asset)`, `removeFromCollection(id, asset)`. Empty or
-  taken names (either kind, ignoring case) are refused.
+- **Collections** (`CollectionsSystem`) follow the same save rules in a
+  block of their own, so the favorites block never changed format: one `int`
+  (the format version) and one `string`, a JSON document. Only city
+  collections go in the save; all-cities ones live in
+  `EnvPath.kUserDataPath/ModsData/BetterAssetMenu/collections.json`, the same
+  document. Ids start with `c` (city) or `g` (all cities), and each store
+  drops the other kind's ids when reading.
+  - **Document:** `{ "version": 1, "collections": [{ "id", "name",
+    "assets": [{ "type", "name", "hash" }] }] }`, read and written with the
+    game's `Colossal.Json` (`JSON.Load` + `JSON.MakeInto<T>`, `JSON.Dump`;
+    public fields). `PrefabID` keeps its parts private, so they come from
+    splitting its `ToUrlSegment()`; `hash` is empty for a prefab without one.
+    Unreadable collections or assets are skipped, never the whole document;
+    JSON that doesn't parse, or an unknown version, costs only those
+    collections (`Deserialize` has read the block by then).
+  - **The file** is read once when the system is created and rewritten
+    (through a `.tmp` file, then `File.Replace`) on every change; a leftover
+    `.tmp` is read if the file itself is missing. A file that exists but
+    can't be read (bad JSON, a newer version) is never overwritten: changes
+    to all-cities collections then last only until the game closes.
+  - A save from before collections has no block, so `SetDefaults` runs, and
+    loading one never carries over the previous city's collections (verified
+    in game). `ResetCityData` clears only city collections.
+  - **UI:** `BetterAssetMenu.collections` sends `{ id, name, global, assets }`
+    (city ones first), with `assets` in the favorites' shape, when `Revision`
+    changes and on menu open. Triggers: `createCollection(name, global,
+    firstAsset)` (`Entity.Null` for none; the asset goes in at once, as the UI
+    never learns the new id), `renameCollection(id, name)`,
+    `deleteCollection(id)`, `addToCollection(id, asset)`,
+    `removeFromCollection(id, asset)`. Empty or taken names (either kind,
+    ignoring case) are refused; names are trimmed, single-spaced and capped
+    at 40 characters.
 - **UI:** `BetterAssetMenu.favorites` (raw value binding) sends each resolved
   favorite as `{ asset, menu, category }`: `asset` is written by
   `ToolbarUISystem.BindAsset`, and `menu` / `category` come from
@@ -691,9 +700,10 @@ compile-time reference, since it's optional.
     `toolbar.themes$` changes with the selected category while repeating
     `prefabs.themes`. Keyed on identity, each made a new factory and a
     rebuild of every record (~190 ms on the first keystroke after opening);
-  - favorites aren't in the records at all: `is:favorite` and the Favorites
-    level look keys up in `FilterContext.favoriteKeys`, so adding or
-    removing a favorite rebuilds nothing;
+  - favorites and collections aren't in the records at all: `is:favorite`,
+    `col:` and their levels look keys up in `FilterContext.favoriteKeys` and
+    `FilterContext.collections` (`useCollections`, kept per contents like
+    the favorite keys), so adding or removing one rebuilds nothing;
   - wheel entries for results are cached per result object, so a broad
     query doesn't rebuild thousands of them per keystroke;
   - the root prewarms those parts in the background, one subcategory per
@@ -790,6 +800,7 @@ data"** button (Utilities, needs a city; `BetterAssetMenuUISystem.Refresh.cs`).
 | Cache | Where | Refreshes |
 |---|---|---|
 | Favorites | C# `favorites` | on every change |
+| Collections | C# `collections` | on every change |
 | Unfiltered asset lists | C# `allAssets` | whenever the menu opens |
 | Nested categories | C# `subCategories` | whenever the menu opens |
 | Platter's parcel sizes | C# `platterParcels` | once per load (looked up at loading complete, or on menu open until Platter's prefabs exist), and on Refresh |
@@ -797,7 +808,7 @@ data"** button (Utilities, needs a city; `BetterAssetMenuUISystem.Refresh.cs`).
 | DLC Steam app IDs | C# `dlcSteamApps` | once per session, and on Refresh |
 | Find It snapshot | C# `findItCategories` / `findItAssets` | on load, and on Refresh (in place) |
 | `fx:` effect terms | UI `FX_CACHE` (search.ts) | on Refresh (the `dataRefreshed` event) |
-| assetMeta lookup, themes, favorite keys | UI (asset-data.ts, favorites.ts) | whenever the data they come from changes |
+| assetMeta lookup, themes, favorite keys, collection index | UI (asset-data.ts, favorites.ts, collections.ts) | whenever the data they come from changes |
 | Record factory, Find It search records | UI (search.ts) | whenever themes (by content), assetMeta, the locale or the catalogue change |
 | Menu items for results | UI (levels/items.ts) | whenever their results change |
 
@@ -897,10 +908,15 @@ messages mostly exist to flag breakage after a game update.
 |---|---|
 | `OnLoad`, `Current mod asset at ...`, `OnDispose` | Normal mod lifecycle, once per session |
 | `Reset key bindings` | The "Reset key bindings" button was used |
-| `City collections saved: N` / `City collections loaded: N` / `Global collections loaded: N` | As for favorites; global ones once per game start |
 | `Favorites saved: N` / `Favorites loaded: N` | Once per save (autosaves too) / load of a city. `(K unreadable, skipped)` if some lines couldn't be parsed |
 | `Favorites not loaded: unknown format version N` (warning) | The save was written by a newer version of the mod; the city loads with no favorites |
 | `Favorites could not be read from the save; starting empty` (error) | The favorites block was unreadable; the city still loads |
+| `City collections saved: N` / `City collections loaded: N` | As for favorites. `(K entries unreadable, skipped)` if some collections or assets couldn't be read |
+| `Global collections loaded: N` | Once per game start, from `ModsData/BetterAssetMenu/collections.json` (nothing if the file doesn't exist yet) |
+| `City collections not loaded: unknown format version N` / `Global collections not loaded: ...` (warning) | Written by a newer version of the mod; those collections start empty. The global file is then never overwritten this session |
+| `City collections could not be read from the save; starting empty` / `Global collections could not be read from ...` (error) | The JSON didn't parse; the city still loads. The global file is then never overwritten this session |
+| `Global collections could not be written to ...` (error) | The file couldn't be saved; the change holds until the game closes |
+| `Global collections not saved: ... left as is` (warning) | A change to all-cities collections after the file couldn't be read at start; it holds until the game closes |
 | `Removed Better Asset Menu data from this city` | The "Remove Better Asset Menu data from this city" button was confirmed; `Remove Better Asset Menu data skipped: no city loaded` if there was no city |
 | `Could not resolve DLC Steam app IDs; DLC assets get no store link` (warning) | The game's DLC data couldn't be read (after a game update?); DLC assets offer no "Copy Steam store link" |
 | `Could not read the Paradox Mods ID of <prefab>; ...` (warning, once) | An asset's mod metadata couldn't be read; that asset (and any other failing one) gets no "Copy Paradox Mods link" |

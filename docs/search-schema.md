@@ -347,10 +347,12 @@ footer with the breadcrumb and count.
 
 ## Favorites
 
-The top ring ends with a **Favorites** entry (star icon), in a group of its
-own. It opens a level with this city's favorite assets, in the order they were
-added. Favorites are stored in each save (`FavoritesSystem.cs`; see
-`game-internals.md`, "Per-save data"), so a new city starts with none.
+After the toolbar's tabs, the top ring has the mod's own entries in a group
+of their own: **Favorites** (star icon), **Collections** (folder icon), then
+**Find It** while its catalogue is in use. Favorites opens a level with
+this city's favorite assets, in the order they were added. Favorites are
+stored in each save (`FavoritesSystem.cs`; see `game-internals.md`,
+"Per-save data"), so a new city starts with none.
 
 - **Adding and removing:** right-click an asset (in a category, a search
   result, or in Favorites) and choose "Add to favorites" or "Remove from
@@ -372,7 +374,7 @@ Collections are lists of assets the player makes and names
 (`CollectionsSystem.cs`; see `game-internals.md`, "Per-save data"). Each is
 either **this city's** (stored in the save, like favorites) or for **all
 cities** (stored in `ModsData/BetterAssetMenu/collections.json` in the game's
-user data folder). Names are unique, ignoring case, across both kinds, and
+user data folder). Both are the same JSON document. Names are unique, ignoring case, across both kinds, and
 capped at 40 characters.
 
 - **Collections level:** a **Collections** entry (folder icon) follows
@@ -419,8 +421,8 @@ everything Find It indexes: props, decals, trees, vehicles, growables and so
 on, not just the vanilla toolbar. How it reads Find It is in
 `game-internals.md`, "Find It".
 
-- **Browsing:** a **Find It** entry (Find It's own icon) sits next to
-  Favorites on the top ring. It opens Find It's categories, then
+- **Browsing:** a **Find It** entry (Find It's own icon) follows Favorites
+  and Collections on the top ring. It opens Find It's categories, then
   subcategories, then assets, with Find It's icons and titles
   (`Tooltip.LABEL[FindIt.<name>]`). A category with one subcategory goes
   straight to its assets.

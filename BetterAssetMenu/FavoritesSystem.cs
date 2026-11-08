@@ -158,7 +158,7 @@ namespace BetterAssetMenu
         }
 
         // Inverse of PrefabID.ToUrlSegment().
-        internal static bool TryParseUrlSegment(string segment, out PrefabID id)
+        private static bool TryParseUrlSegment(string segment, out PrefabID id)
         {
             id = default;
             var parts = segment.Split('/');

@@ -49,6 +49,9 @@ namespace BetterAssetMenu
         private readonly List<Collection> _global = new List<Collection>();
         private PrefabSystem _prefabSystem;
         private string _globalPath;
+        // The global file exists but couldn't be read (bad JSON, or a newer
+        // version's): never overwrite it, or its collections would be lost.
+        private bool _keepGlobalFile;
 
         /// <summary>
         /// Bumped whenever any collection changes. Polled
@@ -179,101 +182,89 @@ namespace BetterAssetMenu
             return false;
         }
 
-        // ---- Save payload: text --------------------------------------------
-        //
-        // v1: one line per collection header and per asset:
-        //   "#<id>/<name>"  starts a collection; id and name URL-escaped
-        //   "<segment>"     an asset of the collection above, as
-        //                   PrefabID.ToUrlSegment() (see FavoritesSystem)
-        // Unreadable lines are skipped, never the whole payload.
-
-        private static string Write(List<Collection> collections)
-        {
-            var lines = new List<string>();
-            foreach (var c in collections)
-            {
-                lines.Add("#" + Uri.EscapeDataString(c.Id) + "/" + Uri.EscapeDataString(c.Name));
-                foreach (var id in c.Assets) lines.Add(id.ToUrlSegment());
-            }
-            return string.Join("\n", lines);
-        }
-
-        // Reads `payload` into `into`, keeping only collections whose id has
-        // `prefix` (a city id in the global file, or the reverse, is dropped).
-        private static int Read(string payload, string prefix, List<Collection> into)
-        {
-            var skipped = 0;
-            Collection current = null;
-            foreach (var line in (payload ?? string.Empty).Split('\n'))
-            {
-                if (line.Length == 0) continue;
-                if (line[0] == '#')
-                {
-                    current = null;
-                    var slash = line.IndexOf('/');
-                    if (slash < 0) { skipped++; continue; }
-                    var id = Uri.UnescapeDataString(line.Substring(1, slash - 1));
-                    var name = CleanName(Uri.UnescapeDataString(line.Substring(slash + 1)));
-                    if (!id.StartsWith(prefix, StringComparison.Ordinal) || name == null || into.Any(c => c.Id == id))
-                    {
-                        skipped++;
-                        continue;
-                    }
-                    current = new Collection { Id = id, Name = name };
-                    into.Add(current);
-                }
-                else if (current != null && FavoritesSystem.TryParseUrlSegment(line, out var asset))
-                {
-                    if (!current.Assets.Contains(asset)) current.Assets.Add(asset);
-                }
-                else skipped++;
-            }
-            return skipped;
-        }
-
-        // ---- Global collections: a JSON file -------------------------------
+        // ---- Format: JSON, in the save and in the global file ----------------
         //
         // {
         //   "version": 1,
         //   "collections": [
-        //     { "id": "g...", "name": "Parks",
+        //     { "id": "c...", "name": "Parks",
         //       "assets": [ { "type": "BuildingPrefab", "name": "...", "hash": "..." } ] }
         //   ]
         // }
-        // Read and written with the game's Colossal.Json (public fields).
-        // "hash" is empty for prefabs without one. Unreadable collections or
-        // assets are skipped, never the whole file.
+        // The same document is the save block's string (city collections, "c"
+        // ids) and the global file (global ones, "g" ids). Read and written
+        // with the game's Colossal.Json (public fields). "hash" is empty for
+        // prefabs without one. Unreadable collections or assets are skipped,
+        // never the whole document.
 
-        // Bump when the file's layout changes; LoadGlobal must keep reading
-        // every older version.
-        private const int kGlobalFileVersion = 1;
-
-        public class GlobalFile
+        public class CollectionsDocument
         {
             public int version;
-            public List<GlobalCollection> collections = new List<GlobalCollection>();
+            public List<CollectionEntry> collections = new List<CollectionEntry>();
         }
 
-        public class GlobalCollection
+        public class CollectionEntry
         {
             public string id;
             public string name;
-            public List<GlobalAsset> assets = new List<GlobalAsset>();
+            public List<AssetEntry> assets = new List<AssetEntry>();
         }
 
-        public class GlobalAsset
+        public class AssetEntry
         {
             public string type;
             public string name;
             public string hash;
         }
 
+        private static string ToJson(List<Collection> collections)
+        {
+            var document = new CollectionsDocument { version = kFormatVersion };
+            foreach (var c in collections)
+            {
+                var entry = new CollectionEntry { id = c.Id, name = c.Name };
+                foreach (var id in c.Assets) entry.assets.Add(ToEntry(id));
+                document.collections.Add(entry);
+            }
+            return JSON.Dump(document);
+        }
+
+        // Reads `json` into `into`, keeping only collections whose id has
+        // `prefix` (a city id in the global file, or the reverse, is dropped).
+        // Returns how many entries were skipped, or -1 for an unknown version
+        // (then nothing is read). Throws on JSON that doesn't parse.
+        private static int FromJson(string json, string prefix, List<Collection> into, out int version)
+        {
+            var document = JSON.MakeInto<CollectionsDocument>(JSON.Load(json));
+            version = document?.version ?? 0;
+            if (document == null || version < 1 || version > kFormatVersion) return -1;
+            var skipped = 0;
+            foreach (var entry in document.collections ?? new List<CollectionEntry>())
+            {
+                var name = CleanName(entry?.name);
+                if (entry?.id == null || !entry.id.StartsWith(prefix, StringComparison.Ordinal) || name == null ||
+                    into.Any(c => c.Id == entry.id))
+                {
+                    skipped++;
+                    continue;
+                }
+                var collection = new Collection { Id = entry.id, Name = name };
+                foreach (var asset in entry.assets ?? new List<AssetEntry>())
+                {
+                    if (!TryFromEntry(asset, out var id)) skipped++;
+                    else if (!collection.Assets.Contains(id)) collection.Assets.Add(id);
+                }
+                into.Add(collection);
+            }
+            return skipped;
+        }
+
         // PrefabID keeps its parts private; ToUrlSegment is its one public
         // form ("<type>/<name>[/<hash>]", type and name URL-escaped).
-        private static GlobalAsset ToFileAsset(PrefabID id)
+        private static AssetEntry ToEntry(PrefabID id)
         {
             var parts = id.ToUrlSegment().Split('/');
-            return new GlobalAsset
+            return new AssetEntry
             {
                 type = Uri.UnescapeDataString(parts[0]),
                 name = Uri.UnescapeDataString(parts[1]),
@@ -281,7 +272,7 @@ namespace BetterAssetMenu
             };
         }
 
-        private static bool TryFromFileAsset(GlobalAsset asset, out PrefabID id)
+        private static bool TryFromEntry(AssetEntry asset, out PrefabID id)
         {
             id = default;
             if (asset == null || string.IsNullOrEmpty(asset.type) || string.IsNullOrEmpty(asset.name)) return false;
@@ -291,45 +282,34 @@ namespace BetterAssetMenu
             return true;
         }
 
+        private static string Skipped(int skipped) => skipped > 0 ? $" ({skipped} entries unreadable, skipped)" : "";
+
+        // ---- Global collections: the file -------------------------------------
+
         private void LoadGlobal()
         {
             _global.Clear();
+            _keepGlobalFile = false;
             try
             {
                 // A write cut short after the temporary file was complete
                 // leaves only that (see SaveGlobal).
                 var path = File.Exists(_globalPath) ? _globalPath : _globalPath + ".tmp";
                 if (!File.Exists(path)) return;
-                var file = JSON.MakeInto<GlobalFile>(JSON.Load(File.ReadAllText(path)));
-                if (file == null || file.version < 1 || file.version > kGlobalFileVersion)
+                var skipped = FromJson(File.ReadAllText(path), kGlobalPrefix, _global, out var version);
+                if (skipped < 0)
                 {
-                    Mod.LOG.Warn($"Global collections not loaded: unknown format version {file?.version}");
+                    _keepGlobalFile = true;
+                    Mod.LOG.Warn($"Global collections not loaded: unknown format version {version}; the file is left as is");
                     return;
                 }
-                var skipped = 0;
-                foreach (var entry in file.collections ?? new List<GlobalCollection>())
-                {
-                    var name = CleanName(entry?.name);
-                    if (entry?.id == null || !entry.id.StartsWith(kGlobalPrefix, StringComparison.Ordinal) || name == null ||
-                        _global.Any(c => c.Id == entry.id))
-                    {
-                        skipped++;
-                        continue;
-                    }
-                    var collection = new Collection { Id = entry.id, Name = name };
-                    foreach (var asset in entry.assets ?? new List<GlobalAsset>())
-                    {
-                        if (!TryFromFileAsset(asset, out var id)) skipped++;
-                        else if (!collection.Assets.Contains(id)) collection.Assets.Add(id);
-                    }
-                    _global.Add(collection);
-                }
-                Mod.LOG.Info($"Global collections loaded: {_global.Count}" + (skipped > 0 ? $" ({skipped} entries unreadable, skipped)" : ""));
+                Mod.LOG.Info($"Global collections loaded: {_global.Count}" + Skipped(skipped));
             }
             catch (Exception e)
             {
                 _global.Clear();
-                Mod.LOG.Error(e, $"Global collections could not be read from {_globalPath}; starting empty");
+                _keepGlobalFile = true;
+                Mod.LOG.Error(e, $"Global collections could not be read from {_globalPath}; starting empty, the file is left as is");
             }
             finally
             {
@@ -341,18 +321,16 @@ namespace BetterAssetMenu
         // write never leaves half a file behind.
         private void SaveGlobal()
         {
+            if (_keepGlobalFile)
+            {
+                Mod.LOG.Warn($"Global collections not saved: {_globalPath} couldn't be read at start, so it's left as is");
+                return;
+            }
             try
             {
-                var file = new GlobalFile { version = kGlobalFileVersion };
-                foreach (var c in _global)
-                {
-                    var entry = new GlobalCollection { id = c.Id, name = c.Name };
-                    foreach (var id in c.Assets) entry.assets.Add(ToFileAsset(id));
-                    file.collections.Add(entry);
-                }
                 Directory.CreateDirectory(Path.GetDirectoryName(_globalPath));
                 var temp = _globalPath + ".tmp";
-                File.WriteAllText(temp, JSON.Dump(file));
+                File.WriteAllText(temp, ToJson(_global));
                 if (File.Exists(_globalPath)) File.Replace(temp, _globalPath, null);
                 else File.Move(temp, _globalPath);
             }
@@ -371,14 +349,18 @@ namespace BetterAssetMenu
         }
 
         // Block layout, for every format version: one int (the version) and one
-        // string, as FavoritesSystem's (see there for why).
+        // string (the JSON document), as FavoritesSystem's (see there for why).
+        // The int repeats the document's own version, so the block's version is
+        // known without parsing.
         public void Serialize<TWriter>(TWriter writer) where TWriter : IWriter
         {
             writer.Write(kFormatVersion);
-            writer.Write(Write(_city));
+            writer.Write(ToJson(_city));
             Mod.LOG.Info($"City collections saved: {_city.Count}");
         }
 
+        // After both reads nothing here can affect loading: an unknown version
+        // or bad JSON only costs the city's collections.
         public void Deserialize<TReader>(TReader reader) where TReader : IReader
         {
             _city.Clear();
@@ -391,8 +373,13 @@ namespace BetterAssetMenu
                     Mod.LOG.Warn($"City collections not loaded: unknown format version {version}");
                     return;
                 }
-                var skipped = Read(payload, kCityPrefix, _city);
-                Mod.LOG.Info($"City collections loaded: {_city.Count}" + (skipped > 0 ? $" ({skipped} lines unreadable, skipped)" : ""));
+                var skipped = FromJson(payload ?? string.Empty, kCityPrefix, _city, out var documentVersion);
+                if (skipped < 0)
+                {
+                    Mod.LOG.Warn($"City collections not loaded: unknown format version {documentVersion}");
+                    return;
+                }
+                Mod.LOG.Info($"City collections loaded: {_city.Count}" + Skipped(skipped));
             }
             catch (Exception e)
             {
