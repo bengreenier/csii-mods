@@ -31,6 +31,9 @@ Find It support.
   it. Both search, browse and place the same things.
 - **Favorites per city.** Right-click anything to favorite it. Each city keeps
   its own list in its save file.
+- **Collections.** Make your own named lists of assets, kept in one city's save
+  or shared by all your cities. Add things from the right-click menu, browse
+  them from the top level, and find them with `col: <name>`.
 - **Make it yours.** Rebind the open key or use a mouse button (forward by
   default), scale the menu, hide the vanilla toolbar, stop picks from switching
   on info views, and copy an asset's DLC or mod link.

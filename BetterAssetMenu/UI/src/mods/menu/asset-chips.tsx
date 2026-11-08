@@ -7,6 +7,7 @@ import { useMapValue } from "cs2/api";
 import { prefab, toolbar } from "cs2/bindings";
 import { entityKey } from "cs2/utils";
 import { assetTitle, themeTitle, useAssetMetaByKey, useThemes } from "./asset-data";
+import { collectionSlug, useCollections } from "./collections";
 import { useFavoriteKeys } from "./favorites";
 import { findItTitle } from "./find-it";
 import { useLocalization } from "./localization";
@@ -24,6 +25,7 @@ export function useAssetChips(asset: toolbar.Asset | null): Chip[] {
     const themes = useThemes();
     const metaByKey = useAssetMetaByKey();
     const favoriteKeys = useFavoriteKeys();
+    const { byAsset: collectionsByAsset } = useCollections();
     const details = useMapValue(prefab.prefabDetails$, asset?.entity);
 
     const chips = useMemo(() => {
@@ -38,6 +40,7 @@ export function useAssetChips(asset: toolbar.Asset | null): Chip[] {
             placed: asset.placed,
             isNew: asset.highlight,
             favorite: favoriteKeys.has(key),
+            collections: (collectionsByAsset.get(key) ?? []).map((c) => ({ name: c.name, slug: collectionSlug(c.name) })),
             mod,
             themeTitle: theme ? themeTitle(loc, theme.name) : asset.theme ? spaced(iconName(asset.theme)) : null,
             packTitles: meta?.packs.map((p) => assetTitle(loc, p)) ?? [],
@@ -52,7 +55,7 @@ export function useAssetChips(asset: toolbar.Asset | null): Chip[] {
             level: meta?.level ?? 0,
             effects: effectTypes(details?.effects),
         });
-    }, [asset, loc, themes, metaByKey, favoriteKeys, details]);
+    }, [asset, loc, themes, metaByKey, favoriteKeys, collectionsByAsset, details]);
     return chips;
 }
 

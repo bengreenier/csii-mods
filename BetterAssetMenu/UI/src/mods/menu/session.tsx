@@ -19,6 +19,7 @@ import { setAfterPick } from "./actions";
 import { useContextActions } from "./context-actions";
 import { useAssetChips } from "./asset-chips";
 import { usePrefabTitle } from "./asset-data";
+import { useCollections } from "./collections";
 import { appendToQuery, Chip, chipQuery } from "./query/chips";
 import { MOUSE_SECONDARY } from "./use-secondary-click";
 import { ContextMenu, OpenContextMenu } from "./context-menu";
@@ -27,19 +28,24 @@ import { itemKey, MenuItem } from "./model";
 import {
     backStep,
     categoryPath,
+    collectionsPath,
     favoritesPath,
     FindItPlace,
     findItPath,
     levelKey,
     menuPath,
     Path,
+    PromptRequest,
+    promptPath,
     ROOT,
     trail,
     withoutFindIt,
+    withoutMissingCollection,
 } from "./navigation";
 import { MenuSessionContext, MenuSessionState, ViewCommands } from "./session-context";
 import { useMenuView } from "./view";
 import { CategoryLevel } from "./levels/category-level";
+import { CollectionLevel, CollectionsLevel, PromptLevel } from "./levels/collections-level";
 import { FavoritesLevel } from "./levels/favorites-level";
 import { FindItLevel } from "./levels/find-it-level";
 import { MenuLevel } from "./levels/menu-level";
@@ -84,7 +90,24 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
     const [context, setContext] = useState<OpenContextMenu | null>(null);
     const contextOpen = useRef(false);
     contextOpen.current = context !== null;
-    const contextActions = useContextActions();
+    // A prompt (a collection's name, or confirming a delete) takes the search
+    // field for its answer: it starts empty, or with the name being changed,
+    // and with the keyboard (a persistent view's field may not have it).
+    // Back, or answering, returns to where it was asked.
+    const queryRef = useRef(query);
+    queryRef.current = query;
+    const startPrompt = useCallback((request: PromptRequest) => {
+        setPath((p) =>
+            promptPath(
+                p.prompt
+                    ? { ...request, from: p.prompt.from, fromQuery: p.prompt.fromQuery }
+                    : { ...request, from: p, fromQuery: queryRef.current }
+            )
+        );
+        setQuery(request.kind === "rename" ? request.name : "");
+        inputRef.current?.focus();
+    }, []);
+    const contextActions = useContextActions(startPrompt);
     const openContext = useCallback(
         (entry: MenuItem, x: number, y: number) => {
             // Items without actions get no menu, but still close another one.
@@ -103,7 +126,8 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
     const hasOpenActions = openActions.length > 0;
     // The right-clicked asset's name and every chip (the hub only fits some).
     const contextAsset = context?.target.kind === "asset" ? context.target.asset : null;
-    const contextTitle = usePrefabTitle(contextAsset?.entity, contextAsset?.name ?? "");
+    const prefabTitle = usePrefabTitle(contextAsset?.entity, contextAsset?.name ?? "");
+    const contextTitle = context?.target.kind === "collection" ? context.target.collection.name : prefabTitle;
     const contextChips = useAssetChips(contextAsset);
     // Clicking a chip adds its filter to the search (right click: negated). The
     // query change closes the context menu (see the effect on [query, path]).
@@ -117,6 +141,23 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
 
     const openMenu = useCallback((menu: toolbar.ToolbarItem) => setPath(menuPath(menu)), []);
     const openFavorites = useCallback(() => setPath(favoritesPath()), []);
+    const openCollections = useCallback(() => setPath(collectionsPath()), []);
+    const openCollection = useCallback((id: string) => setPath(collectionsPath(id)), []);
+    const newCollection = useCallback((global: boolean) => startPrompt({ kind: "create", global, asset: null }), [startPrompt]);
+    // Back where it was asked, with the search typed there.
+    const promptDone = useCallback(() => {
+        if (!path.prompt) return;
+        setPath(path.prompt.from);
+        setQuery(path.prompt.fromQuery);
+    }, [path]);
+    // Leave a collection (or a prompt about one) that's been deleted.
+    const { list: collectionList } = useCollections();
+    useEffect(() => {
+        const next = withoutMissingCollection(path, (id) => collectionList.some((c) => c.id === id));
+        if (next === path) return;
+        if (path.prompt && !next.prompt) setQuery(path.prompt.fromQuery);
+        setPath(next);
+    }, [collectionList, path]);
     const openFindIt = useCallback((place: FindItPlace = {}) => setPath(findItPath(place)), []);
     // Leave the Find It level if the integration is switched off meanwhile.
     const findItActive = useValue(findItActive$);
@@ -177,6 +218,7 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
                 break;
             case "goTo":
                 setPath(step.path);
+                if (step.query !== undefined) setQuery(step.query);
                 break;
             case "leaveMenu":
                 // A persistent view stays open: at the top, Escape only hands
@@ -372,8 +414,18 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
     // Keyed per place, so each level starts on its first page.
     const key = levelKey(path);
     let level;
-    if (path.favorites) {
+    if (path.prompt) {
+        level = <PromptLevel key={key} prompt={path.prompt} onDone={promptDone} onBack={back} />;
+    } else if (path.favorites) {
         level = <FavoritesLevel key={key} onBack={back} />;
+    } else if (path.collections) {
+        const { id } = path.collections;
+        level =
+            id === undefined ? (
+                <CollectionsLevel key={key} onOpenCollection={openCollection} onNew={newCollection} onBack={back} />
+            ) : (
+                <CollectionLevel key={key} id={id} onBack={back} />
+            );
     } else if (path.findIt) {
         const { category, sub } = path.findIt;
         level = <FindItLevel key={key} category={category} sub={sub} onOpen={openFindIt} onBack={back} />;
@@ -392,7 +444,13 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
         level = <MenuLevel key={key} menu={path.menu} onOpenCategory={openCategory} onBack={back} />;
     } else {
         level = (
-            <RootLevel key={key} onOpenMenu={openMenu} onOpenFavorites={openFavorites} onOpenFindIt={openFindIt} />
+            <RootLevel
+                key={key}
+                onOpenMenu={openMenu}
+                onOpenFavorites={openFavorites}
+                onOpenCollections={openCollections}
+                onOpenFindIt={openFindIt}
+            />
         );
     }
 

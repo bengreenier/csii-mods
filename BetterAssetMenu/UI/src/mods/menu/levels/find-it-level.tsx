@@ -49,7 +49,7 @@ export const FindItLevel = ({ category, sub, onOpen, onBack }: FindItLevelProps)
         () => (sub ? [sub.id] : (category ? [category] : categories).flatMap((c) => c.subCategories.map((s) => s.id))),
         [sub, category, categories]
     );
-    const search = useAssetSearch(query, loc, EMPTY, EMPTY, false, searchSubs);
+    const search = useAssetSearch(query, loc, EMPTY, EMPTY, null, searchSubs);
     const resultItems = useResultItems(search.results);
 
     const items = useMemo<MenuItem[]>(() => {

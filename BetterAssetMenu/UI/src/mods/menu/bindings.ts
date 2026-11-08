@@ -113,6 +113,26 @@ export const favorites$ = bindValue<Favorite[]>(GROUP, "favorites", []);
 export const addFavorite = (asset: Entity) => trigger(GROUP, "addFavorite", asset);
 export const removeFavorite = (asset: Entity) => trigger(GROUP, "removeFavorite", asset);
 
+// The player's collections (CollectionsSystem.cs): city ones (stored in the
+// save) first, then global ones (a file shared by every city), each in the
+// order made. Ids carry the scope; key everything on them, never the name.
+// Assets are in the favorites' shape.
+export interface Collection {
+    id: string;
+    name: string;
+    global: boolean;
+    assets: Favorite[];
+}
+export const collections$ = bindValue<Collection[]>(GROUP, "collections", []);
+// `firstAsset` goes straight in (the UI never learns the new id); null for an
+// empty collection. C# refuses an empty or already used name.
+export const createCollection = (name: string, global: boolean, firstAsset: Entity | null) =>
+    trigger(GROUP, "createCollection", name, global, firstAsset ?? { index: 0, version: 0 });
+export const renameCollection = (id: string, name: string) => trigger(GROUP, "renameCollection", id, name);
+export const deleteCollection = (id: string) => trigger(GROUP, "deleteCollection", id);
+export const addToCollection = (id: string, asset: Entity) => trigger(GROUP, "addToCollection", id, asset);
+export const removeFromCollection = (id: string, asset: Entity) => trigger(GROUP, "removeFromCollection", id, asset);
+
 export const close = () => trigger(GROUP, "close");
 
 // "Use Find It's catalogue" (BetterAssetMenuUISystem.FindIt.cs): true while the

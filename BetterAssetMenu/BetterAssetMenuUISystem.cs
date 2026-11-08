@@ -83,6 +83,7 @@ namespace BetterAssetMenu
             // After CreateAllAssetsBinding: shares its ToolbarUISystem and
             // UniqueAssetTrackingSystem references.
             CreateFavoritesBindings();
+            CreateCollectionsBindings();
             CreateStoreLinkBindings();
             // After CreateAllAssetsBinding (shares its systems).
             CreateFindItBindings();
@@ -107,6 +108,7 @@ namespace BetterAssetMenu
             UpdateInputIsolation();
             HandleThemeResetRequest();
             UpdateFavorites();
+            UpdateCollections();
             HandleDataRefresh();
             UpdateFindIt();
 
@@ -186,6 +188,7 @@ namespace BetterAssetMenu
                 if (!_persistentOpen) SetIsolateInput(true);
                 RefreshAllAssets();
                 RefreshFavorites();
+                RefreshCollections();
                 _lastRefreshTime = UnityEngine.Time.realtimeSinceStartup;
             }
             _focusClearFrames = 0;
@@ -205,6 +208,7 @@ namespace BetterAssetMenu
             _lastRefreshTime = now;
             RefreshAllAssets();
             RefreshFavorites();
+            RefreshCollections();
         }
 
         // UI input isolation (see docs/game-internals.md, "Escape, Back and the

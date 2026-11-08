@@ -42,8 +42,8 @@ export interface IndexPart {
 }
 
 // What the records in scope contribute to the filter context; the search
-// adds the favorites (FilterContext.favoriteKeys).
-export type IndexContext = Omit<FilterContext, "favoriteKeys">;
+// adds the favorites and collections (FilterContext.favoriteKeys, .collections).
+export type IndexContext = Omit<FilterContext, "favoriteKeys" | "collections">;
 
 export interface SearchIndex {
     records: AssetRecord[];

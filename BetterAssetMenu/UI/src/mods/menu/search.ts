@@ -16,6 +16,7 @@ import {
     searchWithinLevel$,
     subCategories$,
 } from "./bindings";
+import { useCollections } from "./collections";
 import { useFavoriteKeys } from "./favorites";
 import { FindItCatalogue, FindItCatalogueContext } from "./find-it-catalogue";
 import { evaluate } from "./query/evaluate";
@@ -57,6 +58,23 @@ export interface SearchResults {
     // Candidates still waiting on fx: details.
     pending: number;
 }
+
+// No search at all, for a level that never searches (a prompt).
+export const NO_SEARCH: SearchResults = {
+    parsed: {
+        words: [],
+        phrases: [],
+        excludes: [],
+        filters: [],
+        tokens: [],
+        active: false,
+        needsDetails: false,
+        hint: null,
+    },
+    active: false,
+    results: EMPTY,
+    pending: 0,
+};
 
 // Effect terms per prefab, kept for the session: effects are static prefab
 // data, so each prefab's details only ever need loading once.
@@ -172,8 +190,8 @@ export function clearSearchSessionCaches() {
 /**
  * Searches assets within `scope` (every unlocked menu at the root, else the
  * given categories) using the query language in docs/search-schema.md.
- * `favoritesOnly` narrows that to this city's favorites (the Favorites level),
- * using the same lookup as is:favorite. `findIt` adds Find It subcategories
+ * `only` narrows that to the assets with these entity keys: the favorites
+ * (the Favorites level) or a collection's (the Collections levels). `findIt` adds Find It subcategories
  * while its catalogue is in use: all of them by default at the root.
  * With "Search only where you are" off (searchWithinLevel$), every level
  * searches what the root does, whatever `scope` and `findIt` it passes.
@@ -185,7 +203,7 @@ export function useAssetSearch(
     loc: l10n.Localization,
     levelGroups: toolbar.ToolbarGroup[],
     levelScope: SearchScope[] | "all",
-    favoritesOnly = false,
+    only: ReadonlySet<string> | null = null,
     levelFindIt: number[] | "all" = levelScope === "all" ? "all" : EMPTY
 ): SearchResults {
     const everywhere = !useValue(searchWithinLevel$);
@@ -286,10 +304,12 @@ export function useAssetSearch(
         [toolbarPart, platterPart, findItInScope]
     );
 
-    // Favorites are looked up live (is:favorite, the Favorites level), so
-    // adding or removing one re-runs the query but rebuilds no records.
+    // Favorites and collections are looked up live (is:favorite, col:, their
+    // levels), so adding or removing one re-runs the query but rebuilds no
+    // records.
     const favoriteKeys = useFavoriteKeys();
-    const ctx = useMemo(() => ({ ...index.ctx, favoriteKeys }), [index.ctx, favoriteKeys]);
+    const collections = useCollections().filter;
+    const ctx = useMemo(() => ({ ...index.ctx, favoriteKeys, collections }), [index.ctx, favoriteKeys, collections]);
     const parsed = useMemo(() => parse(query, ctx), [query, ctx]);
 
     // Lazy fx: details. `loadKeys` comes from the previous evaluation; values
@@ -314,8 +334,8 @@ export function useAssetSearch(
     }, slotValues);
 
     const records = useMemo(
-        () => (favoritesOnly ? index.records.filter((r) => favoriteKeys.has(r.key)) : index.records),
-        [index.records, favoritesOnly, favoriteKeys]
+        () => (only ? index.records.filter((r) => only.has(r.key)) : index.records),
+        [index.records, only]
     );
     const evaluation = useMemo(
         () => (parsed.active ? evaluate(parsed, records, (k) => FX_CACHE.get(k)) : null),

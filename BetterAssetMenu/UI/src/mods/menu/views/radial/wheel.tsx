@@ -77,7 +77,7 @@ const QueryDisplay = ({ tokens, shrink }: { tokens: DisplayToken[]; shrink: numb
 // it changes, so the wheel depends on its fields (items, search, ...), never on
 // `level` itself.
 export const Wheel = ({ level }: LevelViewProps) => {
-    const { items: entries, grouped, current, search, emptyMessage, onBack } = level;
+    const { items: entries, grouped, current, search, emptyMessage, prompt, onBack } = level;
     const { query, commandsRef, example, contextKey, openContext, closeContext, focusAsset } = useMenuSession();
     const [hovered, setHovered] = useState<MenuItem | null>(null);
     const hubRef = useRef<HTMLDivElement>(null);
@@ -144,7 +144,19 @@ export const Wheel = ({ level }: LevelViewProps) => {
     }, [query, page, pageCount, commandsRef]);
 
     let hubContent;
-    if (hoveredEntry || !showingQuery) {
+    if (prompt) {
+        // The answer typed so far (or the level's title), then the prompt.
+        hubContent = (
+            <>
+                <div className={styles.hubTitle}>{query || current?.title || ""}</div>
+                {prompt.map((line, i) => (
+                    <div key={i} className={i === 0 ? styles.hubTypeHint : styles.hubFilterHints}>
+                        {line}
+                    </div>
+                ))}
+            </>
+        );
+    } else if (hoveredEntry || !showingQuery) {
         const label = hoveredEntry ?? current;
         hubContent = (
             <>
@@ -203,7 +215,7 @@ export const Wheel = ({ level }: LevelViewProps) => {
     // check compares against the hub's own box, so "Wheel size" doesn't matter.
     // Each new query starts over at the most readable layout.
     useLayoutEffect(() => {
-        if (!showingQuery || hoveredEntry) return;
+        if (!showingQuery || hoveredEntry || prompt) return;
         const hub = hubRef.current?.getBoundingClientRect();
         const content = hubContentRef.current?.getBoundingClientRect();
         if (!hub || !content) return;

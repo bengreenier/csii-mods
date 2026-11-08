@@ -4,6 +4,7 @@ import { toolbar } from "cs2/bindings";
 import { activateToolbarItem, finishPick, TOOLBAR_ITEM_TYPE_MENU } from "../actions";
 import { findItActive$ } from "../bindings";
 import { isBulldozer, useBulldozerPlacement } from "../bulldozer";
+import { COLLECTION_ICON, COLLECTIONS_TITLE } from "../collections";
 import { FAVORITE_COLOR, FAVORITE_ICON, FAVORITES_TITLE } from "../favorites";
 import { FIND_IT_ICON, FIND_IT_TITLE } from "../find-it";
 import { useLocalization } from "../localization";
@@ -11,15 +12,16 @@ import { LevelModel, MenuItem, NO_ENTITY } from "../model";
 import { useAssetSearch } from "../search";
 import { useMenuSession } from "../session-context";
 import { LevelFrame } from "../level-frame";
-import { FAVORITES_KEY, FIND_IT_KEY, useResultItems } from "./items";
+import { COLLECTIONS_KEY, FAVORITES_KEY, FIND_IT_KEY, useResultItems } from "./items";
 
 interface RootLevelProps {
     onOpenMenu: (menu: toolbar.ToolbarItem) => void;
     onOpenFavorites: () => void;
+    onOpenCollections: () => void;
     onOpenFindIt: () => void;
 }
 
-export const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenFindIt }: RootLevelProps) => {
+export const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenCollections, onOpenFindIt }: RootLevelProps) => {
     const { query } = useMenuSession();
     const findItActive = useValue(findItActive$);
     const groups = useValue(toolbar.toolbarGroups$);
@@ -55,8 +57,19 @@ export const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenFindIt }: RootLev
                 opens: true,
                 group: groups.length,
                 onSelect: onOpenFavorites,
+            }, {
+                // The player's collections, next to Favorites.
+                key: COLLECTIONS_KEY,
+                entity: NO_ENTITY,
+                name: COLLECTIONS_TITLE,
+                title: COLLECTIONS_TITLE,
+                icon: COLLECTION_ICON,
+                disabled: false,
+                opens: true,
+                group: groups.length,
+                onSelect: onOpenCollections,
             }).concat(
-                // With the Find It catalogue in use, its browser, next to Favorites.
+                // With the Find It catalogue in use, its browser, after Collections.
                 findItActive
                     ? [
                           {
@@ -73,7 +86,7 @@ export const RootLevel = ({ onOpenMenu, onOpenFavorites, onOpenFindIt }: RootLev
                       ]
                     : []
             ),
-        [groups, bulldozerInRadial, onOpenMenu, onOpenFavorites, onOpenFindIt, findItActive]
+        [groups, bulldozerInRadial, onOpenMenu, onOpenFavorites, onOpenCollections, onOpenFindIt, findItActive]
     );
     const resultItems = useResultItems(search.results);
 

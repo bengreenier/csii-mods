@@ -14,15 +14,21 @@ export const LevelFrame = ({ level }: { level: LevelModel }) => {
 
     // The accept key: accept the hint's completion if there is one, otherwise
     // pick the result if exactly one placeable one is left.
-    const completion = query ? search.parsed.hint?.completion ?? null : null;
+    const completion = query && !level.onSubmit ? search.parsed.hint?.completion ?? null : null;
+    const { onSubmit } = level;
     useEffect(() => {
+        if (onSubmit) {
+            submitRef.current = onSubmit;
+            completionRef.current = null;
+            return;
+        }
         // Picks only when exactly one placeable result is left (all pages), so
         // a double Enter (complete, then submit) can't place the top one of
         // many by surprise.
         const placeable = search.active ? items.filter((e) => !e.disabled) : EMPTY;
         submitRef.current = placeable.length === 1 ? () => placeable[0].onSelect() : null;
         completionRef.current = completion;
-    }, [search, items, completion, submitRef, completionRef]);
+    }, [search, items, completion, onSubmit, submitRef, completionRef]);
 
     // Close the context menu when its item leaves the level (results changed).
     // Views may close it sooner (the wheel: when it leaves the visible page).

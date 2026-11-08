@@ -22,6 +22,8 @@ export interface ChipSource {
     placed: boolean;
     isNew: boolean;
     favorite: boolean;
+    // Names and col: slugs of the player's collections the asset is in.
+    collections: { name: string; slug: string }[];
     mod: boolean;
     // Display texts; null when the asset has none.
     themeTitle: string | null;
@@ -64,6 +66,7 @@ export function assetChips(src: ChipSource): Chip[] {
     if (src.isNew) is("new");
     if (src.unique) is(src.placed ? "placed" : "unique");
     if (src.mod) is("mod");
+    for (const c of src.collections) add("col", c.name, c.slug);
 
     // cat: the subcategory's own word ("Props_Decals" -> "decals").
     if (src.findItCategory) {

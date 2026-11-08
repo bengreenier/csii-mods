@@ -39,10 +39,14 @@ namespace BetterAssetMenu
             _favorites.Update();
         }
 
-        private void WriteFavorites(IJsonWriter writer)
+        private void WriteFavorites(IJsonWriter writer) => WriteAssetEntries(writer, _favoritesSystem.GetResolvedFavorites());
+
+        // Assets shown outside their category (favorites, collections), each
+        // as a betterAssetMenu.Favorite: the asset with its menu and category.
+        private void WriteAssetEntries(IJsonWriter writer, System.Collections.Generic.IEnumerable<Entity> assets)
         {
             var entries = new System.Collections.Generic.List<(Entity asset, Entity menu, Entity category)>();
-            foreach (var asset in _favoritesSystem.GetResolvedFavorites())
+            foreach (var asset in assets)
             {
                 // Toolbar assets come with their menu and category (picking one
                 // selects that chain). Others, e.g. props favorited from Find
