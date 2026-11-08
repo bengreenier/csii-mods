@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Colossal.Json;
 using Colossal.PSI.Environment;
 using Colossal.Serialization.Entities;
 using Game;
@@ -15,7 +16,7 @@ namespace BetterAssetMenu
     /// The menu's collections: named lists of assets the player makes. City
     /// collections are stored in each save, like <see cref="FavoritesSystem"/>;
     /// global ones in a file in the user data folder
-    /// (ModsData/BetterAssetMenu/collections.txt), shared by every city.
+    /// (ModsData/BetterAssetMenu/collections.json), shared by every city.
     /// </summary>
     /// <remarks>
     /// The same save rules as <see cref="FavoritesSystem"/> apply: never rename
@@ -60,7 +61,7 @@ namespace BetterAssetMenu
             base.OnCreate();
             _prefabSystem = World.GetOrCreateSystemManaged<PrefabSystem>();
             World.GetExistingSystemManaged<SerializerSystem>()?.systemLibrary?.SetDirty();
-            _globalPath = Path.Combine(EnvPath.kUserDataPath, "ModsData", nameof(BetterAssetMenu), "collections.txt");
+            _globalPath = Path.Combine(EnvPath.kUserDataPath, "ModsData", nameof(BetterAssetMenu), "collections.json");
             LoadGlobal();
         }
 
@@ -178,7 +179,7 @@ namespace BetterAssetMenu
             return false;
         }
 
-        // ---- Text format (save payload and global file) ---------------------
+        // ---- Save payload: text --------------------------------------------
         //
         // v1: one line per collection header and per asset:
         //   "#<id>/<name>"  starts a collection; id and name URL-escaped
@@ -230,7 +231,65 @@ namespace BetterAssetMenu
             return skipped;
         }
 
-        // ---- Global collections: a file ------------------------------------
+        // ---- Global collections: a JSON file -------------------------------
+        //
+        // {
+        //   "version": 1,
+        //   "collections": [
+        //     { "id": "g...", "name": "Parks",
+        //       "assets": [ { "type": "BuildingPrefab", "name": "...", "hash": "..." } ] }
+        //   ]
+        // }
+        // Read and written with the game's Colossal.Json (public fields).
+        // "hash" is empty for prefabs without one. Unreadable collections or
+        // assets are skipped, never the whole file.
+
+        // Bump when the file's layout changes; LoadGlobal must keep reading
+        // every older version.
+        private const int kGlobalFileVersion = 1;
+
+        public class GlobalFile
+        {
+            public int version;
+            public List<GlobalCollection> collections = new List<GlobalCollection>();
+        }
+
+        public class GlobalCollection
+        {
+            public string id;
+            public string name;
+            public List<GlobalAsset> assets = new List<GlobalAsset>();
+        }
+
+        public class GlobalAsset
+        {
+            public string type;
+            public string name;
+            public string hash;
+        }
+
+        // PrefabID keeps its parts private; ToUrlSegment is its one public
+        // form ("<type>/<name>[/<hash>]", type and name URL-escaped).
+        private static GlobalAsset ToFileAsset(PrefabID id)
+        {
+            var parts = id.ToUrlSegment().Split('/');
+            return new GlobalAsset
+            {
+                type = Uri.UnescapeDataString(parts[0]),
+                name = Uri.UnescapeDataString(parts[1]),
+                hash = parts.Length > 2 ? parts[2] : string.Empty,
+            };
+        }
+
+        private static bool TryFromFileAsset(GlobalAsset asset, out PrefabID id)
+        {
+            id = default;
+            if (asset == null || string.IsNullOrEmpty(asset.type) || string.IsNullOrEmpty(asset.name)) return false;
+            var hash = default(Colossal.Hash128);
+            if (!string.IsNullOrEmpty(asset.hash) && !Colossal.Hash128.TryParse(asset.hash, out hash)) return false;
+            id = new PrefabID(asset.type, asset.name, hash);
+            return true;
+        }
 
         private void LoadGlobal()
         {
@@ -241,16 +300,31 @@ namespace BetterAssetMenu
                 // leaves only that (see SaveGlobal).
                 var path = File.Exists(_globalPath) ? _globalPath : _globalPath + ".tmp";
                 if (!File.Exists(path)) return;
-                var lines = File.ReadAllText(path);
-                var newline = lines.IndexOf('\n');
-                var header = newline < 0 ? lines : lines.Substring(0, newline);
-                if (!int.TryParse(header.Trim(), out var version) || version < 1 || version > kFormatVersion)
+                var file = JSON.MakeInto<GlobalFile>(JSON.Load(File.ReadAllText(path)));
+                if (file == null || file.version < 1 || file.version > kGlobalFileVersion)
                 {
-                    Mod.LOG.Warn($"Global collections not loaded: unknown format \"{header}\"");
+                    Mod.LOG.Warn($"Global collections not loaded: unknown format version {file?.version}");
                     return;
                 }
-                var skipped = Read(newline < 0 ? string.Empty : lines.Substring(newline + 1), kGlobalPrefix, _global);
-                Mod.LOG.Info($"Global collections loaded: {_global.Count}" + (skipped > 0 ? $" ({skipped} lines unreadable, skipped)" : ""));
+                var skipped = 0;
+                foreach (var entry in file.collections ?? new List<GlobalCollection>())
+                {
+                    var name = CleanName(entry?.name);
+                    if (entry?.id == null || !entry.id.StartsWith(kGlobalPrefix, StringComparison.Ordinal) || name == null ||
+                        _global.Any(c => c.Id == entry.id))
+                    {
+                        skipped++;
+                        continue;
+                    }
+                    var collection = new Collection { Id = entry.id, Name = name };
+                    foreach (var asset in entry.assets ?? new List<GlobalAsset>())
+                    {
+                        if (!TryFromFileAsset(asset, out var id)) skipped++;
+                        else if (!collection.Assets.Contains(id)) collection.Assets.Add(id);
+                    }
+                    _global.Add(collection);
+                }
+                Mod.LOG.Info($"Global collections loaded: {_global.Count}" + (skipped > 0 ? $" ({skipped} entries unreadable, skipped)" : ""));
             }
             catch (Exception e)
             {
@@ -263,15 +337,22 @@ namespace BetterAssetMenu
             }
         }
 
-        // First line: the format version. Written to a temporary file first,
-        // then swapped in, so a failed write never leaves half a file behind.
+        // Written to a temporary file first, then swapped in, so a failed
+        // write never leaves half a file behind.
         private void SaveGlobal()
         {
             try
             {
+                var file = new GlobalFile { version = kGlobalFileVersion };
+                foreach (var c in _global)
+                {
+                    var entry = new GlobalCollection { id = c.Id, name = c.Name };
+                    foreach (var id in c.Assets) entry.assets.Add(ToFileAsset(id));
+                    file.collections.Add(entry);
+                }
                 Directory.CreateDirectory(Path.GetDirectoryName(_globalPath));
                 var temp = _globalPath + ".tmp";
-                File.WriteAllText(temp, kFormatVersion + "\n" + Write(_global));
+                File.WriteAllText(temp, JSON.Dump(file));
                 if (File.Exists(_globalPath)) File.Replace(temp, _globalPath, null);
                 else File.Move(temp, _globalPath);
             }

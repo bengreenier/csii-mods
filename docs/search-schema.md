@@ -371,7 +371,7 @@ added. Favorites are stored in each save (`FavoritesSystem.cs`; see
 Collections are lists of assets the player makes and names
 (`CollectionsSystem.cs`; see `game-internals.md`, "Per-save data"). Each is
 either **this city's** (stored in the save, like favorites) or for **all
-cities** (stored in `ModsData/BetterAssetMenu/collections.txt` in the game's
+cities** (stored in `ModsData/BetterAssetMenu/collections.json` in the game's
 user data folder). Names are unique, ignoring case, across both kinds, and
 capped at 40 characters.
 

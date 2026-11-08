@@ -533,9 +533,15 @@ toolbar asset that has any such data. The UI keys it by `entityKey(entity)`
   collection, then its assets as `PrefabID.ToUrlSegment()`. Only city
   collections go in the save. Ids start with `c` (city) or `g` (all cities),
   and each store drops the other kind's ids when reading. All-cities
-  collections live in `EnvPath.kUserDataPath/ModsData/BetterAssetMenu/collections.txt`
-  (the format version on the first line, then the same lines), read once when
-  the system is created and rewritten (through a `.tmp` file) on every change.
+  collections live in `EnvPath.kUserDataPath/ModsData/BetterAssetMenu/collections.json`:
+  `{ "version": 1, "collections": [{ "id", "name", "assets": [{ "type",
+  "name", "hash" }] }] }`, read and written with the game's `Colossal.Json`
+  (`JSON.Load` + `JSON.MakeInto<T>`, `JSON.Dump`; public fields). `PrefabID`
+  keeps its parts private, so they come from splitting its `ToUrlSegment()`;
+  `hash` is empty for a prefab without one. The file is read once when the
+  system is created and rewritten (through a `.tmp` file, then
+  `File.Replace`) on every change; a leftover `.tmp` is read if the file
+  itself is missing.
   A save from before collections has no block, so `SetDefaults` runs.
   `ResetCityData` clears only city collections. The UI gets
   `BetterAssetMenu.collections`: `{ id, name, global, assets }`, with `assets`
