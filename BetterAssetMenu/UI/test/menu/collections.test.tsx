@@ -13,10 +13,14 @@ import {
     contextEntry,
     contextMenuTexts,
     escape,
+    highlightedIcon,
+    hover,
     hubLines,
     input,
     item,
     itemIcons,
+    key,
+    KEY,
     paneLines,
     rightClick,
     start,
@@ -207,6 +211,47 @@ describe("Collections", () => {
         click(row("Parks"));
         setCollections([], city);
         expect(rowTexts()).toEqual(["New collection (this city)", "New collection (all cities)"]);
+    });
+
+    it("puts the search back after a prompt, answered or cancelled", () => {
+        const city = start({ style: "pane" });
+        type("park");
+        rightClick(item("icon/ParkA.svg"));
+        click(contextEntry("Add to new collection (this city)..."));
+        expect(input().value).toBe("");
+        type("Parks");
+        accept();
+        expect(calls()).toContain(call(`${MOD}.createCollection`, "Parks", false, city.assets.parkA.entity));
+        expect(input().value).toBe("park");
+        rightClick(item("icon/ParkB.svg"));
+        click(contextEntry("Add to new collection (all cities)..."));
+        type("Nope");
+        escape();
+        expect(input().value).toBe("park");
+    });
+
+    it("shows a highlighted asset's collections among its chips (pane)", () => {
+        const city = start({ style: "pane" });
+        setCollections([{ name: "Green Space", assets: [city.assets.parkA] }], city);
+        type("parka");
+        expect(highlightedIcon()).toBe("icon/ParkA.svg");
+        expect(paneLines()).toContain("col: Green Space");
+    });
+
+    it("shows a highlighted asset's collections among its chips (sidebar)", () => {
+        const city = start({ style: "sidebar" });
+        setCollections([{ name: "Green Space", assets: [city.assets.parkA] }], city);
+        type("parka");
+        key(KEY.DOWN);
+        expect(paneLines()).toContain("col: Green Space");
+    });
+
+    it("shows a hovered asset's collections among its chips (wheel)", () => {
+        const city = start();
+        setCollections([{ name: "Green Space", assets: [city.assets.parkA] }], city);
+        click(item("icon/Parks.svg"));
+        hover(item("icon/ParkA.svg"));
+        expect(hubLines().join(" ")).toContain("col: Green Space");
     });
 
     it("prompts in the wheel's hub too", () => {

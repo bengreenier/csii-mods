@@ -391,7 +391,8 @@ capped at 40 characters.
   detail, say what Enter will do: "Enter: create '<name>'", or why it won't
   (no name yet, or one that's taken). Enter (the accept key) acts, without
   ever offering a search completion, and returns to where the prompt was
-  opened. One Escape cancels, typed name and all. Deleting asks "Delete
+  opened, with the search that was typed there back in the field. One Escape
+  cancels, typed name and all. Deleting asks "Delete
   '<name>'?"; Enter deletes.
 - **Right-clicking a collection** (in the Collections level) offers
   "Rename..." and "Delete collection...".

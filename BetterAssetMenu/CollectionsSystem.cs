@@ -237,8 +237,11 @@ namespace BetterAssetMenu
             _global.Clear();
             try
             {
-                if (!File.Exists(_globalPath)) return;
-                var lines = File.ReadAllText(_globalPath);
+                // A write cut short after the temporary file was complete
+                // leaves only that (see SaveGlobal).
+                var path = File.Exists(_globalPath) ? _globalPath : _globalPath + ".tmp";
+                if (!File.Exists(path)) return;
+                var lines = File.ReadAllText(path);
                 var newline = lines.IndexOf('\n');
                 var header = newline < 0 ? lines : lines.Substring(0, newline);
                 if (!int.TryParse(header.Trim(), out var version) || version < 1 || version > kFormatVersion)
@@ -260,8 +263,8 @@ namespace BetterAssetMenu
             }
         }
 
-        // First line: the format version. Written to a temporary file first, so
-        // a failed write never leaves half a file behind.
+        // First line: the format version. Written to a temporary file first,
+        // then swapped in, so a failed write never leaves half a file behind.
         private void SaveGlobal()
         {
             try
@@ -269,8 +272,8 @@ namespace BetterAssetMenu
                 Directory.CreateDirectory(Path.GetDirectoryName(_globalPath));
                 var temp = _globalPath + ".tmp";
                 File.WriteAllText(temp, kFormatVersion + "\n" + Write(_global));
-                if (File.Exists(_globalPath)) File.Delete(_globalPath);
-                File.Move(temp, _globalPath);
+                if (File.Exists(_globalPath)) File.Replace(temp, _globalPath, null);
+                else File.Move(temp, _globalPath);
             }
             catch (Exception e)
             {

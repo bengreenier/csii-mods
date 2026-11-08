@@ -94,8 +94,16 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
     // field for its answer: it starts empty, or with the name being changed,
     // and with the keyboard (a persistent view's field may not have it).
     // Back, or answering, returns to where it was asked.
+    const queryRef = useRef(query);
+    queryRef.current = query;
     const startPrompt = useCallback((request: PromptRequest) => {
-        setPath((p) => promptPath({ ...request, from: p.prompt ? p.prompt.from : p }));
+        setPath((p) =>
+            promptPath(
+                p.prompt
+                    ? { ...request, from: p.prompt.from, fromQuery: p.prompt.fromQuery }
+                    : { ...request, from: p, fromQuery: queryRef.current }
+            )
+        );
         setQuery(request.kind === "rename" ? request.name : "");
         inputRef.current?.focus();
     }, []);
@@ -136,16 +144,18 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
     const openCollections = useCallback(() => setPath(collectionsPath()), []);
     const openCollection = useCallback((id: string) => setPath(collectionsPath(id)), []);
     const newCollection = useCallback((global: boolean) => startPrompt({ kind: "create", global, asset: null }), [startPrompt]);
+    // Back where it was asked, with the search typed there.
     const promptDone = useCallback(() => {
-        setPath((p) => p.prompt?.from ?? p);
-        setQuery("");
-    }, []);
+        if (!path.prompt) return;
+        setPath(path.prompt.from);
+        setQuery(path.prompt.fromQuery);
+    }, [path]);
     // Leave a collection (or a prompt about one) that's been deleted.
     const { list: collectionList } = useCollections();
     useEffect(() => {
         const next = withoutMissingCollection(path, (id) => collectionList.some((c) => c.id === id));
         if (next === path) return;
-        if (path.prompt && !next.prompt) setQuery("");
+        if (path.prompt && !next.prompt) setQuery(path.prompt.fromQuery);
         setPath(next);
     }, [collectionList, path]);
     const openFindIt = useCallback((place: FindItPlace = {}) => setPath(findItPath(place)), []);
@@ -208,7 +218,7 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
                 break;
             case "goTo":
                 setPath(step.path);
-                if (step.clearQuery) setQuery("");
+                if (step.query !== undefined) setQuery(step.query);
                 break;
             case "leaveMenu":
                 // A persistent view stays open: at the top, Escape only hands

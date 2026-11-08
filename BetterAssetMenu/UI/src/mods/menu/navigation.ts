@@ -20,17 +20,19 @@ export interface Path {
     // The Collections level, or one collection (by id) in it.
     collections?: { id?: string };
     // Asking for a collection's name, or to confirm deleting one: the search
-    // field takes the answer, and Back returns to `from`.
+    // field takes the answer, and Back returns to `from`, with the search
+    // that was typed there (`fromQuery`) back in the field.
     prompt?: Prompt;
 }
 
 export type FindItPlace = { category?: FindItCategory; sub?: FindItSubCategory };
 
+type Asked = { from: Path; fromQuery: string };
 export type Prompt =
     // A new collection, with `asset` in it unless null.
-    | { kind: "create"; global: boolean; asset: Entity | null; from: Path }
-    | { kind: "rename"; id: string; name: string; from: Path }
-    | { kind: "delete"; id: string; name: string; from: Path };
+    | ({ kind: "create"; global: boolean; asset: Entity | null } & Asked)
+    | ({ kind: "rename"; id: string; name: string } & Asked)
+    | ({ kind: "delete"; id: string; name: string } & Asked);
 
 export const ROOT: Path = {};
 export const menuPath = (menu: toolbar.ToolbarItem): Path => ({ menu });
@@ -42,7 +44,7 @@ export const categoryPath = (path: Path, category: toolbar.AssetCategory): Path 
 });
 export const favoritesPath = (): Path => ({ favorites: true });
 // A prompt as asked for; MenuSession adds where it was asked from.
-type WithoutFrom<T> = T extends unknown ? Omit<T, "from"> : never;
+type WithoutFrom<T> = T extends unknown ? Omit<T, keyof Asked> : never;
 export type PromptRequest = WithoutFrom<Prompt>;
 
 export const findItPath = (place: FindItPlace = {}): Path => ({ findIt: place });
@@ -65,8 +67,8 @@ export function levelKey(path: Path): string {
 export type BackStep =
     | { kind: "closeContext" }
     | { kind: "clearQuery" }
-    // `clearQuery`: the query was a prompt's answer, not a search.
-    | { kind: "goTo"; path: Path; clearQuery?: boolean }
+    // `query`: replaces the query (it was a prompt's answer, not a search).
+    | { kind: "goTo"; path: Path; query?: string }
     // Clears the vanilla asset selection, then goes to the root, or closes the
     // menu if already there.
     | { kind: "leaveMenu"; close: boolean };
@@ -78,7 +80,7 @@ export type BackStep =
 export function backStep({ path, query, contextOpen }: { path: Path; query: string; contextOpen: boolean }): BackStep {
     if (contextOpen) return { kind: "closeContext" };
     // One Back cancels a prompt, typed answer and all.
-    if (path.prompt) return { kind: "goTo", path: path.prompt.from, clearQuery: true };
+    if (path.prompt) return { kind: "goTo", path: path.prompt.from, query: path.prompt.fromQuery };
     if (query) return { kind: "clearQuery" };
     // A nested category goes back to the one it was opened from.
     if (path.category)

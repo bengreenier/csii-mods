@@ -41,7 +41,7 @@ export const collectionSlug = (name: string) =>
 /** True if every word (lowercase) starts the name or one of its words. */
 export const nameMatches = (name: string, words: string[]) => {
     const lc = name.toLowerCase();
-    return words.length > 0 && words.every((w) => hasWordPrefix(lc, w) || lc.includes(w));
+    return words.length > 0 && words.every((w) => hasWordPrefix(lc, w));
 };
 
 /** True if `name` is used by a collection other than `exceptId` (ignoring case, as C# does). */
