@@ -4,7 +4,7 @@
 	<!--Name of the mod to display to players-->
 	<DisplayName Value="Better Asset Menu" />
 	<!--Short description of the mod-->
-	<ShortDescription Value="Press Tab, type, place. Instantly search every building, road and prop in the game, with smart filters, per-city favorites and Find It support." />
+	<ShortDescription Value="Press Tab, type, place. Instantly search every building, road and prop in the game, with smart filters, favorites, collections and Find It support." />
 	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 	<LongDescription>
 **Stop hunting through tabs. Start building.**
@@ -21,7 +21,7 @@ Open the menu and type. There's no search box to click. Results narrow with ever
 - Type **road -highway** for every road except highways.
 - Type **"bus stop"** for that exact phrase.
 
-Not searching? Browse the same tabs and categories as the vanilla toolbar, in a layout that's faster to scan.
+Not searching? Browse the same tabs and categories as the vanilla toolbar, in a layout that's faster to scan. Inside a tab, search sticks to that tab, or flip one setting to search everything from anywhere.
 
 ## Search like a pro
 
@@ -36,13 +36,17 @@ Filters find things by what they are, not just what they're called. You don't ne
 - **zone: residential zone: high** - high-density housing
 - **theme: european** or **pack:** - a regional style or a content pack
 - **dlc: none** - base game only; **is: mod** - only mod content
+- **mod: japan** or **mod: 94094** - assets from a mod, by its title or Paradox Mods ID
+- **col: downtown** - everything in one of your collections
 - **in: parks bench** - search inside a single tab
 
 Mix and match freely: **school is: ok** shows the schools you can build right now. Made a typo in a filter? It's shown crossed out and ignored, so you never end up staring at an empty list wondering why.
 
-## Every theme, every pack, at your fingertips
+## Every theme, every pack, every mod
 
 Want a North American building in your European city? Search finds assets from every theme and asset pack, without touching the vanilla theme filter. Prefer to see only your city's style? That's one setting away.
+
+Running a lot of asset mods? Every mod asset shows which mod it came from. Click the mod to see everything else it adds, or right-click it to hide that mod from your results. Mod names come from the game's own cache, so nothing is fetched online.
 
 ## Supercharged with Find It
 
@@ -51,28 +55,33 @@ Already using **Find It**? Better Asset Menu plugs straight into its catalogue. 
 - A Find It entry at the top of the menu browses all of Find It's categories.
 - One search covers both the toolbar and Find It's whole catalogue.
 - The **cat:** filter narrows by Find It category: **cat: decals**, **cat: trees**, **cat: props cat: residential**.
-- Anything from Find It can go in your favorites too.
+- Optionally, Find It's toolbar button opens this menu instead, and anything you pick in the city with Find It's picker opens here, ready to place.
+- Anything from Find It can go in your favorites and collections too.
 
 Find It isn't required. Without it, Better Asset Menu works with everything in the vanilla toolbar.
 
-## Two ways to play
+## Three ways to play
 
 Pick the menu that fits how you build:
 
 - **Radial:** a wheel of buttons that opens around your cursor or the center of the screen. Point at anything to see its picture, name and details in the middle. Quick, visual and very satisfying.
 - **Pane:** a keyboard-first list with a big preview beside it. Arrow keys to move, Enter to place, and click any detail (like **theme: European**) to add it to your search, or right-click it to exclude it.
+- **Sidebar:** a list docked to the edge of the screen, or floating wherever you drag it, that stays open while you build. Pick something and keep placing; press the open key to jump back into search.
 
-Both search, browse and place exactly the same things. Switch whenever you like.
+All three search, browse and place exactly the same things. Switch whenever you like.
 
-## Favorites for every city
+## Favorites and collections
 
 Right-click anything and add it to your favorites. Each city keeps its own list, saved with the save file, so your downtown build and your farm town each get the tools they need. Typing while in Favorites searches only your favorites.
+
+Want more than one list? Make **collections**: named sets like "Downtown", "Waterfront" or "Old Town", kept in one city's save or shared by every city you build. Add things from the right-click menu, open them from the top of the menu, or search them with **col:**.
 
 ## Make it yours
 
 - Rebind the open key, or open the menu with a mouse button (the forward button by default)
-- Scale the wheel or the pane, and tune the wheel's spacing
+- Scale the wheel, the pane or the sidebar, and tune the wheel's spacing
 - Open at the mouse cursor or the center of the screen
+- Dock the sidebar left or right, or float it, and set its width and transparency
 - Hide the vanilla toolbar entirely, or keep the bulldozer where it's always been
 - Stop menu picks from switching on info views, if you'd rather keep your view
 - Right-click an item to copy its DLC or mod link
