@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/bengreenier/csii-mods/compare/better-asset-menu-v1.4.0...better-asset-menu-v1.5.0) (2026-11-09)
+
+
+### Features
+
+* collections submenu in the context menu; Enter names collections ([#22](https://github.com/bengreenier/csii-mods/issues/22)) ([86a5c81](https://github.com/bengreenier/csii-mods/commit/86a5c81d0272e5483e73abf588c1c2e75afe7605))
+
 ## [1.4.0](https://github.com/bengreenier/csii-mods/compare/better-asset-menu-v1.3.0...better-asset-menu-v1.4.0) (2026-11-08)
 
 
