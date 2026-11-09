@@ -268,6 +268,13 @@ sidebar don't reach the active tool underneath.
     way. It stays disabled (its binding is just data) and has its own usage,
     `BetterAssetMenuSearch`, so it never conflicts with game shortcuts. It fires the
     `acceptSuggestion` UI event.
+- Collection prompts also accept Enter directly in the field's `onKeyDown`.
+  Previously that handler discarded Enter and depended entirely on the C#
+  accept event, leaving naming stuck when that event wasn't delivered. Search
+  still uses only the rebindable C# event. Prompts handle either route through
+  one handler, ahead of completion/row selection, and suppress a duplicate
+  delivery for 100 ms even after returning to the previous search (otherwise
+  one Enter could create a collection and place the result behind the prompt).
 - The field is blurred in a layout-effect cleanup before it unmounts, matching
   vanilla, which blurs text fields on Escape/Enter.
 

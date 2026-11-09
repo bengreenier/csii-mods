@@ -825,10 +825,10 @@ namespace BetterAssetMenu
                     "Each collection is kept either in this city's save, or for all cities: shared by every city you play, " +
                     "and shown as 'name (all cities)'. You choose when you make it.\n" +
                     "To make one, pick 'New collection (this city)' or 'New collection (all cities)' in Collections. " +
-                    "Or right-click anything you can place and choose 'Add to new collection', which puts it straight in. " +
-                    "Type the name in the search field and press Enter (the 'Accept suggestion / pick result' key); Escape cancels. " +
+                    "Or right-click anything you can place, open the 'Collections' submenu and choose 'Add to new collection', which puts it straight in. " +
+                    "Type the name in the search field and press Enter (or the 'Accept suggestion / pick result' key); Escape cancels. " +
                     "Afterwards you're back where you were, with your search as it was. Names can't be used twice.\n" +
-                    "Right-click anything to add it to a collection, or to remove it again. " +
+                    "Right-click anything and open 'Collections' to add it to a collection, or to remove it again. Scroll the list for more collections; the new-collection actions stay visible. " +
                     "Right-click a collection in Collections to rename or delete it.\n" +
                     "Typing in Collections finds collections by name, then the things in any of them; inside a collection, only its things.\n" +
                     "'col: parks' - from anywhere in the menu, things in any collection with a word in its name starting with 'parks'. " +

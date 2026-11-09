@@ -2,6 +2,7 @@
 // Collections (docs/search-schema.md, "Collections"): the top-level entry,
 // a collection's level, making, renaming and deleting one through the
 // search field's prompt, the context menu's add/remove, col: and its chips.
+import { fireEvent } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { MOD } from "../fakes/game";
 import { setCollections } from "../fixtures/city";
@@ -97,6 +98,7 @@ describe("Collections", () => {
         const city = start({ style: "pane" });
         click(item("icon/Parks.svg"));
         rightClick(item("icon/ParkA.svg"));
+        click(contextEntry("Collections"));
         click(contextEntry("Add to new collection (all cities)..."));
         expect(paneLines()).toContain("Kept for all cities");
         type("Parks");
@@ -105,15 +107,46 @@ describe("Collections", () => {
         expect(itemIcons()).toContain("icon/ParkA.svg");
     });
 
+    it.each(["radial", "pane", "sidebar"] as const)("submits an on-demand name with the field's Enter in %s", (style) => {
+        const city = start({ style });
+        type("parka");
+        rightClick(item("icon/ParkA.svg"));
+        click(contextEntry("Collections"));
+        click(contextEntry("Add to new collection (this city)..."));
+        type("My parks");
+        key(KEY.ENTER);
+        expect(calls()).toContain(call(`${MOD}.createCollection`, "My parks", false, city.assets.parkA.entity));
+        // The C# accept event from that same physical press must not select a
+        // result in the restored search behind the prompt.
+        accept();
+        expect(calls().filter((c) => c.includes("toolbar.selectAsset"))).toEqual([]);
+        expect(input().value).toBe("parka");
+    });
+
+    it("consumes both accept routes when the game event arrives before the field event", () => {
+        const city = start({ style: "pane" });
+        type("parka");
+        rightClick(item("icon/ParkA.svg"));
+        click(contextEntry("Collections"));
+        click(contextEntry("Add to new collection (this city)..."));
+        type("Parks");
+        accept();
+        key(KEY.ENTER);
+        expect(calls().filter((c) => c.includes("createCollection"))).toEqual([
+            call(`${MOD}.createCollection`, "Parks", false, city.assets.parkA.entity),
+        ]);
+        expect(calls().filter((c) => c.includes("toolbar.selectAsset"))).toEqual([]);
+    });
+
     it("won't take a name that's already used, or none", () => {
         const city = start({ style: "pane" });
         setCollections([{ name: "Parks", assets: [] }], city);
         click(item(FOLDER));
         click(row("New collection (this city)"));
-        accept();
+        key(KEY.ENTER);
         type("parks");
         expect(paneLines()).toContain("There's already a collection called 'parks'");
-        accept();
+        key(KEY.ENTER);
         expect(calls().filter((c) => c.includes("createCollection"))).toEqual([]);
     });
 
@@ -142,14 +175,35 @@ describe("Collections", () => {
         setCollections([{ id: "c1", name: "Parks", assets: [] }], city);
         click(item("icon/Parks.svg"));
         rightClick(item("icon/ParkA.svg"));
+        hover(contextEntry("Collections").parentElement!);
         click(contextEntry("Add to 'Parks'"));
         expect(calls()).toContain(call(`${MOD}.addToCollection`, "c1", city.assets.parkA.entity));
         rightClick(item("icon/ParkA.svg"));
         expect(contextMenuTexts()).toContain("col: Parks");
+        click(contextEntry("Collections"));
         click(contextEntry("Remove from 'Parks'"));
         expect(calls()).toContain(call(`${MOD}.removeFromCollection`, "c1", city.assets.parkA.entity));
         rightClick(item("icon/ParkA.svg"));
+        click(contextEntry("Collections"));
         expect(contextMenuTexts()).toContain("Add to 'Parks'");
+    });
+
+    it("keeps many collections in a bounded, scrollable submenu with creation always reachable", () => {
+        const city = start();
+        setCollections(Array.from({ length: 100 }, (_, i) => ({ id: `c${i}`, name: `Collection ${i}`, assets: [] })), city);
+        click(item("icon/Parks.svg"));
+        rightClick(item("icon/ParkA.svg"));
+        expect(contextMenuTexts()).not.toContain("Add to 'Collection 0'");
+        hover(contextEntry("Collections").parentElement!);
+        expect(contextMenuTexts()).toContain("Add to 'Collection 0'");
+        expect(contextMenuTexts()).not.toContain("Add to 'Collection 99'");
+        const list = contextEntry("Add to 'Collection 0'").parentElement!.parentElement!;
+        for (let i = 0; i < 35; i++) fireEvent.wheel(list, { deltaY: 100 });
+        expect(contextMenuTexts()).toContain("Add to 'Collection 99'");
+        expect(contextMenuTexts()).not.toContain("Add to 'Collection 0'");
+        expect(contextMenuTexts()).toContain("Add to new collection (this city)...");
+        click(contextEntry("Add to 'Collection 99'"));
+        expect(calls()).toContain(call(`${MOD}.addToCollection`, "c99", city.assets.parkA.entity));
     });
 
     it("finds a collection's assets with col:, by any word of its name", () => {
@@ -194,12 +248,12 @@ describe("Collections", () => {
         click(contextEntry("Rename..."));
         expect(input().value).toBe("Parks");
         type("Green");
-        accept();
+        key(KEY.ENTER);
         expect(calls()).toContain(call(`${MOD}.renameCollection`, "c7", "Green"));
         rightClick(row("Green"));
         click(contextEntry("Delete collection..."));
         expect(paneLines()).toContain("Delete 'Green'?");
-        accept();
+        key(KEY.ENTER);
         expect(calls()).toContain(call(`${MOD}.deleteCollection`, "c7"));
         expect(rowTexts()).toEqual(["New collection (this city)", "New collection (all cities)"]);
     });
@@ -217,6 +271,7 @@ describe("Collections", () => {
         const city = start({ style: "pane" });
         type("park");
         rightClick(item("icon/ParkA.svg"));
+        click(contextEntry("Collections"));
         click(contextEntry("Add to new collection (this city)..."));
         expect(input().value).toBe("");
         type("Parks");
@@ -224,6 +279,7 @@ describe("Collections", () => {
         expect(calls()).toContain(call(`${MOD}.createCollection`, "Parks", false, city.assets.parkA.entity));
         expect(input().value).toBe("park");
         rightClick(item("icon/ParkB.svg"));
+        click(contextEntry("Collections"));
         click(contextEntry("Add to new collection (all cities)..."));
         type("Nope");
         escape();

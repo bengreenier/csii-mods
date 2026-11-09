@@ -9,6 +9,7 @@ import { ChipList } from "./asset-chips";
 import { Chip } from "./query/chips";
 import styles from "./shared.module.scss";
 import { TintedIcon } from "./tinted-icon";
+import { ContextSubmenu } from "./context-submenu";
 
 // What was right-clicked: an asset, or a collection (in the Collections
 // level). Add a kind here and handle it in the action provider
@@ -30,7 +31,9 @@ export interface ContextAction {
     // Draws `icon` as a single-colour glyph in this colour (TintedIcon).
     iconColor?: string;
     disabled?: boolean;
-    onSelect: () => void;
+    onSelect?: () => void;
+    // Footer actions stay reachable even when the list has hundreds of entries.
+    submenu?: { actions: ContextAction[]; footer?: ContextAction[] };
 }
 
 export interface OpenContextMenu {
@@ -63,6 +66,11 @@ interface ContextMenuProps {
 export const ContextMenu = ({ x, y, actions, title, chips, onChipClick, onClose }: ContextMenuProps) => {
     const ref = useRef<HTMLDivElement>(null);
     const [pos, setPos] = useState({ x, y });
+    const [submenu, setSubmenu] = useState<{ id: string; row: HTMLElement } | null>(null);
+    const submenuActions = actions.find((a) => a.id === submenu?.id)?.submenu;
+    const openSubmenu = (action: ContextAction, row: HTMLElement) => {
+        setSubmenu(action.submenu && !action.disabled ? { id: action.id, row } : null);
+    };
 
     // Measured before paint, so an off-screen first position is never shown.
     useLayoutEffect(() => {
@@ -92,6 +100,7 @@ export const ContextMenu = ({ x, y, actions, title, chips, onChipClick, onClose 
                 e.preventDefault();
             }}
             onWheel={(e) => e.stopPropagation()}
+            onMouseLeave={() => setSubmenu(null)}
         >
             {(title || (chips && chips.length > 0)) && (
                 <div className={styles.contextDetails}>
@@ -103,11 +112,18 @@ export const ContextMenu = ({ x, y, actions, title, chips, onChipClick, onClose 
                 <div
                     key={action.id}
                     className={classNames(styles.contextAction, action.disabled && styles.contextActionDisabled)}
-                    onClick={() => {
+                    onMouseEnter={(e) => openSubmenu(action, e.currentTarget)}
+                    onClick={(e) => {
                         if (action.disabled) return;
-                        action.onSelect();
+                        if (action.submenu) {
+                            openSubmenu(action, e.currentTarget);
+                            return;
+                        }
+                        action.onSelect?.();
                         onClose();
                     }}
+                    aria-haspopup={action.submenu ? "menu" : undefined}
+                    aria-expanded={action.submenu ? submenu?.id === action.id : undefined}
                 >
                     {action.icon &&
                         (action.iconColor ? (
@@ -116,8 +132,19 @@ export const ContextMenu = ({ x, y, actions, title, chips, onChipClick, onClose 
                             <img className={styles.contextActionIcon} src={action.icon} />
                         ))}
                     <div className={styles.contextActionLabel}>{action.label}</div>
+                    {action.submenu && <div className={styles.contextActionArrow}>{">"}</div>}
                 </div>
             ))}
+            {submenu && submenuActions && (
+                <ContextSubmenu
+                    key={submenu.id}
+                    row={submenu.row}
+                    origin={pos}
+                    actions={submenuActions.actions}
+                    footer={submenuActions.footer}
+                    onClose={onClose}
+                />
+            )}
         </div>
     );
 };

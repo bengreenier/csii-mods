@@ -405,16 +405,17 @@ capped at 40 characters.
   all-cities ones (titled "<name> (all cities)"), each opening a level with its
   assets in the order added, then "New collection (this city)" and "New
   collection (all cities)". An empty collection stays until deleted.
-- **Adding and removing:** an asset's right-click menu has "Add to '<name>'"
-  or "Remove from '<name>'" for every collection, then "Add to new collection
-  (this city)..." and "(all cities)...", which make a collection with the
-  asset already in it.
+- **Adding and removing:** an asset's right-click menu has a **Collections >**
+  submenu, opened by hovering or clicking. Its bounded list scrolls with the
+  mouse wheel and offers "Add to '<name>'" or "Remove from '<name>'" for every
+  collection. "Add to new collection (this city)..." and "(all cities)..."
+  stay visible below the list and make a collection with the asset already in it.
 - **Naming (the prompt):** making or renaming a collection, or deleting one,
   opens a prompt level (`PromptLevel`; `Path.prompt` in `navigation.ts`). The
   search field takes the name: it starts empty (renaming: with the old name)
   and gets the keyboard, even in the sidebar. The hub, or the pane's hint and
   detail, say what Enter will do: "Enter: create '<name>'", or why it won't
-  (no name yet, or one that's taken). Enter (the accept key) acts, without
+  (no name yet, or one that's taken). Enter in the field (or the bound accept key) acts, without
   ever offering a search completion, and returns to where the prompt was
   opened, with the search that was typed there back in the field. One Escape
   cancels, typed name and all. Deleting asks "Delete
@@ -475,8 +476,8 @@ starts with its name (`usePrefabTitle`, as the hub title) and all of its
 metadata chips (see Hub display), then a divider and its actions:
 
 - "Add to favorites" or "Remove from favorites";
-- "Add to '<name>'" or "Remove from '<name>'" per collection, then "Add to
-  new collection (this city)..." and "(all cities)..." (see Collections);
+- **Collections >**, a flyout containing the collection add/remove actions
+  and the two new-collection actions (see Collections);
 - for a mod asset, "Copy Paradox Mods link"
   (`https://mods.paradoxplaza.com/mods/<id>/Windows`, `modId` from `assetMeta`);
 - for a DLC asset, "Copy Steam store link": the DLC's Steam page
@@ -560,7 +561,7 @@ steps back a level; Escape and clicking the hub do.
 | `session.tsx` | Keys (accept event / Escape) | no |
 | `level-frame.tsx` | What the accept key does on a level (completion, or the only placeable match) | no |
 | `views/radial/wheel.tsx` | Hub display | no |
-| `context-menu.tsx` / `context-actions.ts` | Right-click menu on wheel items, and the actions each item offers | no |
+| `context-menu.tsx` / `context-submenu.tsx` / `context-actions.ts` | Right-click menu, bounded scrolling flyout, and the actions each item offers | no |
 | `store-links.ts` | DLC store / Paradox Mods URLs for "Copy ... link" | yes |
 | `asset-data.ts` | Shared lookups: `useAssetMetaByKey` (cached per list), `useThemes`, `assetTitle` / `themeTitle` | no |
 | `query/chips.ts` / `asset-chips.tsx` / `views/radial/hub-chips.tsx` | An asset's metadata chips: fitted in the hub, in full in the context menu | chips.ts yes |

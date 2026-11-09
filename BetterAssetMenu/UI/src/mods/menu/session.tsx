@@ -78,6 +78,19 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
     const [path, setPath] = useState<Path>(ROOT);
     const [query, setQuery] = useState("");
     const submitRef = useRef<(() => void) | null>(null);
+    const promptOpen = useRef(false);
+    promptOpen.current = !!path.prompt;
+    const lastPromptAcceptAt = useRef(-Infinity);
+    // Prompts accept Enter directly from the text field as well as the bound
+    // accept key. A single physical press can arrive through both routes;
+    // consume its second delivery even after returning to the previous level.
+    const acceptPrompt = useCallback(() => {
+        if (Date.now() - lastPromptAcceptAt.current < BACK_DEBOUNCE_MS) return true;
+        if (!promptOpen.current) return false;
+        lastPromptAcceptAt.current = Date.now();
+        submitRef.current?.();
+        return true;
+    }, []);
     const completionRef = useRef<string | null>(null);
     const commandsRef = useRef<ViewCommands>({});
     const [example] = useState(() => FILTER_EXAMPLES[Math.floor(Math.random() * FILTER_EXAMPLES.length)]);
@@ -97,6 +110,7 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
     const queryRef = useRef(query);
     queryRef.current = query;
     const startPrompt = useCallback((request: PromptRequest) => {
+        lastPromptAcceptAt.current = -Infinity;
         setPath((p) =>
             promptPath(
                 p.prompt
@@ -312,12 +326,13 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
             if (contextOpen.current) return;
             // C# only sends it while typing; this guards a stale focus report.
             if (persistent && document.activeElement !== inputRef.current) return;
+            if (acceptPrompt()) return;
             if (complete()) return;
             if (commandsRef.current.accept?.()) return;
             submitRef.current?.();
         });
         return () => subscription.dispose();
-    }, [complete, persistent]);
+    }, [acceptPrompt, complete, persistent]);
 
     // Release focus when the menu closes. The game only clears its "text field
     // focused" state (which blocks keyboard actions like the pause menu) on a
@@ -338,9 +353,11 @@ export const MenuSession = ({ backRef }: { backRef: MutableRefObject<(() => void
             e.preventDefault();
             back();
         } else if (e.keyCode === KEY_ENTER) {
-            // Handled via the configurable accept key (Enter by default) from
-            // the C# side; see the acceptSuggestion$ subscription below.
             e.preventDefault();
+            // Naming must not depend on a game input action reaching the UI
+            // while this text field owns the keyboard. Search still uses only
+            // the configurable C# accept event.
+            if (path.prompt && !contextOpen.current && !e.repeat) acceptPrompt();
         } else if (e.keyCode === KEY_TAB) {
             e.preventDefault(); // don't move focus out of the field
             commandsRef.current.onKey?.(e.keyCode, e.currentTarget);
