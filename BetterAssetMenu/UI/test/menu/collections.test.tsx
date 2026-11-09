@@ -206,6 +206,23 @@ describe("Collections", () => {
         expect(calls()).toContain(call(`${MOD}.addToCollection`, "c99", city.assets.parkA.entity));
     });
 
+    it("flips the submenu left and up at the screen's edges, without measuring itself", () => {
+        // Gameface reads a just-mounted element as 0x0 (as jsdom does), so the
+        // submenu's size has to come from its known geometry.
+        const city = start();
+        setCollections([{ id: "c1", name: "Parks", assets: [] }], city);
+        click(item("icon/Parks.svg"));
+        rightClick(item("icon/ParkA.svg"), { clientX: 800, clientY: 600 });
+        const row = contextEntry("Collections").parentElement!;
+        row.getBoundingClientRect = () => ({ left: 800, right: 1000, top: 700, bottom: 740, width: 200, height: 40, x: 800, y: 700, toJSON: () => ({}) });
+        hover(row);
+        const submenu = contextEntry("Add to 'Parks'").parentElement!.parentElement!.parentElement!; // label > row > list > flyout
+        // 380 wide doesn't fit right of 1000 in 1024: ends 2 past the row's left.
+        expect(submenu.style.left).toBe(`${800 - 380 + 2 - 800}px`);
+        // 16 chrome + 1 row + separator and 2 footer rows = 142 tall: kept 8 above the bottom.
+        expect(submenu.style.top).toBe(`${768 - 142 - 8 - 600}px`);
+    });
+
     it("finds a collection's assets with col:, by any word of its name", () => {
         const city = start();
         setCollections([{ name: "Green Space", assets: [city.assets.parkB, city.assets.gravelRoad] }], city);

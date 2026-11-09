@@ -11,6 +11,11 @@ import styles from "./shared.module.scss";
 const ROW_HEIGHT = 40;
 const MAX_ROWS = 8;
 const EDGE = 8;
+// Must match .contextSubmenu / .contextMenu / .contextSubmenuFooter in
+// shared.module.scss (width; padding + border; border + margin).
+const WIDTH = 380;
+const CHROME = 16;
+const FOOTER_SEPARATOR = 6;
 
 export const ContextSubmenu = ({ row, origin, actions, footer = [], onClose }: {
     row: HTMLElement;
@@ -21,7 +26,8 @@ export const ContextSubmenu = ({ row, origin, actions, footer = [], onClose }: {
 }) => {
     const ref = useRef<HTMLDivElement>(null);
     const remPx = useCssLength("1rem");
-    const available = Math.max(ROW_HEIGHT, (window.innerHeight - 2 * EDGE) / remPx - 16 - footer.length * ROW_HEIGHT);
+    const footerHeight = footer.length * ROW_HEIGHT + (footer.length && actions.length ? FOOTER_SEPARATOR : 0);
+    const available = Math.max(ROW_HEIGHT, (window.innerHeight - 2 * EDGE) / remPx - CHROME - footerHeight);
     const geometry = { rowHeight: ROW_HEIGHT, listHeight: Math.min(actions.length * ROW_HEIGHT, MAX_ROWS * ROW_HEIGHT, available) };
     const [scroll, setScroll] = useState(0);
     const offset = clampOffset(scroll, actions.length, geometry);
@@ -29,15 +35,17 @@ export const ContextSubmenu = ({ row, origin, actions, footer = [], onClose }: {
     const thumb = scrollThumb(offset, actions.length, geometry);
     const [pos, setPos] = useState({ x: 0, y: 0 });
     useLayoutEffect(() => {
-        if (!ref.current) return;
         const anchor = row.getBoundingClientRect();
-        const { width, height } = ref.current.getBoundingClientRect();
+        // Computed, not measured: Gameface lays out a just-mounted element
+        // later, so getBoundingClientRect() here reads 0x0 and nothing flips.
+        const width = Math.min(WIDTH * remPx, 0.9 * window.innerWidth);
+        const height = (CHROME + geometry.listHeight + footerHeight) * remPx;
         // Touch the parent's edge, so moving into the flyout never crosses a
         // dead hover gap. Flip left when there isn't room on the right.
         const x = anchor.right + width <= window.innerWidth - EDGE ? anchor.right - 2 : anchor.left - width + 2;
         const y = Math.max(EDGE, Math.min(anchor.top, window.innerHeight - height - EDGE));
         setPos({ x: Math.max(EDGE, x) - origin.x, y: y - origin.y });
-    }, [row, origin.x, origin.y, actions.length, footer.length, geometry.listHeight]);
+    }, [row, origin.x, origin.y, remPx, footerHeight, geometry.listHeight]);
 
     const renderAction = (action: ContextAction, top?: number) => (
         <div
