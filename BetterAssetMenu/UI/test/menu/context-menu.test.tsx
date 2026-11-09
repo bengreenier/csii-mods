@@ -40,8 +40,8 @@ describe("opening", () => {
             "SmallRoad",
             "width: 2u",
             "Add to favorites",
-            "Add to new collection (this city)...",
-            "Add to new collection (all cities)...",
+            "Collections",
+            ">",
         ]);
     });
 

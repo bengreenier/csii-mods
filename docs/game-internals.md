@@ -268,6 +268,13 @@ sidebar don't reach the active tool underneath.
     way. It stays disabled (its binding is just data) and has its own usage,
     `BetterAssetMenuSearch`, so it never conflicts with game shortcuts. It fires the
     `acceptSuggestion` UI event.
+- Collection prompts also accept Enter directly in the field's `onKeyDown`.
+  Previously that handler discarded Enter and depended entirely on the C#
+  accept event, leaving naming stuck when that event wasn't delivered. Search
+  still uses only the rebindable C# event. Prompts handle either route through
+  one handler, ahead of completion/row selection, and suppress a duplicate
+  delivery for 100 ms even after returning to the previous search (otherwise
+  one Enter could create a collection and place the result behind the prompt).
 - The field is blurred in a layout-effect cleanup before it unmounts, matching
   vanilla, which blurs text fields on Escape/Enter.
 
@@ -874,6 +881,15 @@ When adding a cache, either key it on data C# resends, or clear it in
   production build's CSS minifier writes `n+k`, which Gameface rejects: the
   whole rule is dropped, with `CSS parsing error "syntax error" near text: +k`
   in `UI.log`. Use `:nth-child(k) ~ *` instead (`hide-vanilla.module.scss`).
+- **A just-mounted element measures 0x0.** Gameface lays out later than a
+  browser: `getBoundingClientRect()` on a new element (in `useLayoutEffect`,
+  or straight after `appendChild`) returns all zeros. Checked in game on
+  2026-11-08: the collections flyout never flipped away from the screen's right
+  edge until `context-submenu.tsx` computed its size from its fixed CSS
+  geometry instead. Elements that were already laid out (the row it anchors
+  to) measure fine. `ContextMenu`'s own edge clamp measures itself the same
+  way, so it doesn't flip either: seen overhanging the right margin by 5px
+  (its width is content-sized, so it can't simply be computed). Not fixed yet.
 - **Adjacent JSX text nodes** render as separate lines in Gameface. Build one
   string per element.
 - **Font:** the UI font lacks `·` `→` `…`. Keep hub text ASCII.

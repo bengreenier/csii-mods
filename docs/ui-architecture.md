@@ -50,7 +50,9 @@ Also shared by any view: `actions.ts` (selecting and placing), `navigation.ts`,
     mouse wheel itself).
   - `onKey`: arrows and Tab, with the field (for its caret).
   - `accept`: the accept key after a completion hint had its turn; unset or
-    false falls back to `LevelFrame`'s "only placeable match".
+    false falls back to `LevelFrame`'s "only placeable match". A prompt's
+    `onSubmit` takes precedence over both. The session accepts Enter directly
+    for prompts, and deduplicates it against the bound accept event.
 - **One view never imports from another.** Shared pieces live in `menu/`
   (e.g. `clampToView` in `mouse.ts`, used by both to open at the cursor).
 - **Levels never render a view directly**; they render `LevelFrame`.

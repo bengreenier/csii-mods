@@ -60,10 +60,11 @@ export function useContextActions(onPrompt: (prompt: PromptRequest) => void): Co
                                   onSelect: () => addFavorite(entity),
                               },
                     ];
-                    // Each collection: add, or remove if it's in it already.
+                    // Keep the growing collection list out of the root menu.
+                    const collectionActions: ContextAction[] = [];
                     const inCollections = new Set((collections.byAsset.get(key) ?? []).map((c) => c.id));
                     for (const c of collections.list) {
-                        actions.push(
+                        collectionActions.push(
                             inCollections.has(c.id)
                                 ? {
                                       id: `collection:${c.id}`,
@@ -80,7 +81,7 @@ export function useContextActions(onPrompt: (prompt: PromptRequest) => void): Co
                                   }
                         );
                     }
-                    actions.push(
+                    const newCollectionActions: ContextAction[] = [
                         {
                             id: "newCollection",
                             label: "Add to new collection (this city)...",
@@ -94,8 +95,14 @@ export function useContextActions(onPrompt: (prompt: PromptRequest) => void): Co
                             icon: NEW_COLLECTION_ICON,
                             iconColor: ACTION_COLOR,
                             onSelect: () => onPrompt({ kind: "create", global: true, asset: entity }),
-                        }
-                    );
+                        },
+                    ];
+                    actions.push({
+                        id: "collections",
+                        label: "Collections",
+                        icon: COLLECTION_ICON,
+                        submenu: { actions: collectionActions, footer: newCollectionActions },
+                    });
                     const modId = metaByKey.get(key)?.modId;
                     const dlcUrl = dlcStoreUrl(dlc, steamAppIds);
                     if (modId) {
