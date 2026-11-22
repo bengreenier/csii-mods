@@ -18,14 +18,17 @@ S=.claude/skills/cs2-in-game-test/scripts
 W="powershell -NoProfile -ExecutionPolicy Bypass -File $S/win.ps1"
 
 bash $S/game.sh status                 # nothing running? (another session may own the game)
+# back up the user's saves and settings: "Protect the user's saves" below
 # build + deploy the mod first, gated (see cs2-ui-modding rule 1)
 bash $S/game.sh launch                 # runOnce.txt + steam://rungameid/949230
 bash $S/game.sh play                   # clicks PLAY in the Paradox launcher
 bash $S/game.sh wait-mode MainMenu 240 # ~40s
+node $S/settings.mjs set GeneralSettings.autoSave false  # must succeed before newgame, see below
 node $S/cdp.mjs newgame Plains         # new city, user's default options
 bash $S/game.sh wait-mode Game 180     # ~10s
 # ... test (below) ...
 bash $S/game.sh stop                   # ALWAYS, also when stuck or on error
+# restore the settings and check the saves: "Protect the user's saves" below
 ```
 
 **Always end with `game.sh stop`**, on every exit path, and confirm that
@@ -34,6 +37,49 @@ DLLs, so the next `dotnet build` wipes the mod folder. `stop` also deletes a
 leftover `runOnce.txt`, which would otherwise apply dev flags to the user's
 next normal launch. Give each `wait*` a timeout; if one times out, screenshot
 first to see why, then stop.
+
+## Protect the user's saves
+
+**A test city's autosave deletes the user's own autosaves.** The game keeps
+only the newest autosaves ("Autosave count"), across all cities:
+`AutoSaveSystem.PruneAutoSaves` deletes the rest after each autosave. On
+2026-11-22 (1.6.4f1) a throwaway city autosaved after about 5 minutes. With the
+count at One, that deleted the user's last real autosave, for good. It also
+made the test city the Continue save.
+
+Before launching, back up the saves (about 1.6 GB on 2026-11-22) and the
+settings files. The game must be closed:
+
+```bash
+U="${CSII_USERDATAPATH:-$USERPROFILE/AppData/LocalLow/Colossal Order/Cities Skylines II}"
+B=$(mktemp -d /tmp/cs2-backup-XXXXXX); echo "$B"   # note it: later commands may run in a new shell
+cp -rp "$U/Saves" "$B/"
+cp -p "$U"/{UserState,Settings,BetterAssetMenu}.coc "$U/continue_game.json" "$B/"  # .coc of the mod under test
+```
+
+In the main menu, before `newgame` or loading a save, turn autosave off:
+`settings.mjs set GeneralSettings.autoSave false`. If it fails or the value
+doesn't read back as false, don't enter a city. (The option's path comes from
+decompiled `GeneralSettings`; this step hasn't been run in game yet. The backup
+covers you either way.)
+
+After `game.sh stop`, compare and put everything back:
+
+```bash
+diff -rq "$B/Saves" "$U/Saves"   # "Only in <backup>": deleted; "Only in <user>": new
+```
+
+- **Deleted:** copy it back (`cp -p`, the `.cok` with its `.cok.cid`).
+- **New:** delete it only if this session made it (your test city, by time).
+  If the user could have played meanwhile, ask.
+- **Differs:** look before copying back; don't overwrite a save the user made.
+- **Settings files:** compare each with the backup, then copy them back. The
+  game rewrites `Settings.coc` in another order, so expect a big diff. Restoring
+  it also turns autosave back on. `UserState.coc` holds `lastSaveGameMetadata`,
+  the Continue save; `continue_game.json` is the launcher's Continue tile.
+
+Tell the user about anything that was lost or that you couldn't put back.
+Delete the backup once the saves match.
 
 ## How it works
 
@@ -64,10 +110,9 @@ first to see why, then stop.
   - `-startGame=<guid>` doesn't help: the `Maps/*.cok.cid` GUIDs are package
     IDs, which `AutoLoad` rejects. The MapMetadata ID only exists at runtime
     (`menu.maps`).
-- **Throwaway cities aren't saved**: nothing was written to `Saves/` or
-  `continue_game.json` in a few minutes of play. Longer sessions may autosave,
-  so check `find "$CSII_USERDATAPATH/Saves" -newer /tmp/cs2-launch-mark` and
-  tell the user if anything appeared.
+- **Throwaway cities do get autosaved**, after as little as 5 minutes (the
+  user's "Autosave interval"), at the cost of the user's own autosaves. See
+  [Protect the user's saves](#protect-the-users-saves).
 
 ## Inspecting and driving the game
 
@@ -173,10 +218,9 @@ node $S/settings.mjs set MenuStyle Radial     # prints old value + the command t
   - Close the game first. A launcher still holding a crashed game shows
     "currently operating on playsets"; click OK, then `game.sh play`.
   - Put the playset back afterwards.
-- **Back up `continue_game.json`** before the first launch. Long sessions
-  autosave throwaway cities, which also repoints the launcher's Continue tile;
-  delete session saves (`find Saves -newer <mark>`) and restore the file at
-  the end. A scripted save needs the save screen open first
+- **Saves:** back them up first
+  ([Protect the user's saves](#protect-the-users-saves)). Loading a save also
+  repoints Continue. A scripted save needs the save screen open first
   (`game.setActiveScreen` 11, then `menu.saveGame "<name>"`); `menu.continueGame`
   loads the newest save.
 
