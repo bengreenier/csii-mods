@@ -19,9 +19,25 @@
     .onlyGroup#{$k}.onlyGroup#{$k} > :nth-child(#{$k}) ~ * {
         display: none;
     }
+    // Vanilla spaces each group from the one before it, hidden or not. Tripled:
+    // doubled would only tie with vanilla's legacy-interface rule.
+    .onlyGroup#{$k}.onlyGroup#{$k}.onlyGroup#{$k} > :nth-child(#{$k}) {
+        margin-left: 0;
+    }
+}
+
+// Its button looks like the right-hand ones it's shown with: on a dark disc
+// (the tabs' are see-through in the default interface). The legacy interface's
+// buttons don't use this variable.
+.movedStrip {
+    --toolbarToolButtonColor: var(--toolbarButtonColor);
 }
 
 // Same as vanilla's divider between the toolbar's right-hand buttons.
 .divider {
     flex: 0 1 10rem;
+}
+
+:global(.legacy-interface) .divider {
+    flex: 0 1 20rem;
 }

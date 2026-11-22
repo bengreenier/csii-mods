@@ -6,6 +6,7 @@ import {
     DEFAULT_FLOATING_HEIGHT,
     DEFAULT_WIDTH,
     dropPlacement,
+    insetsFor,
     listGeometry,
     MAX_WIDTH,
     MIN_HEIGHT,
@@ -86,6 +87,23 @@ describe("resizing", () => {
     it("clamps to the width range and the smallest height", () => {
         expect(resized({ width: 440, height: 600 }, { x: 1, y: 1 }, -1000, -1000, 1)).toEqual({ width: MIN_WIDTH, height: MIN_HEIGHT });
         expect(resized({ width: 440, height: 600 }, { x: 1, y: 0 }, 1000, 0, 1).width).toBe(MAX_WIDTH);
+    });
+});
+
+describe("insetsFor", () => {
+    it("matches the default insets for the default interface at 100%", () => {
+        expect(insetsFor(100, 32, 1)).toEqual({ bottom: BOTTOM_INSET, right: RIGHT_INSET });
+        expect(insetsFor(100 * 4, 32 * 4, 4)).toEqual({ bottom: BOTTOM_INSET, right: RIGHT_INSET });
+    });
+
+    it("clears a bigger toolbar and column (game 1.6.4: toolbar scale 130%, legacy interface)", () => {
+        expect(insetsFor(130, 41.6, 1)).toEqual({ bottom: 134, right: 61.6 });
+        expect(insetsFor(121, 46, 1)).toEqual({ bottom: 125, right: 66 });
+    });
+
+    it("falls back for parts that weren't found", () => {
+        expect(insetsFor(0, 0, 1)).toEqual({ bottom: BOTTOM_INSET, right: RIGHT_INSET });
+        expect(insetsFor(130, 46, 0)).toEqual({ bottom: BOTTOM_INSET, right: RIGHT_INSET });
     });
 });
 

@@ -37,6 +37,7 @@ import {
     SidebarSize,
     ViewSize,
 } from "./layout";
+import { useToolbarInsets } from "./toolbar-insets";
 import styles from "./sidebar.module.scss";
 
 const MOUSE_PRIMARY = 0;
@@ -89,6 +90,7 @@ export const SidebarFrame = ({ searchField, children }: { searchField: ReactNode
     const { contextKey, closeContext } = useMenuSession();
     const view = useViewSize();
     const remPx = useCssLength("1rem");
+    const insets = useToolbarInsets(remPx);
     // Fixed while open, like the pane's size: rescaling would move it.
     const liveScale = useValue(sidebarScale$);
     const [scale] = useState(liveScale);
@@ -117,9 +119,9 @@ export const SidebarFrame = ({ searchField, children }: { searchField: ReactNode
     if (gesture?.kind === "move" && gesture.corner) {
         box = { ...sidebarBox(PLACEMENT_FLOATING, ORIGIN, size, view, unit, remPx), ...gesture.corner };
     } else if (gesture?.kind === "resize" && gesture.size) {
-        box = sidebarBox(current.placement, current, gesture.size, view, unit, remPx);
+        box = sidebarBox(current.placement, current, gesture.size, view, unit, remPx, insets);
     } else {
-        box = sidebarBox(current.placement, current, size, view, unit, remPx);
+        box = sidebarBox(current.placement, current, size, view, unit, remPx, insets);
     }
 
     // Follows the mouse anywhere on screen while the button is held.

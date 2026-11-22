@@ -96,6 +96,22 @@ for (const [key, where] of modules) {
     else ok(key);
 }
 
+// Class keys the UI reads from vanilla's CSS modules (toolbar-insets.ts). The
+// bundle declares each module's classes just before registering it.
+const CLASS_KEYS = {
+    "game-ui/game/components/toolbar/toolbar.module.scss": ["toolbar", "bulldozeBar"],
+    "game-ui/game/components/toolbar/toolbar-legacy.module.scss": ["toolbar", "bulldozeBar"],
+    "game-ui/game/components/right-menu/right-menu.module.scss": ["rightMenu"],
+};
+for (const [modulePath, keys] of Object.entries(CLASS_KEYS)) {
+    const end = bundle.indexOf(`.add("${modulePath}",{`);
+    const declared = end < 0 ? "" : bundle.slice(bundle.lastIndexOf("let ", end), end);
+    for (const key of keys) {
+        if (new RegExp(`[{,]"?${key}"?:"`).test(declared)) ok(`${modulePath} .${key}`);
+        else missing(`${modulePath} .${key}`, "the sidebar falls back to fixed insets (layout.ts)");
+    }
+}
+
 // cs2/bindings namespace members the UI uses, e.g. toolbar.selectAsset. The
 // bundle exports each as <name>:()=>... in its namespace's export list.
 const members = new Map();
@@ -143,7 +159,13 @@ function decompile(dll, type) {
 }
 
 // Full names of the vanilla types the C# reflects over (typeof(X).GetField).
-const TYPE_NAMES = { ToolSystem: "Game.Tools.ToolSystem" };
+const TYPE_NAMES = {
+    ToolSystem: "Game.Tools.ToolSystem",
+    UISystemBase: "Game.UI.UISystemBase",
+    TriggerBinding: "Colossal.UI.Binding.TriggerBinding",
+};
+// The DLL of those that aren't in Game.dll.
+const TYPE_DLLS = { "Colossal.UI.Binding.TriggerBinding": "Colossal.UI.Binding.dll" };
 
 // Vanilla methods to fingerprint, and what to do when one changes.
 const FINGERPRINTS = [
@@ -188,7 +210,8 @@ console.log(`\nGame.dll: ${path.join(MANAGED, "Game.dll")}`);
 const gameDll = path.join(MANAGED, "Game.dll");
 const decompiled = new Map();
 const typeCode = (type) => {
-    if (!decompiled.has(type)) decompiled.set(type, decompile(gameDll, type));
+    const dll = TYPE_DLLS[type] ? path.join(MANAGED, TYPE_DLLS[type]) : gameDll;
+    if (!decompiled.has(type)) decompiled.set(type, decompile(dll, type));
     return decompiled.get(type);
 };
 

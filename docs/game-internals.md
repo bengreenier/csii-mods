@@ -49,6 +49,8 @@ group) is still in the sections below.
 | `game-ui/game/components/toolbar/top/toolbar-button-strip/toolbar-button-strip.tsx` | `ToolbarButtonStrip` | `hide-vanilla.tsx` (`trimStrip`) | Guarded (try/catch). The vanilla tab strip is no longer hidden |
 | `game-ui/game/components/asset-menu/asset-menu.tsx` | `AssetMenu` | `hide-vanilla.tsx` | Same; the vanilla asset panel shows again |
 | `game-ui/game/components/asset-menu/console-asset-menu.tsx` | `ConsoleAssetMenu` | `hide-vanilla.tsx` | Same, for the gamepad UI |
+| `game-ui/game/components/toolbar/toolbar.module.scss`, `toolbar-legacy.module.scss` | `classes` (`toolbar`, `bulldozeBar`) | `views/sidebar/toolbar-insets.ts` | Guarded. The docked sidebar uses fixed insets (`layout.ts`), right only for the default interface at toolbar scale 100% |
+| `game-ui/game/components/right-menu/right-menu.module.scss` | `classes` (`rightMenu`) | `views/sidebar/toolbar-insets.ts` | Same, for the right-hand buttons column |
 
 Runtime exports that differ from the typings:
 
@@ -428,6 +430,25 @@ both places:
 - the bulldozer has a group to itself. If not (game update, or a mod adds to
   its group), a `bulldozer doesn't have a toolbar group to itself` warning in
   `UI.log` lists the groups.
+
+Vanilla has two toolbars: `toolbar.tsx` (default) and `toolbar-legacy.tsx`
+(Options > Interface > Use legacy interface; `body.legacy-interface`). Both
+render the same strip and `EconomyPanelToggle`, so the hooks work in either,
+but they're sized and styled apart (checked in game, 1.6.4f1):
+
+| | Default | Legacy |
+|---|---|---|
+| Toolbar height | 100rem x "Toolbar scale" (80-130%) | 121rem; 135 at "Text scale" 150% |
+| Right-hand buttons column, left edge from the right | 42rem; 51.6 at 130% | 56rem |
+| Right-hand buttons | on a dark disc (`--toolbarButtonColor`) | ringed, no fill |
+| Tab buttons | see-through (`--toolbarToolButtonColor`) | no fill |
+| Divider between right-hand buttons | 10rem | 20rem |
+
+So the moved bulldozer's copy overrides `--toolbarToolButtonColor` to get the
+disc, and its divider follows `.legacy-interface`. It also drops the group's
+left margin (60rem, 30 in legacy), which vanilla's `.group + .group` adds even
+though the groups before it are hidden. The docked sidebar measures the toolbar
+and column instead of assuming a size (`toolbar-insets.ts`).
 
 Known side effects:
 - There are two bulldozer buttons (the hidden original and the copy). A
