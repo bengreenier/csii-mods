@@ -57,7 +57,7 @@ const withMovedBulldozer = (Component: ComponentType<any>) => (props: any) => {
     if (movedGroup === null || !VanillaStrip) return <Component {...props} />;
     return (
         <>
-            <VanillaStrip enableShortcuts={false} className={styles[`onlyGroup${movedGroup + 1}`]} />
+            <VanillaStrip enableShortcuts={false} className={classNames(styles.movedStrip, styles[`onlyGroup${movedGroup + 1}`])} />
             <div className={styles.divider} />
             <Component {...props} />
         </>

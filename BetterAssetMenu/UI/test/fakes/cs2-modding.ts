@@ -38,9 +38,13 @@ function useInputController(state: number, transformer: ((stack: InputStack) => 
     inputController.transformer = transformer;
 }
 
+// Vanilla CSS modules' class names, by module path (empty unless a test sets them).
+export const vanillaClasses = new Map<string, Record<string, string>>();
+
 export function getModule(path: string, exportName: string): unknown {
     if (path === "game-ui/common/input-events/input-controller.ts" && exportName === "useInputController")
         return inputController.available ? useInputController : undefined;
+    if (exportName === "classes") return vanillaClasses.get(path);
     return undefined;
 }
 

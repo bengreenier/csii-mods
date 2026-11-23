@@ -26,12 +26,32 @@ export const MIN_HEIGHT = FIXED_HEIGHT + ROW_HEIGHT * MIN_ROWS;
 export const DEFAULT_FLOATING_HEIGHT = FIXED_HEIGHT + ROW_HEIGHT * 10;
 
 // Screen space the docked sidebar leaves to the game's own UI, in the game's
-// rem (before "Sidebar size"): the top corners' buttons, the bottom toolbar
-// (its top is at 980 of 1080), and on the right the map's buttons column
-// (x 1878-1910, above the toolbar). Measured in game at 1920x1080.
+// rem (before "Sidebar size"): the top corners' buttons, the bottom toolbar,
+// and on the right the map's buttons column above the toolbar. The last two are
+// measured in game (toolbar-insets.ts); these are for the default interface at
+// "Toolbar scale" 100%, used when that fails.
 export const TOP_INSET = 64;
 export const BOTTOM_INSET = 104;
 export const RIGHT_INSET = 52;
+
+export interface ScreenInsets {
+    bottom: number;
+    right: number;
+}
+
+export const DEFAULT_INSETS: ScreenInsets = { bottom: BOTTOM_INSET, right: RIGHT_INSET };
+
+// Room above the toolbar, and on either side of the buttons column (vanilla
+// puts it 10rem from the edge).
+const TOOLBAR_GAP = 4;
+const COLUMN_GAP = 10;
+
+// The insets (rem) for a toolbar and a buttons column of these sizes (view px;
+// 0 when one wasn't found).
+export const insetsFor = (toolbarPx: number, columnPx: number, remPx: number): ScreenInsets => ({
+    bottom: toolbarPx > 0 && remPx > 0 ? toolbarPx / remPx + TOOLBAR_GAP : BOTTOM_INSET,
+    right: columnPx > 0 && remPx > 0 ? columnPx / remPx + 2 * COLUMN_GAP : RIGHT_INSET,
+});
 // Dropping it this close to the left or right edge (px of rem) docks it there.
 export const SNAP_DISTANCE = 64;
 
@@ -72,14 +92,15 @@ export function sidebarBox(
     size: SidebarSize,
     view: ViewSize,
     unit: number,
-    remPx: number
+    remPx: number,
+    insets: ScreenInsets = DEFAULT_INSETS
 ): SidebarBox {
     const width = Math.min(clampWidth(size.width), view.width / unit);
     const top = TOP_INSET * remPx;
-    const available = Math.max(0, view.height - top - BOTTOM_INSET * remPx);
+    const available = Math.max(0, view.height - top - insets.bottom * remPx);
     if (placement === PLACEMENT_LEFT || placement === PLACEMENT_RIGHT) {
         return {
-            left: placement === PLACEMENT_LEFT ? 0 : Math.max(0, view.width - RIGHT_INSET * remPx - width * unit),
+            left: placement === PLACEMENT_LEFT ? 0 : Math.max(0, view.width - insets.right * remPx - width * unit),
             top,
             width,
             height: Math.max(available / unit, MIN_HEIGHT),
