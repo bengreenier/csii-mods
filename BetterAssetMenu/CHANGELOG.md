@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/bengreenier/csii-mods/compare/better-asset-menu-v1.5.0...better-asset-menu-v1.5.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* docked sidebar and moved bulldozer fit the game's toolbars ([#24](https://github.com/bengreenier/csii-mods/issues/24)) ([d6e69f8](https://github.com/bengreenier/csii-mods/commit/d6e69f80b119e286364f0adfab6a0d3246de1a51))
+
 ## [1.5.0](https://github.com/bengreenier/csii-mods/compare/better-asset-menu-v1.4.0...better-asset-menu-v1.5.0) (2026-11-09)
 
 
